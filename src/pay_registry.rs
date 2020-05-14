@@ -97,7 +97,6 @@ impl<T: Trait> PayRegistry<T> {
         let pay_hash_len = pay_hashes.len();
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
-            
             pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
             if PayInfoMap::<T>::contains_key(&pay_id) {
@@ -179,25 +178,28 @@ impl<T: Trait> PayRegistry<T> {
         
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let pay_id_len = pay_ids.len();
+    
         let mut pay_info;
         for i in 0..pay_id_len {
-            pay_info = match PayInfoMap::<T>::get(pay_ids[i]) {
-                Some(info) => info,
-                None => Err(Error::<T>::PayInfoNotExist)?
-            };
+            if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
+                pay_info = match PayInfoMap::<T>::get(pay_ids[i]) {
+                    Some(info) => info,
+                    None => Err(Error::<T>::PayInfoNotExist)?
+                };
 
-            if pay_info.resolve_deadline.unwrap() == zero_blocknumber {
-                ensure!(
-                    <frame_system::Module<T>>::block_number() > last_pay_resolve_deadline,
-                    "Payment is not finalized"
-                );
-            } else {
-                ensure!(
-                    <frame_system::Module<T>>::block_number() > pay_info.resolve_deadline.unwrap(),
-                    "Payment is not finalized"
-                );
+                if pay_info.resolve_deadline.unwrap_or(zero_blocknumber) == zero_blocknumber {
+                    ensure!(
+                        <frame_system::Module<T>>::block_number() > last_pay_resolve_deadline,
+                        "Payment is not finalized"
+                    );
+                } else {
+                    ensure!(
+                        <frame_system::Module<T>>::block_number() > pay_info.resolve_deadline.unwrap(),
+                        "Payment is not finalized"
+                    );
+                }
                 amounts.push(pay_info.amount.unwrap());
-            }
+            } 
         }
 
         return Ok(amounts[1..].to_vec());

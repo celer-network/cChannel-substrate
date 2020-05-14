@@ -520,6 +520,7 @@ decl_event! (
 decl_error! {
     pub enum Error for Module<T: Trait> {
         Error,
+        PeerNotExist,
         BalanceLimitsNotExist,
         ChannelNotExist,
         WithdrawIntentNotExist,
@@ -658,7 +659,7 @@ impl<T: Trait> Module<T> {
         };
         return Some((
             vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.next_pay_id_list_hash, c.peer_profiles[1].state.next_pay_id_list_hash]
+            vec![c.peer_profiles[0].state.next_pay_id_list_hash.unwrap(), c.peer_profiles[1].state.next_pay_id_list_hash.unwrap()]
         ));
     }
 

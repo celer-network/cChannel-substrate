@@ -54,7 +54,7 @@ pub struct TokenInfo  {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct AccountAmtPair<AccountId, Balance> {
-    pub account: AccountId,
+    pub account: Option<AccountId>,
     pub amt: Balance,
 }
 
@@ -81,14 +81,13 @@ pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance> {
     pub resolve_timeout: BlockNumber,
 }
 
-pub type ConditionalPayOf<T> = 
-    ConditionalPay<
-        <T as pallet_timestamp::Trait>::Moment,
-        <T as system::Trait>::BlockNumber, 
-        <T as system::Trait>::AccountId, 
-        <T as system::Trait>::Hash, 
-        BalanceOf<T>
-    >;
+pub type ConditionalPayOf<T> = ConditionalPay<
+    <T as pallet_timestamp::Trait>::Moment,
+    <T as system::Trait>::BlockNumber, 
+    <T as system::Trait>::AccountId, 
+    <T as system::Trait>::Hash, 
+    BalanceOf<T>
+>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Balance> {
@@ -1071,7 +1070,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1088,7 +1087,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1105,7 +1104,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1122,7 +1121,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1139,7 +1138,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1156,7 +1155,7 @@ pub mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {

@@ -8,6 +8,7 @@ use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
 use crate::celer_wallet::{CelerWallet, WALLET_ID, Wallet, WalletOf};
 use crate::eth_pool::EthPool;
 use crate::pay_registry::PayRegistry;
+use crate::pay_resolver::{TokenTransfer, TokenInfo, AccountAmtPair, TokenType};
 use super::{
     Trait, Module, Error, BalanceOf, ChannelMap, 
     ChannelStatusNums, Wallets, 
@@ -26,7 +27,7 @@ pub enum ChannelStatus {
 pub struct PeerState<Hash, BlockNumber, Balance> {
     pub seq_num: u128,
     pub transfer_out: Balance,
-    pub next_pay_id_list_hash: Hash,
+    pub next_pay_id_list_hash: Option<Hash>,
     pub last_pay_resolve_deadline: BlockNumber,
     pub pending_pay_out: Balance,
 }
@@ -69,12 +70,14 @@ pub struct Channel<AccountId, BlockNumber, Balance, Hash> {
 pub type ChannelOf<T> = Channel<<T as system::Trait>::AccountId, <T as system::Trait>::BlockNumber, BalanceOf<T>, <T as system::Trait>::Hash>;
 
 // ================================= LedgerOperation =============================
+/**
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum TokenType {
     INVALID,
     CELER,
     ERC20,
 }
+
 
 // Currently ETH is only uspported.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -87,6 +90,7 @@ pub struct AccountAmtPair<AccountId, Balance> {
     pub account: AccountId,
     pub amt: Balance,
 }
+*/
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenDistribution<AccountId, Balance> {
@@ -123,11 +127,13 @@ pub struct PayIdList<Hash> {
     pub next_list_hash: Option<Hash>,
 }
 
+/**
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenTransfer<AccountId, Balance> {
     pub token: TokenInfo,
     pub receiver: AccountAmtPair<AccountId, Balance>,
 }
+*/
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct SimplexPaymentChannel<Hash, AccountId, BlockNumber, Balance> {
@@ -253,9 +259,18 @@ impl<T: Trait> LedgerOperation<T> {
             channel_initializer.init_distribution.distribution[0].amt.clone(),
             channel_initializer.init_distribution.distribution[1].amt.clone()
         ];
+
+        let account_1 = match channel_initializer.init_distribution.distribution[0].account.clone() {
+            Some(account) => account,
+            None => return Err(Error::<T>::PeerNotExist)?
+        };
+        let account_2 = match channel_initializer.init_distribution.distribution[1].account.clone() {
+            Some(account) => account,
+            None => return Err(Error::<T>::PeerNotExist)?
+        };
         let peer_addrs: Vec<T::AccountId> = vec![
-            channel_initializer.init_distribution.distribution[0].account.clone(),
-            channel_initializer.init_distribution.distribution[1].account.clone()
+            account_1,
+            account_2
         ];
         /// Enforce asceding order of peer's addresses to simplyfy contract code
         ensure!(
@@ -287,7 +302,7 @@ impl<T: Trait> LedgerOperation<T> {
         let peer_state = PeerStateOf::<T> {
             seq_num: 0,
             transfer_out: zero_balance,
-            next_pay_id_list_hash: zero_hash,
+            next_pay_id_list_hash: None,
             last_pay_resolve_deadline: zero_blocknumber,
             pending_pay_out: zero_balance
         };
@@ -766,7 +781,8 @@ impl<T: Trait> LedgerOperation<T> {
         let receiver = withdraw_info.withdraw.account;
         let amount = withdraw_info.withdraw.amt;
         let zero_balance: BalanceOf<T> = Zero::zero();
-        if receiver == c.peer_profiles[0].peer_addr {
+
+        if receiver.clone().unwrap() == c.peer_profiles[0].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance) + amount; 
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
@@ -787,7 +803,7 @@ impl<T: Trait> LedgerOperation<T> {
             };
 
             ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
-        } else if receiver == c.peer_profiles[1].peer_addr {
+        } else if receiver.clone().unwrap() == c.peer_profiles[1].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance) + amount; 
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
@@ -812,9 +828,9 @@ impl<T: Trait> LedgerOperation<T> {
             Err(Error::<T>::NotChannelPeer)?
         }
 
-        withdraw_funds::<T>(channel_id, receiver.clone(), amount, recipient_channel_id)?;
+        withdraw_funds::<T>(channel_id, receiver.clone().unwrap(), amount, recipient_channel_id)?;
 
-        return Ok((channel_id, amount, receiver, recipient_channel_id, withdraw_info.seq_num));
+        return Ok((channel_id, amount, receiver.unwrap(), recipient_channel_id, withdraw_info.seq_num));
     }
 
     /// Intend to settle channel(s) with an array of signed simplex states
@@ -889,14 +905,28 @@ impl<T: Trait> LedgerOperation<T> {
                     Err(Error::<T>::Error)?
                 }
 
-                /// Update simplex_state-dependent fields
-                let new_state = PeerStateOf::<T> {
-                    seq_num: simplex_state.seq_num,
-                    transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt.clone(),
-                    next_pay_id_list_hash: simplex_state.pending_pay_ids.clone().unwrap().next_list_hash.unwrap(),
-                    last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap().clone(),
-                    pending_pay_out: simplex_state.total_pending_amount.clone().unwrap(),
-                };
+                let hash_zero = zero_hash::<T>();
+                let next_pay_id_list_hash = simplex_state.pending_pay_ids.clone().unwrap().next_list_hash.unwrap_or(hash_zero);
+                let new_state: PeerStateOf<T>;
+                if next_pay_id_list_hash == hash_zero {
+                    // Update simplex_state-dependent fields
+                    new_state = PeerStateOf::<T> {
+                        seq_num: simplex_state.seq_num, 
+                        transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt.clone(),
+                        next_pay_id_list_hash: None,
+                        last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap().clone(),
+                        pending_pay_out: simplex_state.total_pending_amount.clone().unwrap(),
+                    };
+                } else {
+                    // Update simplex_state-dependent fields
+                    new_state = PeerStateOf::<T> {
+                        seq_num: simplex_state.seq_num,
+                        transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt.clone(),
+                        next_pay_id_list_hash: Some(next_pay_id_list_hash),
+                        last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap().clone(),
+                        pending_pay_out: simplex_state.total_pending_amount.clone().unwrap(),
+                    };
+                }
                 let new_peer_profiles_1 = PeerProfileOf::<T> {
                     peer_addr: c.peer_profiles[0].peer_addr.clone(),
                     deposit: c.peer_profiles[0].deposit.clone(),
@@ -948,9 +978,9 @@ impl<T: Trait> LedgerOperation<T> {
                 Err(Error::<T>::Error)?
             }
 
-            if i == state_len {
+            if i == state_len - 1 {
                 update_overall_states_by_intend_state::<T>(current_channel_id.clone())?;
-            } else if i < state_len {
+            } else if i < state_len - 1 {
                 simplex_state = signed_simplex_state_array.signed_simplex_states[i+1].simplex_state.clone();
                 ensure!(
                     current_channel_id <= simplex_state.channel_id,
@@ -985,13 +1015,13 @@ impl<T: Trait> LedgerOperation<T> {
         if peer_from == c.peer_profiles[0].peer_addr {
             let state = c.peer_profiles[0].state.clone();
             ensure!(
-                state.next_pay_id_list_hash == list_hash,
+                state.next_pay_id_list_hash.unwrap() == list_hash,
                 "List hash mismatch"    
             );
             let new_state = PeerStateOf::<T> {
                 seq_num: state.seq_num,
                 transfer_out: state.transfer_out,
-                next_pay_id_list_hash: pay_id_list.next_list_hash.unwrap(),
+                next_pay_id_list_hash: Some(pay_id_list.next_list_hash.unwrap()),
                 last_pay_resolve_deadline: state.last_pay_resolve_deadline,
                 pending_pay_out: state.pending_pay_out
             };
@@ -1018,13 +1048,13 @@ impl<T: Trait> LedgerOperation<T> {
         } else if peer_from == c.peer_profiles[1].peer_addr {
             let state = c.peer_profiles[1].clone().state;
             ensure!(
-                state.next_pay_id_list_hash == list_hash,
+                state.next_pay_id_list_hash.unwrap() == list_hash,
                 "List hash mismatch"
             );
             let new_state = PeerStateOf::<T> {
                 seq_num: state.seq_num,
                 transfer_out: state.transfer_out,
-                next_pay_id_list_hash: pay_id_list.next_list_hash.unwrap(),
+                next_pay_id_list_hash: Some(pay_id_list.next_list_hash.unwrap()),
                 last_pay_resolve_deadline: state.last_pay_resolve_deadline,
                 pending_pay_out: state.pending_pay_out
             };
@@ -1083,9 +1113,9 @@ impl<T: Trait> LedgerOperation<T> {
         let state_2 = peer_profiles[1].state.clone();
         let zero = zero_hash::<T>();
         ensure!(
-            (state_1.next_pay_id_list_hash == zero ||
+            (state_1.next_pay_id_list_hash.unwrap() == zero ||
                 block_number > state_1.last_pay_resolve_deadline) &&
-            (state_2.next_pay_id_list_hash == zero ||
+            (state_2.next_pay_id_list_hash.unwrap() == zero ||
                 block_number > state_2.last_pay_resolve_deadline),
             "Payments are not finalized"
         );
@@ -1135,7 +1165,7 @@ impl<T: Trait> LedgerOperation<T> {
         encoded.extend(settle_info.settle_balance[1].clone().account.encode());
         encoded.extend(settle_info.settle_balance[1].clone().amt.encode());
         encoded.extend(settle_info.settle_deadline.encode());
-        let signers = vec![settle_info.settle_balance[0].account.clone(), settle_info.settle_balance[1].account.clone()];
+        let signers = vec![settle_info.settle_balance[0].account.clone().unwrap(), settle_info.settle_balance[1].account.clone().unwrap()];
         Module::<T>::valid_signers(settle_request.sigs, &encoded, signers)?;
         
         let peer_addrs = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()];
@@ -1148,8 +1178,8 @@ impl<T: Trait> LedgerOperation<T> {
             "seq_num error"
         );
         ensure!(
-            settle_info.settle_balance[0].account == peer_addrs[0] &&
-                settle_info.settle_balance[1].account == peer_addrs[1],
+            settle_info.settle_balance[0].clone().account.unwrap() == peer_addrs[0] &&
+                settle_info.settle_balance[1].clone().account.unwrap() == peer_addrs[1],
             "Settle accounts mismatch"
         );
 
@@ -1382,14 +1412,14 @@ fn _clear_pays<T: Trait>(
             state_1.last_pay_resolve_deadline
         )?;
         let mut total_amt_out: BalanceOf::<T> = Zero::zero();
-        let out_amts_len = out_amts.len() - 1;
+        let out_amts_len = out_amts.len();
         for i in 0..out_amts_len {
             total_amt_out += out_amts[i];
             // TODO emit ClearOnePay event
         }
         let new_transfer_out_1 = state_1.transfer_out + total_amt_out;
         let hash_zero = zero_hash::<T>();
-        if pay_id_list.next_list_hash.unwrap() == hash_zero {
+        if pay_id_list.next_list_hash.unwrap_or(hash_zero) == hash_zero {
             // if there are not more uncleared pays in this state, the pending_pay_out must be 0
             let new_state_1 = PeerStateOf::<T> {
                 seq_num: state_1.seq_num,
@@ -1458,14 +1488,14 @@ fn _clear_pays<T: Trait>(
             state_2.last_pay_resolve_deadline
         )?;
         let mut total_amt_out: BalanceOf::<T> = Zero::zero();
-        let out_amts_len = out_amts.len() - 1;
+        let out_amts_len = out_amts.len();
         for i in 0..out_amts_len {
             total_amt_out += out_amts[i];
             // TODO emit ClearOnePay event
         }
         let new_transfer_out_2 = state_2.transfer_out + total_amt_out;
         let hash_zero = zero_hash::<T>();
-        if pay_id_list.next_list_hash.unwrap() == hash_zero {
+        if pay_id_list.next_list_hash.unwrap_or(hash_zero) == hash_zero {
             // if there are not more uncleared pays in this state, the pending_pay_out must be 0
             let new_state_2 = PeerStateOf::<T> {
                 seq_num: state_2.seq_num,
@@ -1541,7 +1571,8 @@ fn update_overall_states_by_intend_state<T: Trait>(
         None => Err(Error::<T>::NotChannelPeer)?
     };
 
-    let new_setttle_finalized_time: T::BlockNumber = c.settle_finalized_time.unwrap() + c.dispute_timeout;
+    let zero_blocknumber: T::BlockNumber = Zero::zero();
+    let new_setttle_finalized_time: T::BlockNumber = c.settle_finalized_time.unwrap_or(zero_blocknumber) + c.dispute_timeout;
     let new_channel = ChannelOf::<T> {
         balance_limits_enabled: c.balance_limits_enabled,
         balance_limits: c.balance_limits,
@@ -1580,7 +1611,13 @@ fn update_channel_status<T: Trait>(
             Some(num) => num as u8,
             None => 0 as u8
         };
-        let new_nums_1: u8 = status_nums - 1;
+
+        let new_nums_1: u8;
+        if status_nums == 0 {
+            new_nums_1 = 0;
+        } else {
+            new_nums_1 = status_nums - 1;
+        }
         ChannelStatusNums::mutate(c.status as u8, |num| *num = Some(new_nums_1));
     }
 
@@ -1786,7 +1823,8 @@ pub mod tests {
     use sp_runtime::DispatchError;
     use sp_core::{H256, hashing, sr25519, Pair};
     use crate::pay_resolver::tests::*;
-    use crate::pay_resolver::{PayResolver, ConditionalPay, Condition, ResolvePaymentConditionsRequest};
+    use crate::pay_resolver::{PayResolver, ConditionalPay, 
+        Condition, ResolvePaymentConditionsRequest, TokenTransfer, TransferFunction, TransferFunctionType};
     
     #[test]
     fn test_pass_return_uninitialized_status_for_an_inexistent_channel() {
@@ -2568,7 +2606,7 @@ pub mod tests {
             let cooperative_withdraw_request
                 = get_cooperative_withdraw_request(channel_id_1, 1, 200, channel_peers[0], 9999999, channel_id_2, peers_pair_1.clone());
             let err = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap_err();
-            assert_eq!(err, DispatchError::Module { index: 0, error:4, message: Some("NotChannelPeer")}); 
+            assert_eq!(err, DispatchError::Module { index: 0, error:5, message: Some("NotChannelPeer")}); 
         })
     }
 
@@ -2589,7 +2627,7 @@ pub mod tests {
 
             // the meaning of the index: [peer index][pay hash list index][pay index]
             let peers_pay_hash_lists_amts: Vec<Vec<Vec<Balance>>> 
-                = vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]];
+                = vec![vec![vec![10, 20], vec![30, 40]], vec![vec![50, 60], vec![70, 80]]];
             
             let global_result :(
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
@@ -2601,10 +2639,10 @@ pub mod tests {
                 peers_pay_hash_lists_amts,
                 vec![1, 1], // seq_nums
                 vec![10, 20], // transfer amounts
-                vec![999999, 999999],
-                vec![channel_peers[0], channel_peers[0]],
+                vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                channel_peers[1],
+                vec![channel_peers[0], channel_peers[1]],
+                channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()]
             );
 
@@ -2619,11 +2657,14 @@ pub mod tests {
 
             let (pay_id, _amount_1, resolve_deadline)
                 = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
-            
-            let result = PayRegistry::<TestRuntime>::get_pay_amounts(pay_id, 10).unwrap();
-            
 
-            System::set_block_number(System::block_number() + 6);
+            let simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
+            let pay_id_list = simplex_state.pending_pay_ids.unwrap();
+            assert_eq!(pay_id, pay_id_list.pay_ids[0]);
+            assert_eq!(_amount_1, 10);
+
+            let err = PayRegistry::<TestRuntime>::get_pay_amounts(vec![pay_id], 99999).unwrap_err();
+            assert_eq!(err, DispatchError::Other("Payment is not finalized"));
 
             let err = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap_err();
             assert_eq!(err, DispatchError::Other("Payment is not finalized"));
@@ -2723,11 +2764,11 @@ pub mod tests {
 
         if zero_total_deposit == true {
             account_amt_pair_1 = AccountAmtPair {
-                account: channel_peers[0],
+                account: Some(channel_peers[0]),
                 amt: 0
             };
             account_amt_pair_2 = AccountAmtPair {
-                account: channel_peers[1],
+                account: Some(channel_peers[1]),
                 amt: 0
             };
 
@@ -2737,11 +2778,11 @@ pub mod tests {
             };
         } else {
             account_amt_pair_1 = AccountAmtPair {
-                account: channel_peers[0],
+                account: Some(channel_peers[0]),
                 amt: 100
             };
             account_amt_pair_2 = AccountAmtPair {
-                account: channel_peers[1],
+                account: Some(channel_peers[1]),
                 amt: 200
             };
 
@@ -2786,7 +2827,7 @@ pub mod tests {
         channel_pairs: Vec<sr25519::Pair>
     ) -> CooperativeWithdrawRequest<H256, BlockNumber, AccountId, Balance, Signature> {
         let account_amt_pair = AccountAmtPair {
-            account: receiver_account.clone(),
+            account: Some(receiver_account.clone()),
             amt: amount
         };
         let cooperative_withdraw_info = CooperativeWithdrawInfo {
@@ -2866,9 +2907,10 @@ pub mod tests {
             next_list_hash:  None
         };
         let mut head_pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list];
+
         // Initial value pf cond_pay
         let init_conditions = get_condition(1);
-        let init_transfer_func = get_transfer_func(account_key("Alice"), 200, 0);
+        let init_transfer_func = get_transfer_func_2(10);
         let init_cond_pay = ConditionalPay {
             pay_timestamp: 0,
             src: account_key("src"),
@@ -2880,8 +2922,10 @@ pub mod tests {
         };
         let mut cond_pays: Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>> 
             = vec![vec![vec![init_cond_pay.clone(), init_cond_pay.clone()], vec![init_cond_pay.clone(), init_cond_pay.clone()]], vec![vec![init_cond_pay.clone(), init_cond_pay.clone()], vec![init_cond_pay.clone(), init_cond_pay.clone()]]];
+        
         let mut pay_id_list_hash_array: Vec<Vec<H256>> = vec![vec![]];
         let mut total_pending_amounts: Vec<Balance> = vec![];
+        
         let mut channel_id_len = channel_ids.len();
         let mut pay_info : (
             Vec<PayIdList<H256>>,
@@ -2890,12 +2934,17 @@ pub mod tests {
             Balance
         );
 
-        let mut _pay_id_lists: Vec<PayIdList<H256>> = vec![];
+        // Initial value of pay id list
+        let init_pay_id_list = PayIdList {
+            pay_ids: vec![H256::from_low_u64_be(0)],
+            next_list_hash:  None
+        };
+        let mut _pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list.clone(), init_pay_id_list];
         let mut _pay_id_list_hash_array: Vec<H256> = vec![];
         let mut _cond_pay_array:  Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>> = vec![vec![]];
         for i in 0..channel_id_len {   
             pay_info = get_pay_id_list_info(pay_amounts_array[i].clone(), 1);
-            _pay_id_lists = pay_info.0;
+            _pay_id_lists[i] = pay_info.0[i].clone();
             _pay_id_list_hash_array = pay_info.1;
             _cond_pay_array = pay_info.2;
 
@@ -2963,11 +3012,13 @@ pub mod tests {
         };
         // 1-d array PayIdList
         let mut pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list.clone(), init_pay_id_list];
+        
         // 1-d array of PayIdList Hash, for clearing pays in CelerLedger
         let mut pay_id_list_hash_array: Vec<H256> = vec![H256::from_low_u64_be(0), H256::from_low_u64_be(0)];
+        
         // Initial value pf cond_pay
         let init_conditions = get_condition(1);
-        let init_transfer_func = get_transfer_func(account_key("Alice"), 200, 0);
+        let init_transfer_func = get_transfer_func_2(1);
         let init_cond_pay = ConditionalPay {
             pay_timestamp: 0,
             src: account_key("src"),
@@ -3001,14 +3052,14 @@ pub mod tests {
                     conditions = get_condition(2);
                 }
 
-                let transfer_func = get_transfer_func(account_key("Alice"), 200, 0);
+                let transfer_func = get_transfer_func_2(pay_amounts[i][j]);
                 cond_pay_array[i][j] = ConditionalPay {
                     pay_timestamp: Timestamp::get() + j as u64,
                     src: account_key("src"),
                     dest: account_key("dest"),
                     conditions: vec![conditions],
                     transfer_func: transfer_func,
-                    resolve_deadline: 99999,
+                    resolve_deadline: 999999,
                     resolve_timeout: 10,
                 };
                 let encoded_cond_pay = encode_conditional_pay(cond_pay_array[i][j].clone());
@@ -3041,8 +3092,6 @@ pub mod tests {
             }
             i = i - 1;
         }
-        
-        assert_eq!(pay_id_lists.len(), 2);
     
         return (
             pay_id_lists,
@@ -3187,7 +3236,7 @@ pub mod tests {
         amount: Balance
     ) -> TokenTransfer<AccountId, Balance> {
         let account_amt_pair = AccountAmtPair {
-            account: account,
+            account: Some(account),
             amt: amount
         };
 
@@ -3201,5 +3250,30 @@ pub mod tests {
         };
 
         return token_transfer;
+    }
+
+    fn get_transfer_func_2(
+        amount: Balance
+    ) -> TransferFunction<AccountId, Balance> {
+        let account_amt_pair = AccountAmtPair {
+            account: None,
+            amt: amount
+        };
+
+        let token_info = TokenInfo {
+            token_type: TokenType::CELER
+        };
+
+        let token_transfer = TokenTransfer {
+            token: token_info,
+            receiver: account_amt_pair
+        };
+
+        let transfer_func = TransferFunction {
+            logic_type: TransferFunctionType::BooleanAnd,
+            max_transfer: token_transfer
+        };
+        
+        return transfer_func;
     }
 }
