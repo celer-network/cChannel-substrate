@@ -465,7 +465,7 @@ fn account_id<T: Trait>() -> T::AccountId {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::mock::{self, *};
     use super::*;
     use sp_runtime::DispatchError;
@@ -979,7 +979,7 @@ mod tests {
         assert_eq!(_resolve_deadline, System::block_number() + 10);
     }
 
-    fn encode_conditional_pay(
+    pub fn encode_conditional_pay(
         r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>
     ) -> std::vec::Vec<u8> {
         let pay = r#cond_pay;
@@ -1006,7 +1006,7 @@ mod tests {
         return encoded;
     }
 
-    fn get_condition(r#type: u8) 
+    pub fn get_condition(r#type: u8) 
         -> Condition<AccountId, H256>{
         if r#type == 0 {
             let condition_hash_lock = Condition {
@@ -1061,7 +1061,7 @@ mod tests {
         }
     }
 
-    fn get_transfer_func(
+    pub fn get_transfer_func(
         r#account: AccountId,
         r#amount: Balance,
         r#type: u8

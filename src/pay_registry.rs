@@ -19,9 +19,10 @@ pub type PayInfoOf<T> = PayInfo<BalanceOf<T>, <T as system::Trait>::BlockNumber>
 pub struct PayRegistry<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: Trait> PayRegistry<T> {
-    pub fn calculate_pay_id(pay_hash: T::Hash, setter: T::AccountId) -> T::Hash {
+    pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
+        let resolver_account = resolver_account_id::<T>();
         let mut encoded = pay_hash.encode();
-        encoded.extend(setter.encode());
+        encoded.extend(resolver_account.encode());
         let pay_id = T::Hashing::hash(&encoded);
         return pay_id;
     }
@@ -30,8 +31,7 @@ impl<T: Trait> PayRegistry<T> {
         pay_hash: T::Hash, 
         amt: BalanceOf<T>
     ) -> Result<(), DispatchError> {
-        let resolver_account = resolver_account_id::<T>();
-        let pay_id = Self::calculate_pay_id(pay_hash, resolver_account);
+        let pay_id = Self::calculate_pay_id(pay_hash);
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
             let new_pay_info = PayInfoOf::<T> {
@@ -54,8 +54,7 @@ impl<T: Trait> PayRegistry<T> {
         pay_hash: T::Hash, 
         deadline: T::BlockNumber
     ) -> Result<(), DispatchError> {
-        let resolver_account = resolver_account_id::<T>();
-        let pay_id = Self::calculate_pay_id(pay_hash, resolver_account);
+        let pay_id = Self::calculate_pay_id(pay_hash);
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
             let new_pay_info = PayInfoOf::<T> {
@@ -79,8 +78,7 @@ impl<T: Trait> PayRegistry<T> {
         amt: BalanceOf<T>,
         deadline: T::BlockNumber
     ) -> Result<(), DispatchError> {
-        let resolver_account = resolver_account_id::<T>();
-        let pay_id = Self::calculate_pay_id(pay_hash, resolver_account);
+        let pay_id = Self::calculate_pay_id(pay_hash);
         let new_pay_info = PayInfoOf::<T> {
             amount: Some(amt),
             resolve_deadline: Some(deadline)
@@ -96,12 +94,11 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
-        let resolver_account = resolver_account_id::<T>();
         let pay_hash_len = pay_hashes.len();
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
             
-            pay_id = Self::calculate_pay_id(pay_hashes[i], resolver_account.clone());
+            pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
@@ -128,11 +125,10 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == deadlines.len(), "Lengths do not match");
 
-        let resolver_account = resolver_account_id::<T>();
         let pay_hash_len = pay_hashes.len();
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
-            pay_id = Self::calculate_pay_id(pay_hashes[i], resolver_account.clone());
+            pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
@@ -160,11 +156,10 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
-        let resolver_account = resolver_account_id::<T>();
         let pay_hash_len = pay_hashes.len();
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
-            pay_id = Self::calculate_pay_id(pay_hashes[i], resolver_account.clone());
+            pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
            let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amts[i]),
