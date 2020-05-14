@@ -1,0 +1,90 @@
+[package]
+name = "celer-module"
+version = "1.0.0"
+auhros = ["Celer"]
+edition = "2018"
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-balances/std",
+	"node-primitives/std",
+	"serde",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"pallet-timestamp/std",
+]
+
+[dependencies.serde]
+features = ['derive']
+optional = true
+version = '1.0.101'
+
+[dependencies.codec]
+default-features = false
+features = ['derive']
+package = 'parity-scale-codec'
+version = '1.2.0'
+
+[dependencies.frame-support]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.sp-core]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.sp-io]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.sp-runtime]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.frame-system]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'frame-system'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.node-primitives]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'node-primitives'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.pallet-balances]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'pallet-balances'
+rev =  'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.sp-std]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
+
+[dependencies.pallet-timestamp]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'pallet-timestamp'
+rev =  'd1b9ccad107e4899978858de5ddd2868b9777aab'
+version = '2.0.0-alpha.5'
