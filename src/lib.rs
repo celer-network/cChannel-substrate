@@ -549,6 +549,15 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
+    // Emit IntendSettle event
+    pub fn emit_intend_settle(
+        channel_id: T::Hash,
+        seq_nums: Vec<u128>
+    ) -> Result<(), DispatchError> {
+        Self::deposit_event(RawEvent::IntendSettle(channel_id, vec![seq_nums[0], seq_nums[1]]));
+        Ok(())
+    }
+
     // Emit ConfirmSettle event
     pub fn emit_confirm_settle(
         channel_id: T::Hash, 
@@ -563,6 +572,17 @@ impl<T: Trait> Module<T> {
         channel_id: T::Hash
     ) -> Result<(), DispatchError> {
         Self::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
+        Ok(())
+    }
+
+    // Emit ClearOnePay event
+    pub fn emit_clear_one_pay(
+        channel_id: T::Hash,
+        pay_id: T::Hash,
+        peer_from: T::AccountId,
+        amount: BalanceOf<T>
+    ) -> Result<(), DispatchError> {
+        Self::deposit_event(RawEvent::ClearOnePay(channel_id, pay_id, peer_from, amount));
         Ok(())
     }
 
