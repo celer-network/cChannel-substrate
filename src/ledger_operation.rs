@@ -3289,7 +3289,7 @@ pub mod tests {
                 peers_pay_hash_lists_amts,
                 vec![1, 1], // seq_nums
                 vec![10, 20], // transfer amounts
-                vec![99999, 99999], // last_pay_resolve_deadlines
+                vec![10, 10], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
@@ -3331,15 +3331,13 @@ pub mod tests {
             assert_eq!(next_list_hash.unwrap(), hash);
 
             for peer_index in 0..2 {
-                for list_index in 0..2 {
-                    assert_ok!(
-                        LedgerOperation::<TestRuntime>::clear_pays(
-                            channel_id, 
-                            channel_peers[peer_index as usize], 
-                            pay_id_list_array[peer_index as usize][list_index as usize].clone()
-                        )
+                assert_ok!(
+                    LedgerOperation::<TestRuntime>::clear_pays(
+                        channel_id, 
+                        channel_peers[peer_index as usize], 
+                        pay_id_list_array[peer_index as usize][1].clone()
                     )
-                }
+                )
             }
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
@@ -3355,6 +3353,101 @@ pub mod tests {
             assert_eq!(transfer_out, [10, 20]);
 
             assert_ok!(LedgerOperation::<TestRuntime>::confirm_settle(channel_id));
+        })
+    }
+
+    #[test]
+    fn test_pass_open_channel_when_total_deposit_is_larger_than_zero() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
+
+            let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>)
+                = CelerModule::get_balance_map(channel_id);
+            assert_eq!(deposits, [100, 200]);
+        })
+    }
+
+    #[test]
+    fn test_pass_open_channel_when_total_deposit_is_larger_than_zero_and_msg_value_receiver_is_1_and_caller_is_not_peers() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let risa = account_key("Risa");
+            
+            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(risa), open_channel_request, 200).unwrap();
+
+            let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>)
+                = CelerModule::get_balance_map(channel_id);
+            assert_eq!(deposits, [100, 200]);
+        })
+    }
+
+    #[test]
+    fn test_fail_cooperative_settle_when_submitted_sum_is_not_equal_to_deposit_sum() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 800, 500000, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 5, 0)
+            );
+
+            let cooperative_settle_request = get_cooperative_settle_request(channel_id, 2, channel_peers, vec![200, 200], 500000, peers_pair);
+
+            let err = LedgerOperation::<TestRuntime>::cooperative_settle(cooperative_settle_request).unwrap_err();
+            assert_eq!(err, DispatchError::Other("Balance sum mismatch"));
+        })
+    }
+
+    #[test]
+    fn test_pass_cooperative_settle() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 800, 500000, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 200, 0)
+            );
+
+            let cooperative_settle_request = get_cooperative_settle_request(channel_id, 2, channel_peers, vec![150, 50], 500000, peers_pair);
+
+            let total_balance = Module::<TestRuntime>::get_total_balance(channel_id);
+            assert_eq!(total_balance, 200);
+            
+            let (channel_id, settle_balance): (H256, Vec<Balance>)
+                = LedgerOperation::<TestRuntime>::cooperative_settle(cooperative_settle_request).unwrap();
+            assert_eq!(settle_balance, [150, 50]);
         })
     }
 
@@ -3629,6 +3722,7 @@ pub mod tests {
             pay_ids: vec![H256::from_low_u64_be(0)],
             next_list_hash:  None
         };
+        let mut head_pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list.clone(), init_pay_id_list.clone()];
         let mut _pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list.clone(), init_pay_id_list.clone()];
         let mut _pay_id_list_hash_array: Vec<H256> = vec![H256::from_low_u64_be(0).clone(), H256::from_low_u64_be(0)];
         let mut _cond_pay_array:  Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>> = vec![vec![]];
@@ -3638,7 +3732,7 @@ pub mod tests {
             _pay_id_lists[i] = pay_info.0[i].clone();
             _cond_pay_array = pay_info.2;
 
-            head_pay_id_lists[0] = _pay_id_lists[0].clone();
+            head_pay_id_lists[i] = pay_info.0[0].clone();
             pay_id_list_hash_array.push(pay_info.1.clone());
             cond_pays[i] = _cond_pay_array;
             total_pending_amounts.push(pay_info.3);
@@ -3659,7 +3753,7 @@ pub mod tests {
                     peer_froms[i],
                     seq_nums[i],
                     transfer_amounts[i],
-                    _pay_id_lists[i].clone(),
+                    head_pay_id_lists[i].clone(),
                     last_pay_resolve_deadlines[i],
                     total_pending_amounts[i],
                     receiver_account,
@@ -3927,6 +4021,47 @@ pub mod tests {
         };
     
         return signed_simplex_state;
+    }
+
+    fn get_cooperative_settle_request(
+        channel_id: H256,
+        seq_num: u128,
+        channel_peers: Vec<AccountId>,
+        settle_amounts: Vec<Balance>,
+        settle_deadline: BlockNumber,
+        peers_pairs: Vec<sr25519::Pair>
+    ) -> CooperativeSettleRequest<H256, BlockNumber, AccountId, Balance, Signature> {
+        let account_amt_pair_1 = AccountAmtPair {
+            account: Some(channel_peers[0]),
+            amt: settle_amounts[0]
+        };
+        let account_amt_pair_2 = AccountAmtPair {
+            account: Some(channel_peers[1]),
+            amt: settle_amounts[1]
+        };
+        let settle_info = CooperativeSettleInfo {
+            channel_id: channel_id,
+            seq_num: seq_num,
+            settle_balance: vec![account_amt_pair_1, account_amt_pair_2],
+            settle_deadline: settle_deadline
+        };
+
+        let mut encoded = settle_info.channel_id.encode();
+        encoded.extend(settle_info.seq_num.encode());
+        encoded.extend(settle_info.settle_balance[0].clone().account.encode());
+        encoded.extend(settle_info.settle_balance[0].clone().amt.encode());
+        encoded.extend(settle_info.settle_balance[1].clone().account.encode());
+        encoded.extend(settle_info.settle_balance[1].clone().amt.encode());
+        encoded.extend(settle_info.settle_deadline.encode()); 
+        let sig_1 = peers_pairs[0].sign(&encoded);
+        let sig_2 = peers_pairs[1].sign(&encoded);
+
+        let cooperative_settle_request = CooperativeSettleRequest {
+            settle_info: settle_info,
+            sigs: vec![sig_1, sig_2]
+        };
+
+        return cooperative_settle_request;
     }
 
     fn get_token_transfer(
