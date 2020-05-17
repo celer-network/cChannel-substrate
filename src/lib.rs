@@ -352,7 +352,11 @@ decl_module! {
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
             let _ = ensure_signed(origin)?;
-            LedgerOperation::<T>::confirm_settle(channel_id)?;
+            let (_channel_id, _settle_balance) = LedgerOperation::<T>::confirm_settle(channel_id)?;
+            Self::deposit_event(RawEvent::ConfirmSettle(
+                _channel_id,
+                _settle_balance
+            ));
             Ok(())
         }
 
@@ -520,6 +524,7 @@ decl_event! (
 decl_error! {
     pub enum Error for Module<T: Trait> {
         Error,
+        PeerNotExist,
         BalanceLimitsNotExist,
         ChannelNotExist,
         WithdrawIntentNotExist,
@@ -548,20 +553,31 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    // Emit ConfirmSettle event
-    pub fn emit_confirm_settle(
-        channel_id: T::Hash, 
-        settle_balance: Vec<BalanceOf<T>>
+    // Emit IntendSettle event
+    pub fn emit_intend_settle(
+        channel_id: T::Hash,
+        seq_nums: Vec<u128>
     ) -> Result<(), DispatchError> {
-        Self::deposit_event(RawEvent::ConfirmSettle(channel_id, settle_balance));
+        Self::deposit_event(RawEvent::IntendSettle(channel_id, vec![seq_nums[0], seq_nums[1]]));
         Ok(())
-    } 
+    }
 
     // Emit ConfirmSettleFail event
     pub fn emit_confirm_settle_fail(
         channel_id: T::Hash
     ) -> Result<(), DispatchError> {
         Self::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
+        Ok(())
+    }
+
+    // Emit ClearOnePay event
+    pub fn emit_clear_one_pay(
+        channel_id: T::Hash,
+        pay_id: T::Hash,
+        peer_from: T::AccountId,
+        amount: BalanceOf<T>
+    ) -> Result<(), DispatchError> {
+        Self::deposit_event(RawEvent::ClearOnePay(channel_id, pay_id, peer_from, amount));
         Ok(())
     }
 
@@ -656,9 +672,11 @@ impl<T: Trait> Module<T> {
             Some(channel) => channel,
             None => return None
         };
+
+        let hash_zero = Self::zero_hash();
         return Some((
             vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.next_pay_id_list_hash, c.peer_profiles[1].state.next_pay_id_list_hash]
+            vec![c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(hash_zero), c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(hash_zero)]
         ));
     }
 
@@ -726,6 +744,33 @@ impl<T: Trait> Module<T> {
             None => return None
         };
         return Some(c.balance_limits_enabled);
+    }
+
+    // Return migration info of the peers in the channel
+    pub fn get_peers_migration_info(
+        channel_id: T::Hash
+    ) -> Option<(
+        Vec<T::AccountId>,
+        Vec<BalanceOf<T>>,
+        Vec<BalanceOf<T>>,
+        Vec<u128>,
+        Vec<BalanceOf<T>>,
+        Vec<BalanceOf<T>>
+    )> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        let zero_balance: BalanceOf<T> = Zero::zero();
+
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+            vec![c.peer_profiles[0].withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].withdrawal.unwrap_or(zero_balance)],
+            vec![c.peer_profiles[0].state.seq_num, c.peer_profiles[1].state.seq_num],
+            vec![c.peer_profiles[0].state.transfer_out, c.peer_profiles[1].state.transfer_out],
+            vec![c.peer_profiles[0].state.pending_pay_out, c.peer_profiles[1].state.pending_pay_out]
+        ));
     }
     
     /**
