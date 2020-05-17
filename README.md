@@ -47,7 +47,6 @@ rustup update
 5. Build celer pallet
 
 ```
-cd frame
 cargo build --release
 ```
 
