@@ -434,7 +434,7 @@ impl<T: Trait> LedgerOperation<T> {
         }
         
         Ok(())
-    }
+    }   
 
     /// Strore signed simplex states on-chain as checkpoints
     pub fn snapshot_states(
@@ -469,8 +469,7 @@ impl<T: Trait> LedgerOperation<T> {
                 encoded.extend(signed_simplex_state_array.signed_simplex_states[i].clone().simplex_state.pending_pay_ids.unwrap().pay_ids[j].encode());
             }
             let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
-            
-            let channel_peer = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[0].peer_addr.clone()];
+            let channel_peer = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()];
             Module::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
             let mut state: PeerStateOf<T>;
@@ -490,7 +489,7 @@ impl<T: Trait> LedgerOperation<T> {
             state.transfer_out = simplex_state.transfer_to_peer.clone().unwrap().receiver.amt;
             state.pending_pay_out = simplex_state.total_pending_amount.unwrap();
 
-            if i == state_len {
+            if i == state_len - 1 {
                 let current_channel: ChannelOf<T> = match ChannelMap::<T>::get(current_channel_id) {
                     Some(channel) => channel,
                     None => Err(Error::<T>::ChannelNotExist)?
@@ -499,7 +498,7 @@ impl<T: Trait> LedgerOperation<T> {
                 let seq_nums = get_state_seq_nums::<T>(current_channel_id);
                 Module::<T>::emit_snapshot_states(current_channel_id, seq_nums[0], seq_nums[1])?;
                
-            } else if i < state_len {
+            } else if i < state_len - 1 {
                 simplex_state = signed_simplex_state_array.signed_simplex_states[i+1].simplex_state.clone();
                 // enforce channel_ids of simplex states are ascending
                 ensure!(
@@ -4124,8 +4123,7 @@ pub mod tests {
         })
     }
 
-    // TODO: Fix
-    //#[test]
+    #[test]
     fn test_pass_snapshot_states_and_then_intend_withdraw_and_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4138,7 +4136,7 @@ pub mod tests {
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
-                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
+                = get_open_channel_request(true, 1000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id 
                 = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
 
@@ -4146,24 +4144,49 @@ pub mod tests {
             let pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
             let pay_id_list = pay_id_list_info.0[0].clone();
             let total_pending_amount = pay_id_list_info.3;
-            let signed_simplex_state = get_co_signed_simplex_state(
-                channel_id,
-                channel_peers[1],
-                5,
-                100,
-                pay_id_list,
-                99999,
-                total_pending_amount,
-                channel_peers[0],
+            let signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![100],
+                vec![99999],
+                vec![pay_id_list],
+                vec![channel_peers[1].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount],
+                channel_peers[1].clone(),
                 peers_pair.clone()
             );
-            let signed_simplex_state_array = SignedSimplexStateArray {
-                signed_simplex_states: vec![signed_simplex_state]
-            };
 
             assert_ok!(
                 LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
             );
+
+            // intend withdraw
+            let zero_vec = vec![0 as u8];
+            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let (_channel_id, _receiver_1, _amount_1) = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 100, zero_channel_id).unwrap();
+            assert_eq!(_channel_id, channel_id);
+            assert_eq!(_receiver_1, channel_peers[0].clone());
+            assert_eq!(_amount_1, 100);
+
+            System::set_block_number(System::block_number() + 10);
+
+            // confirm withdraw
+            let (_amount_2, _reciever_2, _recipient_channel_id) = LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap();
+            assert_eq!(_amount_2, 100);
+            assert_eq!(_reciever_2, channel_peers[0].clone()); 
+            assert_eq!(_recipient_channel_id, zero_channel_id);
+           
+            // get total balance
+            let balance_amt = CelerModule::get_total_balance(channel_id);
+            assert_eq!(balance_amt, 200);
+
+            // get balance map
+            let (_channel_peers,  _deposits, _withdrawals)
+                = CelerModule::get_balance_map(channel_id);
+            assert_eq!(_channel_peers, channel_peers);
+            assert_eq!(_deposits, [100, 200]);
+            assert_eq!(_withdrawals, [100, 0]);
         })
     }
 
@@ -4230,14 +4253,6 @@ pub mod tests {
             assert_eq!(_withdrawals, [50, 0]);
         })
     }
-
-    // TODO
-    // #[test]
-    // fn test_fail_intend_settle_with_smaller_seq_num_than_snapshot() {}
-
-    // TODO
-    // #[test]
-    // fn test_pass_intend_settle_when_same_seq_num_as_snapshot() {}
 
     #[test]
     fn test_fail_intend_withdraw_after_intend_settle() {
@@ -4391,9 +4406,12 @@ pub mod tests {
         })
     }
 
-    // TODO
-    // #[test]
-    // fn test_pass_deposit_in_batch() {}
+    #[test]
+    fn test_pass_deposit_in_batch() {
+        ExtBuilder::build().execute_with(|| {
+            
+        })
+    }
 
     #[test]
     fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_cooperative_withdraw() {
