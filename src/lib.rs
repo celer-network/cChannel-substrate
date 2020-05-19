@@ -225,21 +225,22 @@ decl_module! {
             transfer_from_amounts: Vec<BalanceOf<T>>
         ) -> Result<(), DispatchError> {
             let _ = ensure_signed(origin.clone())?;
+            
             ensure!(
                 channel_ids.len() == receivers.len() && 
-                receivers.len() == amounts.len() &&
+                receivers.len() == amounts.len() && 
                 amounts.len() == transfer_from_amounts.len(),
                 "Length do not match"
             );
-            let len = channel_ids.len() - 1;
-            for i in 0..len {
+            
+            for i in 0..channel_ids.len() {
                 LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), amounts[i], transfer_from_amounts[i])?;
                 let c = match Self::channel_map(channel_ids[i]) {
                     Some(channel) => channel,
                     None => return Err(Error::<T>::ChannelNotExist)?
                 };
                 let zero_balance: BalanceOf<T> = Zero::zero();
-                
+
                 Self::deposit_event(RawEvent::Deposit(
                     channel_ids[i],
                     vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],

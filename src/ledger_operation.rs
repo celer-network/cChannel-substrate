@@ -4409,7 +4409,39 @@ pub mod tests {
     #[test]
     fn test_pass_deposit_in_batch() {
         ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let deposit_account = account_key("Carl");
             
+            approve(deposit_account, ledger_addr, 10000);
+
+            let mut channel_ids: Vec<H256> = vec![];
+            // open 2 new channel
+            for i in 0..2 {
+                let mut open_channel_request
+                    = get_open_channel_request(true, 100000, 50000 + i, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+                let mut channel_id 
+                    = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
+                channel_ids.push(channel_id);
+            }
+
+            // a non peer address approve to ledger address
+            EthPool::<TestRuntime>::deposit_pool(Origin::signed(deposit_account), deposit_account, 10000);
+            approve(deposit_account, ledger_addr, 10000);
+            let receivers = vec![channel_peers[0].clone(), channel_peers[1].clone()];
+            let amounts = vec![100, 200];
+
+            assert_ok!(
+                CelerModule::deposit_in_batch(Origin::signed(deposit_account), channel_ids.clone(), receivers, vec![0, 0], amounts)
+            );
+
+            let (_, deposits_1, _) = CelerModule::get_balance_map(channel_ids[0].clone());
+            let (_, deposits_2, _) = CelerModule::get_balance_map(channel_ids[1].clone());
+            assert_eq!(deposits_1, [100, 0]);
+            assert_eq!(deposits_2, [0, 200]);
         })
     }
 
