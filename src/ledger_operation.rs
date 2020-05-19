@@ -473,10 +473,13 @@ impl<T: Trait> LedgerOperation<T> {
             Module::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
             let mut state: PeerStateOf<T>;
+            let peer_from_id: u8;
             if c.peer_profiles[0].peer_addr == simplex_state.peer_from.clone().unwrap() {
                 state = c.peer_profiles[0].clone().state;
+                peer_from_id = 0;
             } else {
                 state = c.peer_profiles[1].clone().state;
+                peer_from_id = 1;
             }
             
             ensure!(
@@ -485,9 +488,61 @@ impl<T: Trait> LedgerOperation<T> {
             );
 
             // No need to update nextPayIdListHash and lastPayResolveDeadline for snapshot purpose
-            state.seq_num = simplex_state.seq_num;
-            state.transfer_out = simplex_state.transfer_to_peer.clone().unwrap().receiver.amt;
-            state.pending_pay_out = simplex_state.total_pending_amount.unwrap();
+            if peer_from_id == 0  {
+                let new_state = PeerStateOf::<T> {
+                    seq_num: simplex_state.seq_num,
+                    transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt,
+                    next_pay_id_list_hash: state.next_pay_id_list_hash,
+                    last_pay_resolve_deadline: state.last_pay_resolve_deadline,
+                    pending_pay_out: simplex_state.total_pending_amount.unwrap(),
+                };
+                let new_peer_profiles_1 = PeerProfileOf::<T> {
+                    peer_addr: c.peer_profiles[0].peer_addr.clone(),
+                    deposit: c.peer_profiles[0].deposit,
+                    withdrawal: c.peer_profiles[0].withdrawal,
+                    state: new_state
+                };
+                let new_channel = ChannelOf::<T> {
+                    balance_limits_enabled: c.balance_limits_enabled,
+                    balance_limits: c.balance_limits,
+                    settle_finalized_time: c.settle_finalized_time,
+                    dispute_timeout: c.dispute_timeout,
+                    token: c.token,
+                    status: c.status,
+                    peer_profiles: vec![new_peer_profiles_1, c.peer_profiles[1].clone()],
+                    cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
+                    withdraw_intent: c.withdraw_intent
+                };
+
+                ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel));
+            } else {
+                let new_state = PeerStateOf::<T> {
+                    seq_num: simplex_state.seq_num,
+                    transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt,
+                    next_pay_id_list_hash: state.next_pay_id_list_hash,
+                    last_pay_resolve_deadline: state.last_pay_resolve_deadline,
+                    pending_pay_out: simplex_state.total_pending_amount.unwrap(),
+                };
+                let new_peer_profiles_2 = PeerProfileOf::<T> {
+                    peer_addr: c.peer_profiles[1].peer_addr.clone(),
+                    deposit: c.peer_profiles[1].deposit,
+                    withdrawal: c.peer_profiles[1].withdrawal,
+                    state: new_state
+                };
+                let new_channel = ChannelOf::<T> {
+                    balance_limits_enabled: c.balance_limits_enabled,
+                    balance_limits: c.balance_limits,
+                    settle_finalized_time: c.settle_finalized_time,
+                    dispute_timeout: c.dispute_timeout,
+                    token: c.token,
+                    status: c.status,
+                    peer_profiles: vec![c.peer_profiles[0].clone(), new_peer_profiles_2],
+                    cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
+                    withdraw_intent: c.withdraw_intent
+                };
+
+                ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel));
+            }
 
             if i == state_len - 1 {
                 let current_channel: ChannelOf<T> = match ChannelMap::<T>::get(current_channel_id) {
@@ -4446,6 +4501,127 @@ pub mod tests {
     }
 
     #[test]
+    fn test_fail_intend_settle_with_smaller_seq_num_than_snapshot() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 1000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
+
+            // snapshot_states()
+            let mut pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
+            let mut pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
+            let mut total_pending_amount_1 = pay_id_list_info.3;
+            let mut signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![100],
+                vec![99999],
+                pay_id_lists_1,
+                vec![channel_peers[1].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount_1],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
+            );
+
+            pay_id_list_info = get_pay_id_list_info(vec![vec![2, 4]], 1);
+            let pay_id_lists_2 = vec![pay_id_list_info.0[0].clone()];
+            let total_pending_amount_2 = pay_id_list_info.3;
+
+            let local_signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![4],
+                vec![10],
+                vec![1],
+                pay_id_lists_2,
+                vec![channel_peers[1]],
+                channel_peers.clone(),
+                vec![total_pending_amount_2],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+
+            let err = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), local_signed_simplex_state_array).unwrap_err();
+            assert_eq!(err, DispatchError::Other("seqNum error"));
+        })
+    }
+
+    #[test]
+    fn test_pass_intend_settle_when_same_seq_num_as_snapshot() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 1000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
+
+            // snapshot_states()
+            let mut pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
+            let mut pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
+            let mut total_pending_amount_1 = pay_id_list_info.3;
+            let mut signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![100],
+                vec![99999],
+                pay_id_lists_1,
+                vec![channel_peers[1].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount_1],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
+            );
+
+            pay_id_list_info = get_pay_id_list_info(vec![vec![2, 4]], 1);
+            let pay_id_lists_2 = vec![pay_id_list_info.0[0].clone()];
+            let total_pending_amount_2 = pay_id_list_info.3;
+
+            let local_signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![10],
+                vec![1],
+                pay_id_lists_2,
+                vec![channel_peers[1]],
+                channel_peers.clone(),
+                vec![total_pending_amount_2],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), local_signed_simplex_state_array)
+            )
+        })
+    }
+
+    #[test]
     fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_cooperative_withdraw() {
         ExtBuilder::build().execute_with(|| {
             // open a new channel and deposit some funds
@@ -4480,18 +4656,159 @@ pub mod tests {
         })
     }
 
-    // TODO:
-    // #[test]
-    // fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_its_own_state() {}
+    #[test]
+    fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_its_own_state() {
+        ExtBuilder::build().execute_with(|| {
+            // open a new channel and deposit some funds
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 300, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 50, 0)
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[1]), channel_id, channel_peers[1], 150, 0)
+            );
 
-    // TODO:
-    // #[test]
-    // fn test_pass_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {}
+            let zero_vec = vec![0 as u8];
+            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let _ = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 35, zero_channel_id).unwrap();
+            System::set_block_number(System::block_number() + 10);
 
-    // TOOD:
-    // #[test]
-    // fn test_fail_confirm_withdraw_amount_including_peers_total_pending_amount_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {}
+            // snapshotStates: peer 0 trnasfers out 10; pending amout 10
+            let pay_id_list_info = get_pay_id_list_info(vec![vec![5, 5]], 1);
+            let pay_id_list = pay_id_list_info.0[0].clone();
+            let total_pending_amount = pay_id_list_info.3;
+            let signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![10],
+                vec![99999],
+                vec![pay_id_list],
+                vec![channel_peers[0].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
+            );
 
+            let err = LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap_err();
+            assert_eq!(err, DispatchError::Other("Exceed withdraw limit"));
+        })
+    }
+
+    #[test]
+    fn test_pass_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {
+        ExtBuilder::build().execute_with(|| {
+            // open a new channel and deposit some funds
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 300, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 50, 0)
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[1]), channel_id, channel_peers[1], 150, 0)
+            );
+
+            let zero_vec = vec![0 as u8];
+            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let _ = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 60, zero_channel_id).unwrap();
+            System::set_block_number(System::block_number() + 10);
+
+            // snapshotStates: peer 0 trnasfers out 10; pending amout 10
+            let pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
+            let pay_id_list = pay_id_list_info.0[0].clone();
+            let total_pending_amount = pay_id_list_info.3;
+            let signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![10],
+                vec![99999],
+                vec![pay_id_list],
+                vec![channel_peers[1].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
+            );
+
+             let (amount, _, _) = LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap();
+            assert_eq!(amount, 60);
+            
+            let (_, _deposits, _withdrawals) = CelerModule::get_balance_map(channel_id);
+            assert_eq!(_deposits, [50, 150]);
+            assert_eq!(_withdrawals, [60, 0]);
+        })
+    }
+
+    #[test]
+    fn test_fail_confirm_withdraw_amount_including_peers_total_pending_amount_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {
+        ExtBuilder::build().execute_with(||{
+            // open a new channel and deposit some funds
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 300, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 50, 0)
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[1]), channel_id, channel_peers[1], 150, 0)
+            );
+
+            let zero_vec = vec![0 as u8];
+            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let _ = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 65, zero_channel_id).unwrap();
+            System::set_block_number(System::block_number() + 10);
+
+            // snapshotStates: peer 0 trnasfers out 10; pending amout 10
+            let pay_id_list_info = get_pay_id_list_info(vec![vec![5, 5]], 1);
+            let pay_id_list = pay_id_list_info.0[0].clone();
+            let total_pending_amount = pay_id_list_info.3;
+            let signed_simplex_state_array = get_signed_simplex_state_array(
+                vec![channel_id],
+                vec![5],
+                vec![10],
+                vec![99999],
+                vec![pay_id_list],
+                vec![channel_peers[1].clone()],
+                channel_peers.clone(),
+                vec![total_pending_amount],
+                channel_peers[1].clone(),
+                peers_pair.clone()
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
+            );
+
+            let err = LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap_err();
+            assert_eq!(err, DispatchError::Other("Exceed withdraw limit"));
+        })
+    }
 
     // get the original indices of a sorted array
     fn get_sort_indices(to_sort: Vec<H256>) -> Vec<usize> {
