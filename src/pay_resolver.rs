@@ -148,27 +148,7 @@ impl<T: Trait> PayResolver<T> {
             Err(Error::<T>::Error)?
         }
 
-        let mut encoded = pay.pay_timestamp.encode();
-        encoded.extend(pay.src.encode());
-        encoded.extend(pay.dest.encode());
-        encoded.extend(pay.conditions.encode());
-        encoded.extend(pay.transfer_func.logic_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
-        encoded.extend(pay.resolve_deadline.encode());
-        encoded.extend(pay.resolve_timeout.encode());
-        let condition_len = pay.conditions.len();
-        let mut hash_lock_len: usize;
-        for i in 0..condition_len {
-            encoded.extend(pay.conditions[i].clone().condition_type.encode());
-            encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-            encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
-        }
-
+        let encoded = encode_conditional_pay::<T>(pay.clone());
         let pay_hash = T::Hashing::hash(&encoded);
         return resolve_payment::<T>(pay, pay_hash, amount);
     }
@@ -185,26 +165,7 @@ impl<T: Trait> PayResolver<T> {
             "Exceed max transfer amount"
         );
         /// Check signatures
-        let mut encoded = pay.pay_timestamp.encode();
-        encoded.extend(pay.src.encode());
-        encoded.extend(pay.dest.encode());
-        encoded.extend(pay.conditions.encode());
-        encoded.extend(pay.transfer_func.logic_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
-        encoded.extend(pay.resolve_deadline.encode());
-        encoded.extend(pay.resolve_timeout.encode());
-        let condition_len = pay.conditions.len();
-        let mut hash_lock_len: usize;
-        for i in 0..condition_len {
-            encoded.extend(pay.conditions[i].clone().condition_type.encode());
-            encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-            encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
-        }
+        let encoded = encode_conditional_pay::<T>(pay.clone());
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_src, &encoded, pay.src.clone())?;
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_dest, &encoded, pay.dest.clone())?;
 
@@ -462,6 +423,33 @@ pub fn calculate_pay_id<T: Trait>(
 /// The accountID of the PayResolver.
 fn account_id<T: Trait>() -> T::AccountId {
     RESOLVER_ID.into_account()
+}
+
+pub fn encode_conditional_pay<T: Trait>(
+    pay: ConditionalPayOf<T>
+) -> Vec<u8> {
+     let mut encoded = pay.pay_timestamp.encode();
+    encoded.extend(pay.src.encode());
+    encoded.extend(pay.dest.encode());
+    encoded.extend(pay.conditions.encode());
+    encoded.extend(pay.transfer_func.logic_type.encode());
+    encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
+    encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
+    encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
+    encoded.extend(pay.resolve_deadline.encode());
+    encoded.extend(pay.resolve_timeout.encode());
+    let condition_len = pay.conditions.len();
+    let mut hash_lock_len: usize;
+    for i in 0..condition_len {
+        encoded.extend(pay.conditions[i].clone().condition_type.encode());
+        encoded.extend(pay.conditions[i].clone().hash_lock.encode());
+        encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
+        encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
+        encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
+        encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
+    }
+
+    return encoded;
 }
 
 #[cfg(test)]
