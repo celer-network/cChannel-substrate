@@ -91,28 +91,11 @@ decl_module! {
             channel_id: T::Hash,
             limits: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let caller = ensure_signed(origin)?;
-            let c = match Self::channel_map(channel_id) {
-                Some(_channel) => _channel,
-                None => Err(Error::<T>::ChannelNotExist)?
-            };
-            ensure!(
-                LedgerOperation::<T>::is_peer(c.clone(), caller) == true,
-                "caller is not channel peer"
-            );
-            let new_channel = ChannelOf::<T> {
-                balance_limits_enabled: c.balance_limits_enabled,
-                balance_limits: Some(limits),
-                settle_finalized_time: c.settle_finalized_time,
-                dispute_timeout: c.dispute_timeout,
-                token: c.token,
-                status: c.status,
-                peer_profiles: c.peer_profiles,
-                cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
-                withdraw_intent: c.withdraw_intent
-            };
-
-            <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+            LedgerOperation::<T>::set_balance_limits(origin, channel_id, limits)?;
+            Self::deposit_event(RawEvent::SetBalanceLimits(
+                channel_id,
+                limits
+            ));
             Ok(())
         }
 
@@ -121,28 +104,8 @@ decl_module! {
             origin,
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
-            let caller = ensure_signed(origin)?;
-            let c = match Self::channel_map(channel_id) {
-                Some(_channel) => _channel,
-                None => Err(Error::<T>::ChannelNotExist)?
-            };
-            ensure!(
-                LedgerOperation::<T>::is_peer(c.clone(), caller) == true,
-                "caller is not channel peer"
-            );
-            let new_channel = ChannelOf::<T> {
-                balance_limits_enabled: false,
-                balance_limits: c.balance_limits,
-                settle_finalized_time: c.settle_finalized_time,
-                dispute_timeout: c.dispute_timeout,
-                token: c.token,
-                status: c.status,
-                peer_profiles: c.peer_profiles,
-                cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
-                withdraw_intent: c.withdraw_intent
-            };
-
-            <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+            LedgerOperation::<T>::disable_balance_limits(origin, channel_id)?;
+            Self::deposit_event(RawEvent::DisableBalanceLimits(channel_id));
             Ok(())
         }
 
@@ -151,28 +114,8 @@ decl_module! {
             origin,
             channel_id: T::Hash    
         ) -> Result<(), DispatchError> {
-            let caller = ensure_signed(origin)?;
-            let c = match Self::channel_map(channel_id) {
-                Some(_channel) => _channel,
-                None => Err(Error::<T>::ChannelNotExist)?
-            };
-            ensure!(
-                LedgerOperation::<T>::is_peer(c.clone(), caller) == true,
-                "caller is not channel peer"
-            );
-            let new_channel = ChannelOf::<T> {
-                balance_limits_enabled: true,
-                balance_limits: c.balance_limits,
-                settle_finalized_time: c.settle_finalized_time,
-                dispute_timeout: c.dispute_timeout,
-                token: c.token,
-                status: c.status,
-                peer_profiles: c.peer_profiles,
-                cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
-                withdraw_intent: c.withdraw_intent
-            };
-
-            <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+            LedgerOperation::<T>::enable_balance_limits(origin, channel_id)?;
+            Self::deposit_event(RawEvent::EnableBalanceLimits(channel_id));
             Ok(())
         }
 
@@ -497,6 +440,9 @@ decl_event! (
         <T as system::Trait>::BlockNumber
     {
         /// CelerLedger
+        SetBalanceLimits(Hash, Balance),
+        DisableBalanceLimits(Hash),
+        EnableBalanceLimits(Hash),
         OpenChannel(Hash, Vec<AccountId>, Vec<Balance>),
         Deposit(Hash, Vec<AccountId>, Vec<Balance>, Vec<Balance>),
         SnapshotStates(Hash, Vec<u128>),
