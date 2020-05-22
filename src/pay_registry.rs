@@ -174,7 +174,7 @@ impl<T: Trait> PayRegistry<T> {
         pay_ids: Vec<T::Hash>,
         last_pay_resolve_deadline: T::BlockNumber
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
-        let mut amounts: Vec<BalanceOf<T>> = vec![Zero::zero()];
+        let mut amounts: Vec<BalanceOf<T>> = vec![];
         
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let pay_id_len = pay_ids.len();
@@ -183,7 +183,6 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_id_len {
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
                 pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
-
                 if pay_info.resolve_deadline.unwrap_or(zero_blocknumber) == zero_blocknumber {
                     // should pass last pay resolve deadline if never resolved
                     ensure!(
@@ -198,10 +197,18 @@ impl<T: Trait> PayRegistry<T> {
                     );
                 }
                 amounts.push(pay_info.amount.unwrap());
-            } 
+            } else {
+                // should pass last pay resolve deadline if never resolved
+                ensure!(
+                    <frame_system::Module<T>>::block_number() > last_pay_resolve_deadline,
+                    "Payment is not finalized"
+                );
+                let zero_balance: BalanceOf<T> = Zero::zero();
+                amounts.push(zero_balance);
+            }
         }
 
-        return Ok(amounts[1..].to_vec());
+        return Ok(amounts);
     }
 
     pub fn get_pay_info(
