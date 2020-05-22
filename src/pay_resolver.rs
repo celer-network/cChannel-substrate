@@ -224,7 +224,7 @@ fn resolve_payment<T: Trait>(
             } else {
                 new_deadline = pay.resolve_deadline;
             }
-            /// 0 is reserved for unresolved status of a payment
+            // 0 is reserved for unresolved status of a payment
             ensure!(
                 new_deadline > zero_blocknumber,
                 "New resolve deadline is 0"

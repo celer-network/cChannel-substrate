@@ -2080,7 +2080,7 @@ pub mod tests {
     use crate::pay_resolver::{PayResolver, ConditionalPay, 
         Condition, ResolvePaymentConditionsRequest, TokenTransfer, TransferFunction, TransferFunctionType};
     
-    //#[test]
+    #[test]
     fn test_pass_return_uninitialized_status_for_an_inexistent_channel() {
         ExtBuilder::build().execute_with(|| {
             let random_channel_id: H256 = H256::from_low_u64_be(3);
@@ -2089,7 +2089,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_open_channel_after_open_deadline() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2104,7 +2104,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_open_channel_with_deposits_with_deposits_before() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -2122,7 +2122,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_open_channel_when_total_deposit_is_zero() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2139,7 +2139,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_open_channel_again_with_the_same_channel_id() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2157,7 +2157,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_cooperative_withdraw_because_of_no_deposit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2179,7 +2179,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_open_another_channel() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2202,7 +2202,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_failt_deposit_before_setting_deposit_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2225,7 +2225,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_set_deposit_limits_if_not_owner() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2243,7 +2243,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_set_deposit_limits() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2263,7 +2263,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_open_channel_with_funds_correctly_after_setting_deposit_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2286,7 +2286,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_deposit_coorectly_with_caller_amount() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2305,7 +2305,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_deposit_when_new_deposit_sum_exceeds_the_deposit_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2326,7 +2326,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_disable_balance_limits_by_not_owner() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2345,7 +2345,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_disable_balance_limits() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2364,7 +2364,7 @@ pub mod tests {
         })
     }
 
-//#[test]
+    #[test]
     fn test_pass_deposit_after_removing_deposit_limits() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2384,7 +2384,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_enable_balance_limits_by_not_owner() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2403,7 +2403,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_deposit_after_balance_limits_reenabled_and_being_exceeded() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2425,7 +2425,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_deposit_via_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2450,7 +2450,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_withdraw_correctly() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2477,7 +2477,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_intent_withdraw_when_there_is_a_pending_withdraw_intent() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2503,7 +2503,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_before_confirmable_time() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2529,7 +2529,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_veto_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2556,7 +2556,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_after_veto_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let channel_id = veto_withdraw();
@@ -2568,7 +2568,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2599,7 +2599,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_again_after_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2631,7 +2631,7 @@ pub mod tests {
     // TODO: test_fail_intend_withdraw_and_confrim_withdraw_from_celer_channel_to_another_channel()
     // Currently, Only support celer channel
 
-   // #[test]
+    #[test]
     fn test_fail_cooperative_withdraw_after_withdraw_deadline() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2657,7 +2657,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_cooperative_withdraw_when_receiver_has_enough_deposit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2687,7 +2687,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_cooperative_withdraw_when_using_an_unexpected_seq_num() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2730,7 +2730,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_cooperative_withdraw_when_receiver_does_not_have_enough_deposit_but_the_whole_channel_does() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2773,7 +2773,7 @@ pub mod tests {
         })
     }
 
-//#[test]
+    #[test]
     fn test_pass_cooperative_withdraw_to_another_channel() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -2832,7 +2832,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_cooperative_withdraw_to_another_channel_without_such_a_receiver() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -3008,10 +3008,29 @@ pub mod tests {
             let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
             assert_eq!(peers_migration_info.4, vec![13, 31]);
             assert_eq!(peers_migration_info.5, vec![7, 15]);
+
+            let amounts = vec![1, 2, 5, 6];
+            for i in 0..2 { // for each simplex state
+                for j in 0..2 { // for each pays in head PayIdList
+                    let mut log_index = i * 2 + j;
+                    let mut encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
+                    let mut pay_hash = hashing::blake2_256(&encoded).into();
+                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let mut expected_event = TestEvent::celer(
+                        RawEvent::ClearOnePay(
+                            channel_id,
+                            pay_id,
+                            channel_peers[i as usize],
+                            amounts[log_index]
+                        )
+                    );
+                    assert!(System::events().iter().any(|a| a.event == expected_event));
+                }
+            }
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_clear_pays_when_payments_are_not_finalized_before_last_pay_resolve_deadline() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -3052,6 +3071,7 @@ pub mod tests {
             let signed_simplex_state_array = global_result.0;
             let cond_pays = global_result.2;
 
+            
             // resolve the payments in head PayIdList
             // the head list of peer_from 0
             for i in 0..cond_pays[0][0].len() {
@@ -3061,8 +3081,7 @@ pub mod tests {
                 };
                 let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
             }
-
-            // the head list of peer_from 1
+           
             for i in 0..cond_pays[1][0].len() {
                 let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[1][0][i].clone(),
@@ -3080,9 +3099,11 @@ pub mod tests {
 
             let pay_id_list_array = global_result.4;
 
-            let mut err = LedgerOperation::<TestRuntime>::clear_pays(channel_id, channel_peers[0], pay_id_list_array[0][1].clone()).unwrap_err();
+            let mut err = PayRegistry::<TestRuntime>::get_pay_amounts(pay_id_list_array[0][1].pay_ids.clone(), 10).unwrap_err();
             assert_eq!(err, DispatchError::Other("Payment is not finalized"));
-        
+
+            err = LedgerOperation::<TestRuntime>::clear_pays(channel_id, channel_peers[0], pay_id_list_array[0][1].clone()).unwrap_err();
+            assert_eq!(err, DispatchError::Other("Payment is not finalized"));
         })
     }
 
@@ -3429,7 +3450,6 @@ pub mod tests {
                     }
                 }   
             }
-
         })
     }
 
@@ -3531,8 +3551,7 @@ pub mod tests {
         })
     }
 
-    // TODO: Fix
-    //#[test]
+    #[test]
     fn test_pass_confirm_settle() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -3629,7 +3648,10 @@ pub mod tests {
             assert_eq!(transfer_out, [20, 46]);
 
            let (_, settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
+            assert_eq!(settle_balance, [526, 474]);
 
+            let status = CelerModule::get_channel_status(channel_id);
+            assert_eq!(status, ChannelStatus::Closed);
         })
     }
 
@@ -3782,18 +3804,30 @@ pub mod tests {
             let _ = CelerModule::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
-            System::set_block_number(System::block_number() + settle_finalized_time);
+            //System::set_block_number(System::block_number() + settle_finalized_time);
+            let expected_settle_finalized_time = System::block_number() + 10;
+            assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
             let status = CelerModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
-            
-            let expected_event = TestEvent::celer(
-                RawEvent::IntendSettle(
-                    channel_id,
-                    vec![1, 1]
-                )
-            );
-            assert!(System::events().iter().any(|a| a.event == expected_event));
+
+            for i in 0..2 { // for each simplex state
+                for j in 0..2 { // for each pays in head PayIdList
+                    let log_index = i * 2 + j;
+                    let mut encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
+                    let mut pay_hash = hashing::blake2_256(&encoded).into();
+                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let mut expected_event = TestEvent::celer(
+                        RawEvent::ClearOnePay(
+                            channel_id,
+                            pay_id,
+                            channel_peers[i as usize],
+                            0
+                        )
+                    );
+                    assert!(System::events().iter().any(|a| a.event == expected_event));
+                }
+            }
 
             let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
             // updated transfer_out map with cleared pays in the head PayIdList
@@ -3863,7 +3897,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_settle_with_0_payment() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -3904,7 +3938,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_intend_settle_with_0_payment_again() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -3936,7 +3970,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_confirm_settle_after_0_payment_intend_settle() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -3973,7 +4007,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4034,10 +4068,26 @@ pub mod tests {
             let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
-            let expected_single_settle_finalized_time = 10 as BlockNumber + System::block_number();
+            let expected_single_settle_finalized_time = 10 + System::block_number();
 
             let status = CelerModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
+
+            let amounts = vec![1, 2];
+            for i in 0..2 { // for each pays in head PayIdList
+                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let mut pay_hash = hashing::blake2_256(&encoded).into();
+                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let mut expected_event = TestEvent::celer(
+                    RawEvent::ClearOnePay(
+                        channel_id,
+                        pay_id,
+                        channel_peers[0],
+                        amounts[i]
+                    )
+                );
+                assert!(System::events().iter().any(|a| a.event == expected_event));
+            }
 
             let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
             assert_eq!(peers_migration_info.4, [13, 0]);
@@ -4045,7 +4095,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_confirm_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4116,7 +4166,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_settle_with_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4177,12 +4227,12 @@ pub mod tests {
             let mut transfer_amounts = reorder_transfer_amounts(vec![10, 20, 30], sort_indices.clone());
             
             let signed_simplex_state_array = get_signed_simplex_state_array(
-                channel_ids,
+                channel_ids.clone(),
                 seq_nums,
                 transfer_amounts,
                 vec![99999, 99999, 99999],
                 pay_id_lists,
-                peer_froms,
+                peer_froms.clone(),
                 channel_peers.clone(),
                 vec![
                     pay_amounts[0][0] + pay_amounts[0][1],
@@ -4225,10 +4275,38 @@ pub mod tests {
                 let status = CelerModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, ChannelStatus::Settling);
             }
+
+            // for each simplex state
+            for i in 0..3 {
+                // for each pays in head PayIdList
+                let mut cond_pays = pay_id_infos[i].2[0].clone();
+                for j in 0..cond_pays.len() {
+                    let mut encoded = encode_conditional_pay(pay_id_infos[i].2[0][j].clone());
+                    let mut pay_hash = hashing::blake2_256(&encoded).into();
+                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let mut expected_event = TestEvent::celer(
+                        RawEvent::ClearOnePay(
+                            channel_ids[i],
+                            pay_id,
+                            peer_froms[i],
+                            pay_amounts[i][j]
+                        )
+                    );
+                    assert!(System::events().iter().any(|a| a.event == expected_event));
+                }
+            }
+
+            let expected_event = TestEvent::celer(
+                RawEvent::IntendSettle(
+                    unique_channel_ids[0],
+                    vec![0, 0]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_confirm_settle_when_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4350,7 +4428,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_more_funds_than_withdraw_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -4380,7 +4458,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_snapshot_states_and_then_intend_withdraw_and_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4447,7 +4525,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_more_funds_than_updated_withdraw_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -4477,7 +4555,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_confirm_withdraw_for_funds_within_the_updated_withdraw_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -4511,7 +4589,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_intend_withdraw_after_intend_settle() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -4586,7 +4664,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_cooperative_withdraw_after_intend_settle() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -4663,7 +4741,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_deposit_in_batch() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4692,8 +4770,26 @@ pub mod tests {
             let amounts = vec![100, 200];
 
             assert_ok!(
-                CelerModule::deposit_in_batch(Origin::signed(deposit_account), channel_ids.clone(), receivers, vec![0, 0], amounts)
+                CelerModule::deposit_in_batch(Origin::signed(deposit_account), channel_ids.clone(), receivers.clone(), vec![0, 0], amounts.clone())
             );
+
+            for i in 0..2 {
+                let expected_deposits: Vec<Balance>;
+                if channel_peers[0] == receivers[i].clone() {
+                    expected_deposits = vec![amounts[i], 0];
+                } else {
+                    expected_deposits = vec![0, amounts[i]];
+                }
+                let mut expected_event = TestEvent::celer(
+                    RawEvent::Deposit(
+                        channel_ids[i],
+                        channel_peers.clone(),
+                        expected_deposits,
+                        vec![0, 0]
+                    )
+                );
+                assert!(System::events().iter().any(|a| a.event == expected_event));
+            }
 
             let (_, deposits_1, _) = CelerModule::get_balance_map(channel_ids[0].clone());
             let (_, deposits_2, _) = CelerModule::get_balance_map(channel_ids[1].clone());
@@ -4702,7 +4798,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_intend_settle_with_smaller_seq_num_than_snapshot() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4762,7 +4858,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_pass_intend_settle_when_same_seq_num_as_snapshot() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -4800,7 +4896,7 @@ pub mod tests {
                 LedgerOperation::<TestRuntime>::snapshot_states(signed_simplex_state_array)
             );
 
-            pay_id_list_info = get_pay_id_list_info(vec![vec![2, 4]], 1);
+            pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
             let pay_id_lists_2 = vec![pay_id_list_info.0[0].clone()];
             let total_pending_amount_2 = pay_id_list_info.3;
 
@@ -4817,13 +4913,54 @@ pub mod tests {
                 peers_pair.clone()
             );
 
+            let cond_pays = pay_id_list_info.2;
+            // resolve the payments in head PayIdList
+            for i in 0..cond_pays[0].len() {
+                let pay_request = ResolvePaymentConditionsRequest {
+                    cond_pay: cond_pays[0][i].clone(),
+                    hash_preimages: vec![]
+                };
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+            }
+
+            // pass onchain resolve deadline of all onchain resolved pays
+            System::set_block_number(System::block_number() + 6);
+
             assert_ok!(
                 LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), local_signed_simplex_state_array)
-            )
+            );
+
+            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let expected_settle_finalized_time = 10 + System::block_number();
+            assert_eq!(settle_finalized_time, expected_settle_finalized_time);
+
+            let status = CelerModule::get_channel_status(channel_id);
+            assert_eq!(status, ChannelStatus::Settling);
+
+            let amounts = vec![1, 2];
+            for i in 0..2 { // for each pays in head PayIdList
+                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let mut pay_hash = hashing::blake2_256(&encoded).into();
+                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let mut expected_event = TestEvent::celer(
+                    RawEvent::ClearOnePay(
+                        channel_id,
+                        pay_id,
+                        channel_peers[1],
+                        amounts[i]
+                    )
+                );
+                assert!(System::events().iter().any(|a| a.event == expected_event));
+            }
+
+            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            // updated transferOut map with clreared pays in the head PayIdList
+            assert_eq!(peers_migration_info.4, vec![0, 13]);
+            assert_eq!(peers_migration_info.5, vec![0, 0]);
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_cooperative_withdraw() {
         ExtBuilder::build().execute_with(|| {
             // open a new channel and deposit some funds
@@ -4858,7 +4995,7 @@ pub mod tests {
         })
     }
 
-   // #[test]
+    #[test]
     fn test_fail_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_its_own_state() {
         ExtBuilder::build().execute_with(|| {
             // open a new channel and deposit some funds
@@ -4908,7 +5045,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_confirm_withdraw_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {
         ExtBuilder::build().execute_with(|| {
             // open a new channel and deposit some funds
@@ -4962,7 +5099,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_confirm_withdraw_amount_including_peers_total_pending_amount_after_withdraw_limit_is_updated_by_snapshot_states_with_peers_state() {
         ExtBuilder::build().execute_with(||{
             // open a new channel and deposit some funds
@@ -5012,7 +5149,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_update_pending_pay_out_to_0_correctly_when_intend_settle_a_state_with_only_one_pay_id_list() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -5068,6 +5205,21 @@ pub mod tests {
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
             assert_eq!(expected_single_settle_finalized_time, settle_finalized_time);
 
+            for i in 0..2 { // for each pays in head PayIdList
+                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let mut pay_hash = hashing::blake2_256(&encoded).into();
+                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let mut expected_event = TestEvent::celer(
+                    RawEvent::ClearOnePay(
+                        channel_id,
+                        pay_id,
+                        channel_peers[0],
+                        0
+                    )
+                );
+                assert!(System::events().iter().any(|a| a.event == expected_event));
+            }
+
             let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
             // updated  transferOut  map  which  cleared pays in the head PayIdList
             assert_eq!(peers_migration_info.4, [10, 0]);
@@ -5076,7 +5228,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_intend_settle_operable_channel_for_a_non_peer() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -5111,7 +5263,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_settle_a_settling_channel_for_a_nonpeer() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
