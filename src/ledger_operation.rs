@@ -3242,14 +3242,17 @@ pub mod tests {
             let signed_simplex_state_array = global_result.0;
             let cond_pays = global_result.2;
 
-            // resolve only one payment
-            let pay_request = ResolvePaymentConditionsRequest {
-                cond_pay: cond_pays[0][0][0].clone(),
-                hash_preimages: vec![]
-            };
-
-            let (pay_id, _amount_1, resolve_deadline)
-                = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+            for peer_index in 0..2 {
+                for list_index in 0..2 {
+                    for pay_index in 0..2 {
+                        let mut pay_request = ResolvePaymentConditionsRequest {
+                            cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
+                            hash_preimages: vec![]
+                        };
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                    }
+                }
+            }
 
             System::set_block_number(System::block_number() + 6);
 
@@ -3494,60 +3497,41 @@ pub mod tests {
             let mut signed_simplex_state_array = global_result_1.0;
             let mut cond_pays = global_result_1.2;
 
-            // resolve only one payment
-            let mut pay_request = ResolvePaymentConditionsRequest {
-                cond_pay: cond_pays[0][0][0].clone(),
-                hash_preimages: vec![]
-            };
-
-            let (pay_id, _amount_1, resolve_deadline)
-                = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
-
-            // pass onchain resolve deadline of all onchain resolved pays
-            System::set_block_number(System::block_number() + 6);
-
-            let _ =  LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
-
-            let global_result_2 :(
-                SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
-                Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
-                Vec<Vec<H256>>,
-                Vec<Vec<PayIdList<H256>>>
-            ) = get_cosigned_intend_settle(
-                vec![channel_id, channel_id],
-                peers_pay_hash_lists_amts,
-                vec![5, 5], // seq_nums
-                vec![10, 20], // transfer amounts
-                vec![99999, 99999], // last_pay_resolve_deadlines
-                vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
-                channel_peers[0],
-                vec![peers_pair[0].clone(), peers_pair[1].clone()],
-                1
-            );
-
-            signed_simplex_state_array = global_result_2.0;
-            cond_pays = global_result_2.2;
-            // resolve the payments in head PayIdList
-            for list_index in 0..2 {
-                for pay_index in 0..cond_pays[list_index as usize].len() {
-                    pay_request = ResolvePaymentConditionsRequest {
-                        cond_pay: cond_pays[1][list_index as usize][pay_index as usize].clone(),
-                        hash_preimages: vec![]
-                    };
-                    let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+            for peer_index in 0..2 {
+                for list_index in 0..2 {
+                    for pay_index in 0..2 {
+                        let mut pay_request = ResolvePaymentConditionsRequest {
+                            cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
+                            hash_preimages: vec![]
+                        };
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                    }
                 }
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
             System::set_block_number(System::block_number() + 6);
 
+            let _ =  LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array.clone()).unwrap();
+
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
-            let err = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap_err();
+            let pay_id_list_array = global_result_1.4;
+
+            for peer_index in 0..2 { //  for each simplex state
+                assert_ok!(
+                    LedgerOperation::<TestRuntime>::clear_pays(
+                        channel_id,
+                        channel_peers[peer_index as usize],
+                        pay_id_list_array[peer_index as usize][1].clone()
+                    )
+                )
+            }
+
+            let err =  LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array.clone()).unwrap_err();
             assert_eq!(err, DispatchError::Other("Settle has already finalized"));
+
         })
     }
 
