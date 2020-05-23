@@ -4,7 +4,7 @@ use frame_system::{self as system};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
 use super::{
-    Trait, Error, BalanceOf, PayInfoMap,
+    Trait, BalanceOf, PayInfoMap,
 };
 use crate::pay_resolver::{RESOLVER_ID};
 

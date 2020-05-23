@@ -130,7 +130,7 @@ pub struct PayResolver<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: Trait> PayResolver<T> {
 
-    /// Resolve a payment by onchain getting its condition outcomes
+    // Resolve a payment by onchain getting its condition outcomes
     pub fn resolve_payment_by_conditions(
         resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
     ) -> Result<(T::Hash, BalanceOf<T>, T::BlockNumber), DispatchError> {
@@ -153,7 +153,7 @@ impl<T: Trait> PayResolver<T> {
         return resolve_payment::<T>(pay, pay_hash, amount);
     }
 
-    /// Resolve a payment by submitting an offchain vouched result
+    // Resolve a payment by submitting an offchain vouched result
     pub fn resolve_payment_vouched_result(
         vouched_pay_result: VouchedCondPayResultOf<T>
     ) -> Result<(T::Hash, BalanceOf<T>, T::BlockNumber), DispatchError> {
@@ -164,7 +164,7 @@ impl<T: Trait> PayResolver<T> {
             pay_result.amount <= pay.transfer_func.max_transfer.receiver.amt,
             "Exceed max transfer amount"
         );
-        /// Check signatures
+        // Check signatures
         let encoded = encode_conditional_pay::<T>(pay.clone());
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_src, &encoded, pay.src.clone())?;
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_dest, &encoded, pay.dest.clone())?;
@@ -199,16 +199,16 @@ fn resolve_payment<T: Trait>(
     );
 
     if current_deadline > zero_blocknumber {
-        /// current_deadline > 0 implies that this pay ha been updated
-        /// payment amount must be monotone increasing
+        // current_deadline > 0 implies that this pay ha been updated
+        // payment amount must be monotone increasing
         ensure!(amount > current_amt, "New amount is not larger");
 
         if amount == pay.transfer_func.max_transfer.receiver.amt {
-            /// set resolve deadline = current block number if amount = max
+            // set resolve deadline = current block number if amount = max
             PayRegistry::<T>::set_pay_info(pay_hash, amount, block_number)?;
             return Ok((pay_id, amount, block_number));
         } else {
-            /// should not update the onchain resolve deadline if not max amount
+            // should not update the onchain resolve deadline if not max amount
             PayRegistry::<T>::set_pay_amount(pay_hash, amount)?;
             return Ok((pay_id, amount, current_deadline));
         }
@@ -236,7 +236,7 @@ fn resolve_payment<T: Trait>(
     }
 }
 
-/// Calculate the result amount of BooleanAnd payment
+// Calculate the result amount of BooleanAnd payment
 fn calculate_boolean_and_payment<T: Trait>(
     pay: ConditionalPayOf<T>,
     preimages: Vec<T::Hash>
@@ -280,7 +280,7 @@ fn calculate_boolean_and_payment<T: Trait>(
     }
 }
 
-/// Calculate the result amount of BooleanOr payment
+// Calculate the result amount of BooleanOr payment
 fn calculate_boolean_or_payment<T: Trait>(
     pay: ConditionalPayOf<T>,
     preimages: Vec<T::Hash>
@@ -288,7 +288,7 @@ fn calculate_boolean_or_payment<T: Trait>(
     let mut j: usize = 0;
     let condition_len = pay.conditions.len();
 
-    /// Whether there are any contract based conditions, i.e. DEPLOYED_CONTRACT or VIRTUAL_CONTRACT
+    // Whether there are any contract based conditions, i.e. DEPLOYED_CONTRACT or VIRTUAL_CONTRACT
     let mut has_contract_cond = false;
     let mut has_true_contract_cond = false;
     for i in 0..condition_len {
@@ -326,7 +326,7 @@ fn calculate_boolean_or_payment<T: Trait>(
     }
 }
 
-/// Calculate the result amount of numeric logic payment, including NUMERIC_ADD, NUMERIC_MAX and NUMERIC_MIN
+// Calculate the result amount of numeric logic payment, including NUMERIC_ADD, NUMERIC_MAX and NUMERIC_MIN
 fn calculate_numeric_logic_payment<T: Trait>(
     pay: ConditionalPayOf<T>,
     preimages: Vec<T::Hash>,
@@ -388,7 +388,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
     }
 }
 
-/// Get the contract address of the condition
+// Get the contract address of the condition
 fn get_cond_address<T: Trait>(
     cond: Condition<T::AccountId, T::Hash>
 ) -> Option<T::AccountId> {
@@ -409,7 +409,7 @@ fn is_numeric_logic<T: Trait>(
         func_type == TransferFunctionType::NumericMin;
 }
 
-/// Calculate pay id
+// Calculate pay id
 pub fn calculate_pay_id<T: Trait>(
     pay_hash: T::Hash,
 ) -> T::Hash {
@@ -420,7 +420,7 @@ pub fn calculate_pay_id<T: Trait>(
     return pay_id;
 } 
 
-/// The accountID of the PayResolver.
+// The accountID of the PayResolver.
 fn account_id<T: Trait>() -> T::AccountId {
     RESOLVER_ID.into_account()
 }
@@ -454,10 +454,10 @@ pub fn encode_conditional_pay<T: Trait>(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::mock::{self, *};
+    use crate::mock::*;
     use super::*;
     use sp_runtime::DispatchError;
-    use sp_core::{H256, hashing, sr25519, Pair};
+    use sp_core::{H256, hashing, Pair};
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_condition_true() {
