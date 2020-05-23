@@ -54,7 +54,7 @@ pub struct TokenInfo  {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct AccountAmtPair<AccountId, Balance> {
-    pub account: AccountId,
+    pub account: Option<AccountId>,
     pub amt: Balance,
 }
 
@@ -81,14 +81,13 @@ pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance> {
     pub resolve_timeout: BlockNumber,
 }
 
-pub type ConditionalPayOf<T> = 
-    ConditionalPay<
-        <T as pallet_timestamp::Trait>::Moment,
-        <T as system::Trait>::BlockNumber, 
-        <T as system::Trait>::AccountId, 
-        <T as system::Trait>::Hash, 
-        BalanceOf<T>
-    >;
+pub type ConditionalPayOf<T> = ConditionalPay<
+    <T as pallet_timestamp::Trait>::Moment,
+    <T as system::Trait>::BlockNumber, 
+    <T as system::Trait>::AccountId, 
+    <T as system::Trait>::Hash, 
+    BalanceOf<T>
+>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Balance> {
@@ -149,27 +148,7 @@ impl<T: Trait> PayResolver<T> {
             Err(Error::<T>::Error)?
         }
 
-        let mut encoded = pay.pay_timestamp.encode();
-        encoded.extend(pay.src.encode());
-        encoded.extend(pay.dest.encode());
-        encoded.extend(pay.conditions.encode());
-        encoded.extend(pay.transfer_func.logic_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
-        encoded.extend(pay.resolve_deadline.encode());
-        encoded.extend(pay.resolve_timeout.encode());
-        let condition_len = pay.conditions.len();
-        let mut hash_lock_len: usize;
-        for i in 0..condition_len {
-            encoded.extend(pay.conditions[i].clone().condition_type.encode());
-            encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-            encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
-        }
-
+        let encoded = encode_conditional_pay::<T>(pay.clone());
         let pay_hash = T::Hashing::hash(&encoded);
         return resolve_payment::<T>(pay, pay_hash, amount);
     }
@@ -186,26 +165,7 @@ impl<T: Trait> PayResolver<T> {
             "Exceed max transfer amount"
         );
         /// Check signatures
-        let mut encoded = pay.pay_timestamp.encode();
-        encoded.extend(pay.src.encode());
-        encoded.extend(pay.dest.encode());
-        encoded.extend(pay.conditions.encode());
-        encoded.extend(pay.transfer_func.logic_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
-        encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
-        encoded.extend(pay.resolve_deadline.encode());
-        encoded.extend(pay.resolve_timeout.encode());
-        let condition_len = pay.conditions.len();
-        let mut hash_lock_len: usize;
-        for i in 0..condition_len {
-            encoded.extend(pay.conditions[i].clone().condition_type.encode());
-            encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-            encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
-            encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
-        }
+        let encoded = encode_conditional_pay::<T>(pay.clone());
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_src, &encoded, pay.src.clone())?;
         Module::<T>::check_single_signature(vouched_pay_result.sig_of_dest, &encoded, pay.dest.clone())?;
 
@@ -239,7 +199,7 @@ fn resolve_payment<T: Trait>(
     );
 
     if current_deadline > zero_blocknumber {
-        /// curreent_deadline > 0 implies that this pay ha been updated
+        /// current_deadline > 0 implies that this pay ha been updated
         /// payment amount must be monotone increasing
         ensure!(amount > current_amt, "New amount is not larger");
 
@@ -254,6 +214,7 @@ fn resolve_payment<T: Trait>(
         }
     } else {
         let new_deadline: T::BlockNumber;
+
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             new_deadline = block_number.clone();
         } else {
@@ -263,7 +224,7 @@ fn resolve_payment<T: Trait>(
             } else {
                 new_deadline = pay.resolve_deadline;
             }
-            /// 0 is reserved for unresolved status of a payment
+            // 0 is reserved for unresolved status of a payment
             ensure!(
                 new_deadline > zero_blocknumber,
                 "New resolve deadline is 0"
@@ -464,8 +425,35 @@ fn account_id<T: Trait>() -> T::AccountId {
     RESOLVER_ID.into_account()
 }
 
+pub fn encode_conditional_pay<T: Trait>(
+    pay: ConditionalPayOf<T>
+) -> Vec<u8> {
+     let mut encoded = pay.pay_timestamp.encode();
+    encoded.extend(pay.src.encode());
+    encoded.extend(pay.dest.encode());
+    encoded.extend(pay.conditions.encode());
+    encoded.extend(pay.transfer_func.logic_type.encode());
+    encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
+    encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
+    encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
+    encoded.extend(pay.resolve_deadline.encode());
+    encoded.extend(pay.resolve_timeout.encode());
+    let condition_len = pay.conditions.len();
+    let mut hash_lock_len: usize;
+    for i in 0..condition_len {
+        encoded.extend(pay.conditions[i].clone().condition_type.encode());
+        encoded.extend(pay.conditions[i].clone().hash_lock.encode());
+        encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
+        encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
+        encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
+        encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
+    }
+
+    return encoded;
+}
+
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::mock::{self, *};
     use super::*;
     use sp_runtime::DispatchError;
@@ -979,7 +967,7 @@ mod tests {
         assert_eq!(_resolve_deadline, System::block_number() + 10);
     }
 
-    fn encode_conditional_pay(
+    pub fn encode_conditional_pay(
         r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>
     ) -> std::vec::Vec<u8> {
         let pay = r#cond_pay;
@@ -1006,7 +994,7 @@ mod tests {
         return encoded;
     }
 
-    fn get_condition(r#type: u8) 
+    pub fn get_condition(r#type: u8) 
         -> Condition<AccountId, H256>{
         if r#type == 0 {
             let condition_hash_lock = Condition {
@@ -1061,7 +1049,7 @@ mod tests {
         }
     }
 
-    fn get_transfer_func(
+    pub fn get_transfer_func(
         r#account: AccountId,
         r#amount: Balance,
         r#type: u8
@@ -1071,7 +1059,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1088,7 +1076,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1105,7 +1093,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1122,7 +1110,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1139,7 +1127,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {
@@ -1156,7 +1144,7 @@ mod tests {
                 token_type: TokenType::CELER
             };
             let account_amt_pair = AccountAmtPair {
-                account: r#account,
+                account: Some(r#account),
                 amt: r#amount
             };
             let token_transfer = TokenTransfer {

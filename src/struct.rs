@@ -83,7 +83,7 @@ pub struct TokenInfo  {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct AccountAmtPair<AccountId, Balance> {
-    pub account: AccountId,
+    pub account: Option<AccountId>,
     pub amt: Balance,
 }
 

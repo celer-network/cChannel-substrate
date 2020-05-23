@@ -103,12 +103,13 @@ impl ExtBuilder {
         let ALICE: sr25519::Public = account_key("Alice");
         let BOB: sr25519::Public = account_key("Bob");
         let RISA: sr25519::Public = account_key("Risa");
+        let CARL: sr25519::Public = account_key("Carl");
 
         let mut t = system::GenesisConfig::default()
             .build_storage::<TestRuntime>()
             .unwrap();
         pallet_balances::GenesisConfig::<TestRuntime> {
-            balances: vec![(ALICE, 1000), (BOB, 1000), (RISA, 1000)],
+            balances: vec![(ALICE, 1000), (BOB, 1000), (RISA, 1000), (CARL, 100000)],
         }
         .assimilate_storage(&mut t)
         .unwrap();
