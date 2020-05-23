@@ -9,6 +9,7 @@ mod pay_resolver;
 mod mock_condition;
 mod r#struct;
 mod mock;
+//mod migration;
 
 use pallet_timestamp;
 use frame_support::{decl_storage, decl_module, decl_event, decl_error,
@@ -17,9 +18,9 @@ use frame_support::{decl_storage, decl_module, decl_event, decl_error,
 };
 use codec::{Encode, Decode};
 use sp_runtime::DispatchError;
-use sp_runtime::traits::{Hash, IdentifyAccount, Member, Verify, Zero};
+use sp_runtime::traits::{Hash, IdentifyAccount, Member, Verify, Zero, OnRuntimeUpgrade};
 use sp_std::{prelude::*, vec::Vec};
-use frame_system::{self as system, ensure_root, ensure_signed};
+use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
     LedgerOperation,
     ChannelStatus,
@@ -32,7 +33,6 @@ use ledger_operation::{
 };
 use celer_wallet::{
     CelerWallet,
-    Wallet,
     WalletOf
 };
 use eth_pool::EthPool;
@@ -45,6 +45,7 @@ use pay_registry::{
     PayInfoOf,
 };
 
+
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 pub trait Trait: system::Trait + pallet_timestamp::Trait {
@@ -54,6 +55,17 @@ pub trait Trait: system::Trait + pallet_timestamp::Trait {
     type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode;
 }
 
+/**
+// A value placed in storage that represents the current version of the Balances storage.
+// This value is used by the `on_runtime_upgrade` logic to determine whether we run
+// storage migration logic. This should match directly with the semantic versions of the Rust crate.
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug)]
+enum Releases {
+	V1_0_0,
+	V2_0_0,
+}
+*/
+
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
         /// Celer Ledger
@@ -61,21 +73,24 @@ decl_storage! {
             map hasher(blake2_128_concat) u8 => Option<u8>;
 
         pub ChannelMap get(fn channel_map):
-                map hasher(twox_64_concat) T::Hash => Option<ChannelOf<T>>;
+                map hasher(blake2_128_concat) T::Hash => Option<ChannelOf<T>>;
         
         /// Celer Wallet
         pub WalletNum get(fn wallet_num): u128;
-        pub Wallets get(fn wallet): map hasher(twox_64_concat) T::Hash => Option<WalletOf<T>>;
+        pub Wallets get(fn wallet): map hasher(blake2_128_concat) T::Hash => Option<WalletOf<T>>;
     
         /// EthPool
         pub Balances get(fn balances): 
-                map hasher(twox_64_concat) T::AccountId => Option<BalanceOf<T>>;
+                map hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
         pub Allowed get(fn allowed):
-                double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::AccountId => Option<BalanceOf<T>>;
+                double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
     
         // PayRegistry
         pub PayInfoMap get(fn info_map):
-                map hasher(twox_64_concat) T::Hash => Option<PayInfoOf<T>>;
+                map hasher(blake2_128_concat) T::Hash => Option<PayInfoOf<T>>;
+    
+        // Storage version of the pallet
+        //StorageVersion build(|_| Releases::V1_0_0): Releases;
     }
 }
 
@@ -429,6 +444,11 @@ decl_module! {
             Self::deposit_event(RawEvent::ResolvePayment(_pay_id, _amount, _resolve_deadline));
             Ok(())
         }
+
+        // Upgrade Celer runtime module
+        //fn on_runtime_upgrade() {
+        //    migration::on_runtime_upgrade::<T>();
+        //}
     }
 }
 
@@ -495,6 +515,24 @@ decl_error! {
 
 impl<T: Trait> Module<T> {
     // Helper of Celer Ledger
+    // Emit Deposit event
+    pub fn emit_deposit_event(
+        channel_id: T::Hash
+    ) -> Result<(), DispatchError> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return Err(Error::<T>::ChannelNotExist)?
+        };
+        let zero_balance: BalanceOf<T> = Zero::zero();
+        Self::deposit_event(RawEvent::Deposit(
+            channel_id,
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+            vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
+        ));
+        Ok(())
+    }
+
     // Emit SnapshotStates event
     pub fn emit_snapshot_states(
         channel_id: T::Hash,

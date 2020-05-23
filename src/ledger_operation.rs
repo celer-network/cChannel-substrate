@@ -5,7 +5,7 @@ use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
-use crate::celer_wallet::{CelerWallet, WALLET_ID, Wallet, WalletOf};
+use crate::celer_wallet::{CelerWallet, WALLET_ID, WalletOf};
 use crate::eth_pool::EthPool;
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{TokenTransfer, TokenInfo, AccountAmtPair, TokenType};
@@ -339,13 +339,14 @@ impl<T: Trait> LedgerOperation<T> {
             account_1,
             account_2
         ];
-        /// Enforce asceding order of peer's addresses to simplyfy contract code
+
+        // Enforce asceding order of peer's addresses to simplyfy contract code
         ensure!(
             peer_addrs[0] < peer_addrs[1], 
             "Peer addrs are not ascending"
         );
         
-        let mut encoded = encode_channel_initializer::<T>(channel_initializer.clone());
+        let encoded = encode_channel_initializer::<T>(channel_initializer.clone());
         let signers = vec![peer_addrs[0].clone(), peer_addrs[1].clone()];
         Module::<T>::valid_signers(open_request.sigs, &encoded, signers)?;
 
@@ -353,7 +354,7 @@ impl<T: Trait> LedgerOperation<T> {
         let h = T::Hashing::hash(&encoded);
         let channel_id = create_wallet::<T>(owners, h)?;
 
-        /// Insert new Channel to ChannelMap.
+        // Insert new Channel to ChannelMap.
         let zero_balance: BalanceOf<T> = Zero::zero();
         let zero_hash: T::Hash = zero_hash::<T>();
         let zero_blocknumber: T::BlockNumber = Zero::zero();
@@ -494,13 +495,13 @@ impl<T: Trait> LedgerOperation<T> {
         Ok(())
     }   
 
-    /// Strore signed simplex states on-chain as checkpoints
+    // Strore signed simplex states on-chain as checkpoints
     pub fn snapshot_states(
         signed_simplex_state_array: SignedSimplexStateArrayOf<T>
     ) -> Result<(), DispatchError> {
         let state_len = signed_simplex_state_array.signed_simplex_states.len();
         
-        /// snapshot each state
+        // snapshot each state
         let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
         for i in 0..state_len {
             let current_channel_id: T::Hash = simplex_state.channel_id;
@@ -518,7 +519,7 @@ impl<T: Trait> LedgerOperation<T> {
             let channel_peer = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()];
             Module::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
-            let mut state: PeerStateOf<T>;
+            let state: PeerStateOf<T>;
             let peer_from_id: u8;
             if c.peer_profiles[0].peer_addr == simplex_state.peer_from.clone().unwrap() {
                 state = c.peer_profiles[0].clone().state;
@@ -933,7 +934,7 @@ impl<T: Trait> LedgerOperation<T> {
         return Ok((channel_id, amount, receiver.unwrap(), recipient_channel_id, withdraw_info.seq_num));
     }
 
-    /// Intend to settle channel(s) with an array of signed simplex states
+    // Intend to settle channel(s) with an array of signed simplex states
     pub fn intend_settle(
         origin: T::Origin,
         signed_simplex_state_array: SignedSimplexStateArrayOf<T>
@@ -955,7 +956,7 @@ impl<T: Trait> LedgerOperation<T> {
                     "Peer channel status error"
                 );
             } else {
-                /// A nonpeer cannot be the first one to call intend_settle
+                // A nonpeer cannot be the first one to call intend_settle
                 ensure!(c.status == ChannelStatus::Settling, "Nonpeer channel status error");
             }
 
@@ -969,7 +970,7 @@ impl<T: Trait> LedgerOperation<T> {
             if simplex_state.seq_num > 0 {
                 // Check signatures
                 let pay_id_len = signed_simplex_state_array.signed_simplex_states[i].simplex_state.pending_pay_ids.clone().unwrap().pay_ids.len();
-                let mut encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize, pay_id_len as usize);
+                let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize, pay_id_len as usize);
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
 
                 let channel_peer = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()];
@@ -1088,7 +1089,7 @@ impl<T: Trait> LedgerOperation<T> {
                 _clear_pays::<T>(current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;                
             } else if simplex_state.seq_num == 0 { // null state
                 // Check signautre
-                let mut encoded = encode_signed_simplex_null_state::<T>(signed_simplex_state_array.clone(), i as usize);
+                let encoded = encode_signed_simplex_null_state::<T>(signed_simplex_state_array.clone(), i as usize);
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
                   Module::<T>::check_single_signature(sigs[0].clone(), &encoded, c.peer_profiles[0].peer_addr.clone())?;
                 // This implies both stored seq_nums are 0
@@ -1277,7 +1278,6 @@ impl<T: Trait> LedgerOperation<T> {
         let state_2 = peer_profiles[1].state.clone();
         let hash_zero = zero_hash::<T>();
 
-        // TODO: Review
         ensure!(
             (state_1.next_pay_id_list_hash.unwrap_or(hash_zero) == hash_zero ||
                 block_number > state_1.last_pay_resolve_deadline) &&
@@ -1356,7 +1356,7 @@ impl<T: Trait> LedgerOperation<T> {
         return Ok((channel_id, settle_balance));
     }
 
-    /// Check if addr is one of the peers in channel c
+    // Check if addr is one of the peers in channel c
     pub fn is_peer(c: ChannelOf<T>, addr: T::AccountId) -> bool {
         return addr == c.peer_profiles[0].peer_addr || addr == c.peer_profiles[1].peer_addr;
     }
@@ -1367,7 +1367,7 @@ impl<T: Trait> LedgerOperation<T> {
     }
 }
 
-/// create a wallet for a new channel
+// create a wallet for a new channel
 fn create_wallet<T: Trait>(
     peers: Vec<T::AccountId>,
     nonce: T::Hash
@@ -1378,7 +1378,7 @@ fn create_wallet<T: Trait>(
     encoded.extend(nonce.encode());
     let wallet_id: T::Hash = T::Hashing::hash(&encoded);
 
-    /// Check wallet_id is not exist.
+    // Check wallet_id is not exist.
     ensure!(
         Wallets::<T>::contains_key(&wallet_id) == false,
         "Occupied wallet id"
@@ -1391,7 +1391,7 @@ fn create_wallet<T: Trait>(
         balance: new_balance,
     };
 
-    /// create new wallet
+    // create new wallet
     Wallets::<T>::insert(&wallet_id, &wallet);
 
     return Ok(wallet_id);
@@ -1468,7 +1468,9 @@ fn add_deposit<T: Trait>(
         Err(Error::<T>::NotChannelPeer)?
     }
 
-    //TODO emit Deposit Event
+    // emit Deposit event
+    Module::<T>::emit_deposit_event(channel_id)?;
+
     Ok(())
 }
 
@@ -2071,7 +2073,7 @@ pub fn encode_settle_info<T: Trait>(
 #[cfg(test)]
 pub mod tests {
     use crate::RawEvent;
-    use crate::mock::{self, *};
+    use crate::mock::*;
     use super::*;
     use frame_support::{assert_ok, assert_noop};
     use sp_runtime::DispatchError;
@@ -3012,11 +3014,11 @@ pub mod tests {
             let amounts = vec![1, 2, 5, 6];
             for i in 0..2 { // for each simplex state
                 for j in 0..2 { // for each pays in head PayIdList
-                    let mut log_index = i * 2 + j;
-                    let mut encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
-                    let mut pay_hash = hashing::blake2_256(&encoded).into();
-                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                    let mut expected_event = TestEvent::celer(
+                    let log_index = i * 2 + j;
+                    let encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
+                    let pay_hash = hashing::blake2_256(&encoded).into();
+                    let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let expected_event = TestEvent::celer(
                         RawEvent::ClearOnePay(
                             channel_id,
                             pay_id,
@@ -3182,10 +3184,10 @@ pub mod tests {
                 let mut count = 0;
                 for list_index in 1..cond_pays[peer_index as usize].len() {
                     for pay_index in 0..cond_pays[peer_index as usize][list_index as usize].len() {
-                        let mut encoded = encode_conditional_pay(cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone());
-                        let mut pay_hash = hashing::blake2_256(&encoded).into();
-                        let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                        let mut expected_event = TestEvent::celer(
+                        let encoded = encode_conditional_pay(cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone());
+                        let pay_hash = hashing::blake2_256(&encoded).into();
+                        let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                        let  expected_event = TestEvent::celer(
                             RawEvent::ClearOnePay(
                                 channel_id,
                                 pay_id,
@@ -3245,7 +3247,7 @@ pub mod tests {
             for peer_index in 0..2 {
                 for list_index in 0..2 {
                     for pay_index in 0..2 {
-                        let mut pay_request = ResolvePaymentConditionsRequest {
+                        let pay_request = ResolvePaymentConditionsRequest {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![]
                         };
@@ -3437,10 +3439,10 @@ pub mod tests {
                 let mut count = 0;
                 for list_index in 1..cond_pays[peer_index as usize].len() {
                     for pay_index in 0..cond_pays[peer_index as usize][list_index as usize].len() {
-                        let mut encoded = encode_conditional_pay(cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone());
-                        let mut pay_hash = hashing::blake2_256(&encoded).into();
-                        let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                        let mut expected_event = TestEvent::celer(
+                        let encoded = encode_conditional_pay(cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone());
+                        let pay_hash = hashing::blake2_256(&encoded).into();
+                        let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                        let expected_event = TestEvent::celer(
                             RawEvent::ClearOnePay(
                                 channel_id,
                                 pay_id,
@@ -3475,7 +3477,7 @@ pub mod tests {
             let peers_pay_hash_lists_amts: Vec<Vec<Vec<Balance>>> 
                 = vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]];
             
-            let mut global_result_1 :(
+            let global_result_1 :(
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
                 Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
@@ -3494,13 +3496,13 @@ pub mod tests {
                 1
             );
 
-            let mut signed_simplex_state_array = global_result_1.0;
-            let mut cond_pays = global_result_1.2;
+            let signed_simplex_state_array = global_result_1.0;
+            let cond_pays = global_result_1.2;
 
             for peer_index in 0..2 {
                 for list_index in 0..2 {
                     for pay_index in 0..2 {
-                        let mut pay_request = ResolvePaymentConditionsRequest {
+                        let pay_request = ResolvePaymentConditionsRequest {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![]
                         };
@@ -3798,10 +3800,10 @@ pub mod tests {
             for i in 0..2 { // for each simplex state
                 for j in 0..2 { // for each pays in head PayIdList
                     let log_index = i * 2 + j;
-                    let mut encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
-                    let mut pay_hash = hashing::blake2_256(&encoded).into();
-                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                    let mut expected_event = TestEvent::celer(
+                    let encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
+                    let pay_hash = hashing::blake2_256(&encoded).into();
+                    let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let expected_event = TestEvent::celer(
                         RawEvent::ClearOnePay(
                             channel_id,
                             pay_id,
@@ -4059,10 +4061,10 @@ pub mod tests {
 
             let amounts = vec![1, 2];
             for i in 0..2 { // for each pays in head PayIdList
-                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
-                let mut pay_hash = hashing::blake2_256(&encoded).into();
-                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                let mut expected_event = TestEvent::celer(
+                let encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let pay_hash = hashing::blake2_256(&encoded).into();
+                let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let expected_event = TestEvent::celer(
                     RawEvent::ClearOnePay(
                         channel_id,
                         pay_id,
@@ -4165,9 +4167,9 @@ pub mod tests {
             let mut unique_channel_ids: Vec<H256> = vec![];
             // open 3 new channel
             for i in 0..3 {
-                let mut open_channel_request
+                let open_channel_request
                     = get_open_channel_request(true, 10000, 50000 + i, 10, true, channel_peers.clone(), 1, peers_pair.clone());
-                let mut channel_id 
+                let channel_id 
                     = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
                 let _ = LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 100, 0).unwrap();
                 unique_channel_ids.push(channel_id);
@@ -4208,7 +4210,7 @@ pub mod tests {
             let mut seq_nums_array = reorder_seq_nums_array(vec![vec![1, 1], vec![1, 1], vec![5, 0]], sort_indices.clone());
             // push seq_nums_array of null simplex states
             seq_nums_array.push(vec![0, 0]);
-            let mut transfer_amounts = reorder_transfer_amounts(vec![10, 20, 30], sort_indices.clone());
+            let transfer_amounts = reorder_transfer_amounts(vec![10, 20, 30], sort_indices.clone());
             
             let signed_simplex_state_array = get_signed_simplex_state_array(
                 channel_ids.clone(),
@@ -4231,7 +4233,7 @@ pub mod tests {
             // resolve the payments in all head PayIdLists
             for i in 0..2 {
                 let cond_pays = pay_id_infos[0].2.clone();
-                let mut pay_request = ResolvePaymentConditionsRequest {
+                let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![]
                 };
@@ -4239,7 +4241,7 @@ pub mod tests {
             }
             for i  in 0..2 {
                 let cond_pays = pay_id_infos[1].2.clone();
-                let mut pay_request = ResolvePaymentConditionsRequest {
+                let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![]
                 };
@@ -4252,9 +4254,9 @@ pub mod tests {
             // intend settle
             let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
 
-            let mut expected_settle_finalized_time = 10 + System::block_number();
+            let expected_settle_finalized_time = 10 + System::block_number();
             for i in 0..3 {
-                let mut settle_finalized_time = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let settle_finalized_time = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
                 assert_eq!(expected_settle_finalized_time, settle_finalized_time);
                 let status = CelerModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, ChannelStatus::Settling);
@@ -4263,12 +4265,12 @@ pub mod tests {
             // for each simplex state
             for i in 0..3 {
                 // for each pays in head PayIdList
-                let mut cond_pays = pay_id_infos[i].2[0].clone();
+                let cond_pays = pay_id_infos[i].2[0].clone();
                 for j in 0..cond_pays.len() {
-                    let mut encoded = encode_conditional_pay(pay_id_infos[i].2[0][j].clone());
-                    let mut pay_hash = hashing::blake2_256(&encoded).into();
-                    let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                    let mut expected_event = TestEvent::celer(
+                    let encoded = encode_conditional_pay(pay_id_infos[i].2[0][j].clone());
+                    let pay_hash = hashing::blake2_256(&encoded).into();
+                    let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                    let expected_event = TestEvent::celer(
                         RawEvent::ClearOnePay(
                             channel_ids[i],
                             pay_id,
@@ -4305,9 +4307,9 @@ pub mod tests {
             let mut unique_channel_ids: Vec<H256> = vec![];
             // open 3 new channel
             for i in 0..3 {
-                let mut open_channel_request
+                let open_channel_request
                     = get_open_channel_request(true, 10000, 50000 + i, 10, true, channel_peers.clone(), 1, peers_pair.clone());
-                let mut channel_id 
+                let channel_id 
                     = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
                 let _ = LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 100, 0).unwrap();
                 let _ = LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[1]), channel_id, channel_peers[1], 200, 0).unwrap();
@@ -4349,7 +4351,7 @@ pub mod tests {
             let mut seq_nums_array = reorder_seq_nums_array(vec![vec![1, 1], vec![1, 1], vec![5, 0]], sort_indices.clone());
             // push seq_nums_array of null simplex states
             seq_nums_array.push(vec![0, 0]);
-            let mut transfer_amounts = reorder_transfer_amounts(vec![10, 20, 30], sort_indices.clone());
+            let transfer_amounts = reorder_transfer_amounts(vec![10, 20, 30], sort_indices.clone());
             
             let signed_simplex_state_array = get_signed_simplex_state_array(
                 channel_ids,
@@ -4372,7 +4374,7 @@ pub mod tests {
             // resolve the payments in all head PayIdLists
             for i in 0..2 {
                 let cond_pays = pay_id_infos[0].2.clone();
-                let mut pay_request = ResolvePaymentConditionsRequest {
+                let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![]
                 };
@@ -4380,7 +4382,7 @@ pub mod tests {
             }
             for i  in 0..2 {
                 let cond_pays = pay_id_infos[1].2.clone();
-                let mut pay_request = ResolvePaymentConditionsRequest {
+                let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![]
                 };
@@ -4395,7 +4397,7 @@ pub mod tests {
 
             let mut settle_finalized_time: BlockNumber = 0;
             for i in 0..3 {
-                let mut tmp = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let tmp = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
                 if tmp > settle_finalized_time {
                     settle_finalized_time = tmp;
                 }
@@ -4404,9 +4406,9 @@ pub mod tests {
 
             let expected_settle_balances = vec![vec![100, 200], vec![114, 186], vec![67, 233]];
             for i in 0..3 {
-                let (_, mut settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(unique_channel_ids[i]).unwrap();
+                let (_, settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(unique_channel_ids[i]).unwrap();
                 assert_eq!(settle_balance, expected_settle_balances[i]);
-                let mut status = CelerModule::get_channel_status(unique_channel_ids[i]);
+                let status = CelerModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, ChannelStatus::Closed);
             }
         })
@@ -4740,9 +4742,9 @@ pub mod tests {
             let mut channel_ids: Vec<H256> = vec![];
             // open 2 new channel
             for i in 0..2 {
-                let mut open_channel_request
+                let open_channel_request
                     = get_open_channel_request(true, 100000, 50000 + i, 10, true, channel_peers.clone(), 1, peers_pair.clone());
-                let mut channel_id 
+                let channel_id 
                     = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
                 channel_ids.push(channel_id);
             }
@@ -4764,7 +4766,7 @@ pub mod tests {
                 } else {
                     expected_deposits = vec![0, amounts[i]];
                 }
-                let mut expected_event = TestEvent::celer(
+                let expected_event = TestEvent::celer(
                     RawEvent::Deposit(
                         channel_ids[i],
                         channel_peers.clone(),
@@ -4801,9 +4803,9 @@ pub mod tests {
 
             // snapshot_states()
             let mut pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
-            let mut pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
-            let mut total_pending_amount_1 = pay_id_list_info.3;
-            let mut signed_simplex_state_array = get_signed_simplex_state_array(
+            let pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
+            let total_pending_amount_1 = pay_id_list_info.3;
+            let signed_simplex_state_array = get_signed_simplex_state_array(
                 vec![channel_id],
                 vec![5],
                 vec![100],
@@ -4861,8 +4863,8 @@ pub mod tests {
 
             // snapshot_states()
             let mut pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
-            let mut pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
-            let mut total_pending_amount_1 = pay_id_list_info.3;
+            let pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
+            let total_pending_amount_1 = pay_id_list_info.3;
             let mut signed_simplex_state_array = get_signed_simplex_state_array(
                 vec![channel_id],
                 vec![5],
@@ -4923,10 +4925,10 @@ pub mod tests {
 
             let amounts = vec![1, 2];
             for i in 0..2 { // for each pays in head PayIdList
-                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
-                let mut pay_hash = hashing::blake2_256(&encoded).into();
-                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                let mut expected_event = TestEvent::celer(
+                let encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let pay_hash = hashing::blake2_256(&encoded).into();
+                let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let expected_event = TestEvent::celer(
                     RawEvent::ClearOnePay(
                         channel_id,
                         pay_id,
@@ -5172,7 +5174,7 @@ pub mod tests {
             let cond_pays = pay_id_list_info.2;
             // resolve the payments in head PayIdList
             for i in 0..cond_pays[0].len() {
-                let mut pay_request = ResolvePaymentConditionsRequest {
+                let pay_request = ResolvePaymentConditionsRequest {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![]
                 };
@@ -5190,10 +5192,10 @@ pub mod tests {
             assert_eq!(expected_single_settle_finalized_time, settle_finalized_time);
 
             for i in 0..2 { // for each pays in head PayIdList
-                let mut encoded = encode_conditional_pay(cond_pays[0][i].clone());
-                let mut pay_hash = hashing::blake2_256(&encoded).into();
-                let mut pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
-                let mut expected_event = TestEvent::celer(
+                let encoded = encode_conditional_pay(cond_pays[0][i].clone());
+                let pay_hash = hashing::blake2_256(&encoded).into();
+                let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
+                let expected_event = TestEvent::celer(
                     RawEvent::ClearOnePay(
                         channel_id,
                         pay_id,
@@ -5643,7 +5645,7 @@ pub mod tests {
             pay_ids: vec![H256::from_low_u64_be(0)],
             next_list_hash:  None
         };
-        let mut head_pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list];
+        let head_pay_id_lists: Vec<PayIdList<H256>> = vec![init_pay_id_list];
 
         // Initial value pf cond_pay
         let init_conditions = get_condition(1);
@@ -5663,7 +5665,7 @@ pub mod tests {
         let mut pay_id_list_hash_array: Vec<Vec<H256>> = vec![vec![]];
         let mut total_pending_amounts: Vec<Balance> = vec![];
         
-        let mut channel_id_len = channel_ids.len();
+        let channel_id_len = channel_ids.len();
         let mut pay_info : (
             Vec<PayIdList<H256>>,
             Vec<H256>,
@@ -5785,7 +5787,7 @@ pub mod tests {
         let mut i: usize = pay_amounts_len - 1;
 
         loop {
-            let mut pay_amounts_len_2 = pay_amounts[i].len();
+            let pay_amounts_len_2 = pay_amounts[i].len();
             let mut pay_ids: Vec<H256> = vec![H256::from_low_u64_be(0), H256::from_low_u64_be(0)];
             for j in 0..pay_amounts_len_2 {
                 total_pending_amount += pay_amounts[i][j];
@@ -5807,7 +5809,7 @@ pub mod tests {
                     resolve_timeout: 5,
                 };
                 let encoded_cond_pay = encode_conditional_pay(cond_pay_array[i][j].clone());
-                let mut pay_hash = hashing::blake2_256(&encoded_cond_pay).into();
+                let pay_hash = hashing::blake2_256(&encoded_cond_pay).into();
                 pay_ids[j] = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
             }
 
@@ -5817,7 +5819,7 @@ pub mod tests {
                     next_list_hash: None
                 };
             } else {
-                let mut k = i + 1;
+                let k = i + 1;
                 pay_id_lists[i] = PayIdList {
                     pay_ids: pay_ids,
                     next_list_hash: Some(pay_id_list_hash_array[k])
