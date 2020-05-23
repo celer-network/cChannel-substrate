@@ -103,7 +103,7 @@ impl<T: Trait> EthPool<T> {
 
         // Decrease Allowed balances of spender
         Allowed::<T>::mutate(&from, &caller, |balance| *balance = Some(new_allowed_balances));
-        Module::<T>::emit_approval_event(from.clone(), caller.clone(), new_allowed_balances);
+        Module::<T>::emit_approval_event(from.clone(), caller.clone(), new_allowed_balances)?;
 
         _transfer::<T>(from.clone(), to.clone(), value)?;
 
@@ -196,7 +196,7 @@ impl<T: Trait> EthPool<T> {
         };
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-        /// Decrease ETHPool Balances
+        // Decrease ETHPool Balances
         let new_pool_balances = pool_balances - amount;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
@@ -279,7 +279,7 @@ fn ledger_account<T: Trait>() -> T::AccountId {
 
 #[cfg(test)]
 mod tests {
-    use crate::mock::{self, *};
+    use crate::mock::*;
     use super::*;
     use sp_runtime::DispatchError;
     use crate::ledger_operation::LedgerOperation;

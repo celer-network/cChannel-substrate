@@ -9,7 +9,7 @@ use frame_support::{impl_outer_origin, impl_outer_event,
         parameter_types, weights::Weight};
 use sp_core::{sr25519, Pair, H256};
 use frame_system as system;
-use pallet_balances::{self, Reasons};
+use pallet_balances;
 
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -100,16 +100,16 @@ pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
 pub struct ExtBuilder;
 impl ExtBuilder {
     pub fn build() -> sp_io::TestExternalities {
-        let ALICE: sr25519::Public = account_key("Alice");
-        let BOB: sr25519::Public = account_key("Bob");
-        let RISA: sr25519::Public = account_key("Risa");
-        let CARL: sr25519::Public = account_key("Carl");
+        let alice: sr25519::Public = account_key("Alice");
+        let bob: sr25519::Public = account_key("Bob");
+        let risa: sr25519::Public = account_key("Risa");
+        let carl: sr25519::Public = account_key("Carl");
 
         let mut t = system::GenesisConfig::default()
             .build_storage::<TestRuntime>()
             .unwrap();
         pallet_balances::GenesisConfig::<TestRuntime> {
-            balances: vec![(ALICE, 1000), (BOB, 1000), (RISA, 1000), (CARL, 100000)],
+            balances: vec![(alice, 1000), (bob, 1000), (risa, 1000), (carl, 100000)],
         }
         .assimilate_storage(&mut t)
         .unwrap();

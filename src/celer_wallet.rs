@@ -78,7 +78,7 @@ fn celer_wallet_account<T: Trait>() -> T::AccountId {
 
 #[cfg(test)]
 mod tests {
-    use crate::mock::{self, *};
+    use crate::mock::*;
     use super::*;
     use crate::ledger_operation::{LedgerOperation};
     use crate::ledger_operation::tests::*;
