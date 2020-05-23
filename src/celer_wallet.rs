@@ -83,7 +83,7 @@ mod tests {
     use crate::ledger_operation::{LedgerOperation};
     use crate::ledger_operation::tests::*;
 
-    //#[test]
+    #[test]
     fn test_pass_deposit_celer() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -102,7 +102,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_deposit_celer_because_peer_does_not_have_enough_balance() {
         ExtBuilder::build().execute_with(||  {
             let alice_pair = account_pair("Alice");
