@@ -6,7 +6,7 @@ use frame_system::{self as system, ensure_signed};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
 use crate::celer_wallet::{CelerWallet, WALLET_ID, WalletOf};
-use crate::eth_pool::EthPool;
+use crate::pool::Pool;
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{TokenTransfer, TokenInfo, AccountAmtPair, TokenType};
 use super::{
@@ -438,7 +438,7 @@ impl<T: Trait> LedgerOperation<T> {
             let pid: usize = 1 - msg_value_receiver;
             if amounts[pid] > zero_balance {
                 let ledger_addr = Self::ledger_account();
-                EthPool::<T>::transfer_to_celer_wallet_by_ledger(
+                Pool::<T>::transfer_to_celer_wallet_by_ledger(
                     ledger_addr,
                     peer_addrs[pid].clone(),
                     channel_id,
@@ -481,7 +481,7 @@ impl<T: Trait> LedgerOperation<T> {
             }
             let ledger_account = Self::ledger_account();
             if transfer_from_amount > zero_balance {
-                EthPool::<T>::transfer_to_celer_wallet_by_ledger(
+                Pool::<T>::transfer_to_celer_wallet_by_ledger(
                     ledger_account,
                     caller,
                     channel_id,
@@ -764,8 +764,9 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: initialize_withdraw_intent,
             };
-
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+        
+            withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
         } else {
             let new_amount: BalanceOf<T> = c.peer_profiles[1].clone().withdrawal.unwrap() + amount;
             let new_peer_profiles_2 = PeerProfileOf::<T> {
@@ -785,11 +786,10 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: initialize_withdraw_intent,
             };
-
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
-        }
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
         
-        withdraw_funds::<T>(channel_id, receiver.clone(), amount, recipient_channel_id)?;
+            withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
+        }
 
         return Ok((amount, receiver, recipient_channel_id));
     }
@@ -879,11 +879,11 @@ impl<T: Trait> LedgerOperation<T> {
             "Withdraw deadline passed"
         );
 
-        let receiver = withdraw_info.withdraw.account;
+        let receiver = withdraw_info.withdraw.account.unwrap();
         let amount = withdraw_info.withdraw.amt;
         let zero_balance: BalanceOf<T> = Zero::zero();
 
-        if receiver.clone().unwrap() == c.peer_profiles[0].peer_addr {
+        if receiver.clone() == c.peer_profiles[0].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance) + amount; 
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
@@ -902,9 +902,10 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: Some(withdraw_info.seq_num),
                 withdraw_intent: c.withdraw_intent
             };
-
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
-        } else if receiver.clone().unwrap() == c.peer_profiles[1].peer_addr {
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+       
+            withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
+        } else if receiver.clone() == c.peer_profiles[1].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance) + amount; 
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
@@ -923,15 +924,14 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: Some(withdraw_info.seq_num),
                 withdraw_intent: c.withdraw_intent
             };
-
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+        
+            withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
         } else {
             Err(Error::<T>::NotChannelPeer)?
         }
 
-        withdraw_funds::<T>(channel_id, receiver.clone().unwrap(), amount, recipient_channel_id)?;
-
-        return Ok((channel_id, amount, receiver.unwrap(), recipient_channel_id, withdraw_info.seq_num));
+        return Ok((channel_id, amount, receiver, recipient_channel_id, withdraw_info.seq_num));
     }
 
     // Intend to settle channel(s) with an array of signed simplex states
@@ -1039,8 +1039,9 @@ impl<T: Trait> LedgerOperation<T> {
                         cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                         withdraw_intent: c.withdraw_intent,
                     };
-
-                     ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel));
+                    ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel.clone()));
+                
+                    _clear_pays::<T>(new_channel, current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;
                 } else {
                     let new_state: PeerStateOf<T>;
                     // updating pending_pay_out is only needed when migrating ledger during settling phrase, which will
@@ -1082,11 +1083,9 @@ impl<T: Trait> LedgerOperation<T> {
                         cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                         withdraw_intent: c.withdraw_intent,
                     };
-
-                    ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel));
+                    ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel.clone()));
+                    _clear_pays::<T>(new_channel, current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;
                 }
-                
-                _clear_pays::<T>(current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;                
             } else if simplex_state.seq_num == 0 { // null state
                 // Check signautre
                 let encoded = encode_signed_simplex_null_state::<T>(signed_simplex_state_array.clone(), i as usize);
@@ -1190,9 +1189,9 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
-
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
-            _clear_pays::<T>(channel_id, 0, pay_id_list)?;
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+            
+            _clear_pays::<T>(new_channel, channel_id, 0, pay_id_list)?;
         } else if peer_from == c.peer_profiles[1].peer_addr {
             let state = c.peer_profiles[1].clone().state;
             let new_state: PeerStateOf<T>;
@@ -1239,9 +1238,9 @@ impl<T: Trait> LedgerOperation<T> {
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
+            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
             
-            ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
-            _clear_pays::<T>(channel_id, 1, pay_id_list)?;
+            _clear_pays::<T>(new_channel, channel_id, 1, pay_id_list)?;
         }
 
         Ok(())
@@ -1287,15 +1286,15 @@ impl<T: Trait> LedgerOperation<T> {
         );
 
         let (valid_balance, settle_balance): (bool, Vec<BalanceOf<T>>) 
-                = validate_settle_balance::<T>(channel_id);
+            = validate_settle_balance::<T>(c.clone());
 
         if valid_balance == false  {
-            reset_duplex_state::<T>(channel_id);
+            reset_duplex_state::<T>(c.clone(), channel_id);
             Module::<T>::emit_confirm_settle_fail(channel_id)?;
             Err(Error::<T>::ConfirmSettleFail)?
         }
 
-        update_channel_status::<T>(channel_id, ChannelStatus::Closed)?;
+        update_channel_status::<T>(c.clone(), channel_id, ChannelStatus::Closed)?;
 
         // Withdrawal from Contracts pattern is needles here,
         // because peers need sign messages which implies that they cannot be contracts
@@ -1349,7 +1348,7 @@ impl<T: Trait> LedgerOperation<T> {
             "Balance sum mismatch"
         );
 
-        update_channel_status::<T>(channel_id, ChannelStatus::Closed)?;
+        update_channel_status::<T>(c, channel_id, ChannelStatus::Closed)?;
 
         batch_transfer_out::<T>(channel_id, peer_addrs, settle_balance.clone())?;
 
@@ -1372,11 +1371,7 @@ fn create_wallet<T: Trait>(
     peers: Vec<T::AccountId>,
     nonce: T::Hash
 ) -> Result<T::Hash, DispatchError> {
-    let owners = vec![peers[0].clone(), peers[1].clone()];
-    let mut encoded = owners[0].encode();
-    encoded.extend(owners[1].encode());
-    encoded.extend(nonce.encode());
-    let wallet_id: T::Hash = T::Hashing::hash(&encoded);
+    let wallet_id: T::Hash = create_wallet_id::<T>(peers.clone(), nonce);
 
     // Check wallet_id is not exist.
     ensure!(
@@ -1397,13 +1392,29 @@ fn create_wallet<T: Trait>(
     return Ok(wallet_id);
 }
 
+// create wallet id
+fn create_wallet_id<T: Trait>(
+    peers: Vec<T::AccountId>,
+    nonce: T::Hash
+) -> T::Hash {
+    let mut encoded = peers[0].clone().encode();
+    encoded.extend(peers[1].encode());
+    encoded.extend(nonce.encode());
+    let wallet_id = T::Hashing::hash(&encoded);
+
+    return wallet_id;
+}
+
 // Internal function to add deposit of a channel
 fn add_deposit<T: Trait>(
     channel_id: T::Hash,
     receiver: T::AccountId,
     amount: BalanceOf<T>
 ) -> Result<(), DispatchError>{
-    let c: ChannelOf<T> = ChannelMap::<T>::get(channel_id).unwrap();
+    let c: ChannelOf<T> = match ChannelMap::<T>::get(&channel_id) {
+        Some(channel) => channel,
+        None => Err(Error::<T>::ChannelNotExist)?
+    };
     ensure!(
         c.status == ChannelStatus::Operable,
         "Channel status errror"
@@ -1497,6 +1508,7 @@ fn batch_transfer_out<T: Trait>(
 
 // Internal functions to withdraw funds out of the channel
 fn withdraw_funds<T: Trait>(
+    c: ChannelOf<T>,
     channel_id: T::Hash,
     receiver: T::AccountId,
     amount: BalanceOf<T>,
@@ -1508,8 +1520,6 @@ fn withdraw_funds<T: Trait>(
     }
 
     let zero_channel_id: T::Hash = zero_hash::<T>();
-    let c = ChannelMap::<T>::get(channel_id).unwrap();
-
     if recipient_channel_id == zero_channel_id {
         withdraw::<T>(channel_id, receiver, amount)?;
     } else {
@@ -1534,9 +1544,9 @@ fn withdraw_funds<T: Trait>(
 
 // Reset the state of the channel
 fn reset_duplex_state<T: Trait>(
+    c: ChannelOf<T>,
     channel_id: T::Hash
 ) {
-    let c = ChannelMap::<T>::get(channel_id).unwrap();
     let new_channel = ChannelOf::<T> {
         balance_limits_enabled: c.balance_limits_enabled,
         balance_limits: c.balance_limits,
@@ -1554,11 +1564,11 @@ fn reset_duplex_state<T: Trait>(
 
 // Clear payments by their hash array
 fn _clear_pays<T: Trait>(
+    c: ChannelOf<T>,
     channel_id: T::Hash,
     peer_id: u8,
     pay_id_list: PayIdList<T::Hash>
 ) -> Result<(), DispatchError> { 
-    let c = ChannelMap::<T>::get(channel_id).unwrap();
     let zero_balance: BalanceOf<T> = Zero::zero();
     let out_amts: Vec<BalanceOf<T>>;
     if peer_id == 0 {
@@ -1748,8 +1758,8 @@ fn update_overall_states_by_intend_state<T: Trait>(
         cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
         withdraw_intent: c.withdraw_intent,
     };
-    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(new_channel));
-    update_channel_status::<T>(channel_id, ChannelStatus::Settling)?;
+    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(new_channel.clone()));
+    update_channel_status::<T>(new_channel, channel_id, ChannelStatus::Settling)?;
 
     let seq_nums = get_state_seq_nums::<T>(channel_id);
     // emit IntendSettle event
@@ -1761,11 +1771,11 @@ fn update_overall_states_by_intend_state<T: Trait>(
 
 /// Update status of a channel
 fn update_channel_status<T: Trait>(
+    c: ChannelOf<T>,
     channel_id: T::Hash,
     new_status: ChannelStatus
 ) -> Result<(), DispatchError> {
-    let c = ChannelMap::<T>::get(channel_id).unwrap();
-
+    // If status is new status, return.
     if c.status == new_status {
         return Ok(());
     }
@@ -1824,8 +1834,7 @@ fn validate_token_info<T: Trait>(
 */
 
 // Validate channel final balance
-fn validate_settle_balance<T: Trait>(channel_id: T::Hash) -> (bool, Vec<BalanceOf<T>>) {
-    let c = ChannelMap::<T>::get(channel_id).unwrap();
+fn validate_settle_balance<T: Trait>(c: ChannelOf<T>) -> (bool, Vec<BalanceOf<T>>) {
     let mut settle_balance: Vec<BalanceOf<T>> = vec![
         c.peer_profiles[0].deposit + c.peer_profiles[1].clone().state.transfer_out,
         c.peer_profiles[1].deposit + c.peer_profiles[0].clone().state.transfer_out
@@ -1861,9 +1870,11 @@ fn withdraw<T: Trait>(
     receiver: T::AccountId,
     amount: BalanceOf<T>
 ) -> Result<(), DispatchError> {
-    update_balance::<T>(receiver, wallet_id, MathOperation::Sub, amount)?;
+    update_balance::<T>(receiver.clone(), wallet_id, MathOperation::Sub, amount)?;
+    // Emit WithdrawFromWallet Event
+    Module::<T>::emit_withdraw_from_wallet(wallet_id, receiver, amount)?;
+    
     Ok(())
-    // TODO emit WidrawFromWallet Event
 }
 
 fn is_wallet_owner<T: Trait>(
@@ -2205,7 +2216,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_failt_deposit_before_setting_deposit_limit() {
+    fn test_fail_deposit_before_setting_deposit_limit() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -2274,7 +2285,7 @@ pub mod tests {
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
             // deposit celer to pool by channel_peers[1]
-            let _ = EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[1]),  channel_peers[1], 200).unwrap();
+            let _ = Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[1]),  channel_peers[1], 200).unwrap();
             // approve ledger to spend
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
             approve(channel_peers[1], ledger_addr, 200);
@@ -2441,7 +2452,7 @@ pub mod tests {
                 = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
             
             // deposit celer to pool by channel_peers[0]
-            let _ = EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 200).unwrap();
+            let _ = Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 200).unwrap();
             // approve ledger to spend
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
             approve(channel_peers[0], ledger_addr, 200);
@@ -2811,6 +2822,7 @@ pub mod tests {
             let (_channel_peer_2, _deposits_2, _withdrawals_2): (Vec<AccountId>, Vec<Balance>, Vec<Balance>)
                 = CelerModule::get_balance_map(channel_id_2);
 
+            assert!(channel_peers_2[0] == channel_peers_1[0] || channel_peers_2[1] == channel_peers_1[0]);
             let expected_deposits: Vec<Balance>;
             if channel_peers_2[0] == channel_peers_1[0] {
                 expected_deposits = [200, 0].to_vec();
@@ -2860,7 +2872,7 @@ pub mod tests {
             );
 
             let cooperative_withdraw_request
-                = get_cooperative_withdraw_request(channel_id_1, 1, 200, channel_peers[0], 9999999, channel_id_2, peers_pair_1.clone());
+                = get_cooperative_withdraw_request(channel_id_1, 1, 200, different_peers[0], 9999999, channel_id_2, peers_pair_1.clone());
             let err = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap_err();
             assert_eq!(err, DispatchError::Module { index: 0, error:5, message: Some("NotChannelPeer")}); 
         })
@@ -3649,7 +3661,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -3673,7 +3685,7 @@ pub mod tests {
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -3891,7 +3903,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request 
@@ -3932,7 +3944,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request 
@@ -3964,7 +3976,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request 
@@ -4001,7 +4013,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request 
@@ -4089,7 +4101,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request 
@@ -4452,7 +4464,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -4749,7 +4761,7 @@ pub mod tests {
             }
 
             // a non peer address approve to ledger address
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(deposit_account), deposit_account, 10000);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(deposit_account), deposit_account, 10000);
             approve(deposit_account, ledger_addr, 10000);
             let receivers = vec![channel_peers[0].clone(), channel_peers[1].clone()];
             let amounts = vec![100, 200];
@@ -4792,7 +4804,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -4852,7 +4864,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -5143,7 +5155,7 @@ pub mod tests {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 200);
 
             let open_channel_request
@@ -5223,7 +5235,7 @@ pub mod tests {
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
 
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 200);
 
             let open_channel_request
@@ -5258,7 +5270,7 @@ pub mod tests {
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
 
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 200);
 
             let open_channel_request
@@ -5592,7 +5604,7 @@ pub mod tests {
     }
 
     pub fn approve(owner: AccountId, spender: AccountId, value: Balance) {
-        let _ = EthPool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
+        let _ = Pool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
     }
 
     fn veto_withdraw() -> H256 {

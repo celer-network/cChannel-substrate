@@ -3,7 +3,7 @@
 
 mod ledger_operation;
 mod celer_wallet;
-mod eth_pool;
+mod pool;
 mod pay_registry;
 mod pay_resolver;
 mod mock_condition;
@@ -35,7 +35,7 @@ use celer_wallet::{
     CelerWallet,
     WalletOf
 };
-use eth_pool::EthPool;
+use pool::Pool;
 use pay_resolver::{
     PayResolver, 
     ResolvePaymentConditionsRequestOf, 
@@ -84,7 +84,7 @@ decl_storage! {
         pub WalletNum get(fn wallet_num): u128;
         pub Wallets get(fn wallet): map hasher(blake2_128_concat) T::Hash => Option<WalletOf<T>>;
     
-        /// EthPool
+        /// Pool
         pub Balances get(fn balances): 
                 map hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
         pub Allowed get(fn allowed):
@@ -179,7 +179,7 @@ decl_module! {
             Ok(())
         }
 
-        // Deposit Celer via EthPool or ERC20 tokens into the channel
+        // Deposit Celer via Pool or ERC20 tokens into the channel
         pub fn deposit_in_batch(
             origin,
             channel_ids: Vec<T::Hash>,
@@ -356,15 +356,15 @@ decl_module! {
             Ok(())
         }
 
-        /// EthPool
+        /// Pool
         // Deposit ETH to ETH Pool
         pub fn deposit_pool(
             origin,
             receiver: T::AccountId,
             amount: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let (_receiver, _amount): (T::AccountId, BalanceOf<T>) = EthPool::<T>::deposit_pool(origin, receiver, amount)?;
-            Self::deposit_event(RawEvent::EthPoolDeposit(_receiver, _amount));
+            let (_receiver, _amount): (T::AccountId, BalanceOf<T>) = Pool::<T>::deposit_pool(origin, receiver, amount)?;
+            Self::deposit_event(RawEvent::PoolDeposit(_receiver, _amount));
             Ok(())
         }
 
@@ -373,7 +373,7 @@ decl_module! {
             origin,
             value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            EthPool::<T>::withdraw(origin, value)?;
+            Pool::<T>::withdraw(origin, value)?;
             Ok(())
         }
 
@@ -384,7 +384,7 @@ decl_module! {
             value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
             let (_owner, _spender, _value): (T::AccountId, T::AccountId, BalanceOf<T>)
-                = EthPool::<T>::approve(origin, spender, value)?;
+                = Pool::<T>::approve(origin, spender, value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _value));
             Ok(())
         }
@@ -396,7 +396,7 @@ decl_module! {
             wallet_id: T::Hash,
             amount: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let (_wallet_id, _from, _amount): (T::Hash, T::AccountId, BalanceOf<T>) = EthPool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
+            let (_wallet_id, _from, _amount): (T::Hash, T::AccountId, BalanceOf<T>) = Pool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
             Self::deposit_event(RawEvent::TransferToCelerWallet(_wallet_id, _from, _amount));
             Ok(())
         }
@@ -408,7 +408,7 @@ decl_module! {
             added_value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
             let (_owner, _spender, _added_value): (T::AccountId, T::AccountId, BalanceOf<T>) 
-                = EthPool::<T>::increase_allowance(origin, spender, added_value)?;
+                = Pool::<T>::increase_allowance(origin, spender, added_value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _added_value));
             Ok(())
         }
@@ -420,7 +420,7 @@ decl_module! {
             subtracted_value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
             let (_owner, _spender, _subtracted_value): (T::AccountId, T::AccountId, BalanceOf<T>) 
-                = EthPool::<T>::decrease_allowance(origin, spender, subtracted_value)?;
+                = Pool::<T>::decrease_allowance(origin, spender, subtracted_value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _subtracted_value));
             Ok(())
         }
@@ -486,8 +486,8 @@ decl_event! (
         DepositToWallet(Hash, Balance),
         WithdrawFromWallet(Hash, AccountId, Balance),
 
-        // EthPool
-        EthPoolDeposit(AccountId, Balance),
+        // Pool
+        PoolDeposit(AccountId, Balance),
         Transfer(AccountId, AccountId, Balance),
         TransferToCelerWallet(Hash, AccountId, Balance),
         Approval(AccountId, AccountId, Balance),
@@ -575,6 +575,16 @@ impl<T: Trait> Module<T> {
         Self::deposit_event(RawEvent::ClearOnePay(channel_id, pay_id, peer_from, amount));
         Ok(())
     }
+
+    // Emit WithdrawFromWallet event
+    pub fn emit_withdraw_from_wallet(
+        wallet_id: T::Hash,
+        receiver: T::AccountId,
+        amount: BalanceOf<T>
+    ) -> Result<(), DispatchError> {
+        Self::deposit_event(RawEvent::WithdrawFromWallet(wallet_id, receiver, amount));
+        Ok(())
+   }
 
     // Get channel settle open time
     pub fn get_settle_finalized_time(channel_id: T::Hash) -> Option<T::BlockNumber> {

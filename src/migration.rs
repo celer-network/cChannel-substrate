@@ -130,7 +130,7 @@ pub mod test {
     use sp_runtime::traits::OnRuntimeUpgrade;
     use crate::ledger_operation::{LedgerOperation, WithdrawIntentOf};
     use crate::ledger_operation::tests::*;
-    use crate::eth_pool::EthPool;
+    use crate::pool::Pool;
     use crate::pay_registry::PayRegistry;
     use sp_core::{H256, hashing, sr25519};
     use pay_resolver::*;
@@ -145,7 +145,7 @@ pub mod test {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -173,7 +173,7 @@ pub mod test {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            EthPool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request

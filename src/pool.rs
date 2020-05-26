@@ -10,11 +10,11 @@ use super::{
 use crate::celer_wallet::{WALLET_ID, WalletOf};
 use crate::ledger_operation::{CELER_LEDGER_ID};
 
-pub const ETH_POOL_ID: ModuleId = ModuleId(*b"eth_pool");
+pub const POOL_ID: ModuleId = ModuleId(*b"_pool_id");
 
-pub struct EthPool<T>(sp_std::marker::PhantomData<T>);
+pub struct Pool<T>(sp_std::marker::PhantomData<T>);
 
-impl<T: Trait> EthPool<T> {
+impl<T: Trait> Pool<T> {
     // Dposit Celer to Pool
     pub fn deposit_pool(
         origin: T::Origin,
@@ -28,9 +28,9 @@ impl<T: Trait> EthPool<T> {
             "caller does not have enough balances"
         );
         
-        let eth_pool_account = eth_pool_account::<T>();
+        let pool_account = pool_account::<T>();
         ensure!(
-            receiver != eth_pool_account,
+            receiver != pool_account,
             "receiver address is pool account"
         );
 
@@ -42,7 +42,7 @@ impl<T: Trait> EthPool<T> {
             Balances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
         }
 
-        T::Currency::transfer(&caller, &eth_pool_account, amount, ExistenceRequirement::AllowDeath)?;
+        T::Currency::transfer(&caller, &pool_account, amount, ExistenceRequirement::AllowDeath)?;
 
         return Ok((receiver, amount));
     }
@@ -62,8 +62,8 @@ impl<T: Trait> EthPool<T> {
         let new_balances = balances - value;
         Balances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
 
-        let eth_pool_account = eth_pool_account::<T>();
-        T::Currency::transfer(&eth_pool_account, &caller, value, ExistenceRequirement::AllowDeath)?;
+        let pool_account = pool_account::<T>();
+        T::Currency::transfer(&pool_account, &caller, value, ExistenceRequirement::AllowDeath)?;
 
         return Ok((caller, value));
     }
@@ -145,13 +145,13 @@ impl<T: Trait> EthPool<T> {
         };
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-        // Decrease ETHPool Balances
+        // Decrease Pool Balances
         let new_pool_balances = pool_balances - amount;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
-        let eth_pool_account = eth_pool_account::<T>();
+        let pool_account = pool_account::<T>();
         let wallet_account = wallet_account::<T>();
-        T::Currency::transfer(&eth_pool_account, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
+        T::Currency::transfer(&pool_account, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
         
         return Ok((wallet_id, wallet_account, amount));
     }
@@ -196,13 +196,13 @@ impl<T: Trait> EthPool<T> {
         };
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-        // Decrease ETHPool Balances
+        // Decrease Pool Balances
         let new_pool_balances = pool_balances - amount;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
-        let eth_pool_account = eth_pool_account::<T>();
+        let pool_account = pool_account::<T>();
         let wallet_account = wallet_account::<T>();
-        T::Currency::transfer(&eth_pool_account, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
+        T::Currency::transfer(&pool_account, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
         
         return Ok((wallet_id, wallet_account, amount));
     }
@@ -259,14 +259,14 @@ fn _transfer<T: Trait>(
     let new_balances = balances - value;
     Balances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 
-    let eth_pool_account = eth_pool_account::<T>();
-    T::Currency::transfer(&eth_pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
+    let pool_account = pool_account::<T>();
+    T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
 
     Ok(())
 }
 
-fn eth_pool_account<T: Trait>() -> T::AccountId {
-    ETH_POOL_ID.into_account()
+fn pool_account<T: Trait>() -> T::AccountId {
+    POOL_ID.into_account()
 }
 
 fn wallet_account<T: Trait>() -> T::AccountId {
@@ -296,7 +296,7 @@ mod tests {
     fn test_fail_deposit_pool_because_of_owner_does_not_enough_balance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob");
-            let err = EthPool::<TestRuntime>::deposit_pool(Origin::signed(bob), bob, 2000).unwrap_err();
+            let err = Pool::<TestRuntime>::deposit_pool(Origin::signed(bob), bob, 2000).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller does not have enough balances"));
         })
     }
@@ -305,7 +305,7 @@ mod tests {
     fn test_fail_withdraw_because_of_no_deposit() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
-            let err = EthPool::<TestRuntime>::withdraw(Origin::signed(alice), 10).unwrap_err();
+            let err = Pool::<TestRuntime>::withdraw(Origin::signed(alice), 10).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller's address is not exist in Pool Balances"));
         })
     }
@@ -316,7 +316,7 @@ mod tests {
             let bob = account_key("Bob");
             deposit_pool(bob, 100);
             let (receiver, value) 
-                = EthPool::<TestRuntime>::withdraw(Origin::signed(bob), 100).unwrap();
+                = Pool::<TestRuntime>::withdraw(Origin::signed(bob), 100).unwrap();
             assert_eq!(receiver, bob);
             assert_eq!(value, 100);
         })
@@ -342,7 +342,7 @@ mod tests {
             approve(bob, risa, 150);
             
             let (from, to, value) 
-                = EthPool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 150).unwrap();
+                = Pool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 150).unwrap();
             assert_eq!(from, bob);
             assert_eq!(to, alice);
             assert_eq!(value, 150);
@@ -359,7 +359,7 @@ mod tests {
             deposit_pool(bob, 200);
             approve(bob, risa, 100);
 
-            let err = EthPool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 200).unwrap_err();
+            let err = Pool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 200).unwrap_err();
             assert_eq!(err, DispatchError::Other("spender does not have enough allowed balances"));
         })
     }
@@ -373,7 +373,7 @@ mod tests {
             approve(bob, risa, 100);
 
             let (owner, spender, new_allowed_balances) 
-                = EthPool::<TestRuntime>::increase_allowance(Origin::signed(bob), risa, 50).unwrap();
+                = Pool::<TestRuntime>::increase_allowance(Origin::signed(bob), risa, 50).unwrap();
             assert_eq!(owner, bob);
             assert_eq!(spender, risa);
             assert_eq!(new_allowed_balances, 150);
@@ -389,7 +389,7 @@ mod tests {
             approve(bob, risa, 100);
 
             let (owner, spender, new_allowed_balances)
-                = EthPool::<TestRuntime>::decrease_allowance(Origin::signed(bob), risa, 50).unwrap();
+                = Pool::<TestRuntime>::decrease_allowance(Origin::signed(bob), risa, 50).unwrap();
             assert_eq!(owner, bob);
             assert_eq!(spender, risa);
             assert_eq!(new_allowed_balances, 50);
@@ -417,7 +417,7 @@ mod tests {
 
             // Transfer to celer wallet by risa
             let (_wallet_id, _, _amount)
-                = EthPool::<TestRuntime>::transfer_to_celer_wallet(Origin::signed(risa), channel_peers[0], wallet_id, 200).unwrap();
+                = Pool::<TestRuntime>::transfer_to_celer_wallet(Origin::signed(risa), channel_peers[0], wallet_id, 200).unwrap();
             assert_eq!(_wallet_id, wallet_id);
             assert_eq!(_amount, 200);
         })
@@ -425,14 +425,14 @@ mod tests {
 
     fn deposit_pool(receiver: AccountId, value: Balance) {
         let (_receiver, _value) 
-            = EthPool::<TestRuntime>::deposit_pool(Origin::signed(receiver), receiver, value).unwrap();
+            = Pool::<TestRuntime>::deposit_pool(Origin::signed(receiver), receiver, value).unwrap();
         assert_eq!(_receiver, receiver);
         assert_eq!(_value, value);
     }
 
     fn approve(owner: AccountId, spender: AccountId, value: Balance) {
         let (_owner, _spender, _value)
-            = EthPool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
+            = Pool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
         assert_eq!(_owner, owner);
         assert_eq!(_spender, spender);
         assert_eq!(_value, value);
