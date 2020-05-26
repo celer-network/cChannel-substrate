@@ -3,7 +3,7 @@ use frame_support::{ensure};
 use pallet_timestamp;
 use frame_system::{self as system};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
-use sp_runtime::traits::{Hash, AccountIdConversion, Zero};
+use sp_runtime::traits::{Hash, AccountIdConversion, Zero, CheckedAdd};
 use super::{
     Trait, Module, Error, BalanceOf, 
 };
@@ -218,9 +218,9 @@ fn resolve_payment<T: Trait>(
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             new_deadline = block_number.clone();
         } else {
-            let timeout = block_number + pay.resolve_timeout;
+            let timeout = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             if timeout < pay.resolve_deadline {
-                new_deadline = block_number + pay.resolve_timeout;
+                new_deadline = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             } else {
                 new_deadline = pay.resolve_deadline;
             }

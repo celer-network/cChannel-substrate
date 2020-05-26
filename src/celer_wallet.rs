@@ -3,7 +3,7 @@ use frame_support::{ensure, storage::{StorageMap}};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
-use sp_runtime::traits::{AccountIdConversion};
+use sp_runtime::traits::{AccountIdConversion, CheckedAdd};
 use super::{
     Trait, Error, BalanceOf, Wallets,
 };
@@ -57,7 +57,7 @@ fn update_balance<T: Trait>(
     let wallet_account = celer_wallet_account::<T>();
 
     // Currently ETH is only supported.
-    let new_amount = w.balance + amount;
+    let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
     
     let new_wallet: WalletOf<T> = WalletOf::<T> {
         owners: w.owners,
@@ -66,7 +66,12 @@ fn update_balance<T: Trait>(
     
     Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
     
-    T::Currency::transfer(&caller, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
+    T::Currency::transfer(
+        &caller, 
+        &wallet_account, 
+        amount, 
+        ExistenceRequirement::AllowDeath
+    )?;
 
     Ok(())
 }

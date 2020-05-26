@@ -18,7 +18,15 @@ use frame_support::{decl_storage, decl_module, decl_event, decl_error,
 };
 use codec::{Encode, Decode};
 use sp_runtime::{DispatchError, RuntimeDebug};
-use sp_runtime::traits::{Hash, IdentifyAccount, Member, Verify, Zero};
+use sp_runtime::traits::{
+    Hash, 
+    IdentifyAccount, 
+    Member, 
+    Verify, 
+    Zero,
+    CheckedAdd, 
+    CheckedSub
+};
 use sp_std::{prelude::*, vec::Vec};
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -501,6 +509,7 @@ decl_event! (
 decl_error! {
     pub enum Error for Module<T: Trait> {
         Error,
+        OverFlow,
         PeerNotExist,
         BalanceLimitsNotExist,
         ChannelNotExist,
@@ -616,14 +625,14 @@ impl<T: Trait> Module<T> {
     }
 
     // Return one channel's total balance amount
-    pub fn get_total_balance(channel_id: T::Hash) -> BalanceOf<T> {
+    pub fn get_total_balance(channel_id: T::Hash) -> Result<BalanceOf<T>, DispatchError> {
         let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
         let zero_balance: BalanceOf<T> = Zero::zero();
-        let balance: BalanceOf<T> = c.peer_profiles[0].deposit 
-                + c.peer_profiles[1].deposit
-                - c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)
-                - c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance);
-        return balance;
+        let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
+        balance = balance.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
+        return Ok(balance);
     }
 
 
