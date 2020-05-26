@@ -9,7 +9,7 @@ mod pay_resolver;
 mod mock_condition;
 mod r#struct;
 mod mock;
-//mod migration;
+mod migration;
 
 use pallet_timestamp;
 use frame_support::{decl_storage, decl_module, decl_event, decl_error,
@@ -17,8 +17,8 @@ use frame_support::{decl_storage, decl_module, decl_event, decl_error,
     traits::{Currency},
 };
 use codec::{Encode, Decode};
-use sp_runtime::DispatchError;
-use sp_runtime::traits::{Hash, IdentifyAccount, Member, Verify, Zero, OnRuntimeUpgrade};
+use sp_runtime::{DispatchError, RuntimeDebug};
+use sp_runtime::traits::{Hash, IdentifyAccount, Member, Verify, Zero};
 use sp_std::{prelude::*, vec::Vec};
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -55,8 +55,7 @@ pub trait Trait: system::Trait + pallet_timestamp::Trait {
     type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode;
 }
 
-/**
-// A value placed in storage that represents the current version of the Balances storage.
+// A value placed in storage that represents the current version of the Celer Ledger storage.
 // This value is used by the `on_runtime_upgrade` logic to determine whether we run
 // storage migration logic. This should match directly with the semantic versions of the Rust crate.
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug)]
@@ -64,7 +63,13 @@ enum Releases {
 	V1_0_0,
 	V2_0_0,
 }
-*/
+
+impl Default for Releases {
+    fn default() -> Self {
+        Releases::V1_0_0
+    }
+}
+
 
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
@@ -90,7 +95,7 @@ decl_storage! {
                 map hasher(blake2_128_concat) T::Hash => Option<PayInfoOf<T>>;
     
         // Storage version of the pallet
-        //StorageVersion build(|_| Releases::V1_0_0): Releases;
+        pub StorageVersion build(|_| Releases::V1_0_0): Releases;
     }
 }
 
@@ -446,9 +451,9 @@ decl_module! {
         }
 
         // Upgrade Celer runtime module
-        //fn on_runtime_upgrade() {
-        //    migration::on_runtime_upgrade::<T>();
-        //}
+        fn on_runtime_upgrade() {
+            migration::on_runtime_upgrade::<T>();
+        }
     }
 }
 

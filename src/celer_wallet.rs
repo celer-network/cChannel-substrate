@@ -8,7 +8,6 @@ use super::{
     Trait, Error, BalanceOf, Wallets,
 };
 
-// Currently ETH is only supported.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Wallet<AccountId, Balance> {
     pub owners: Vec<AccountId>,
