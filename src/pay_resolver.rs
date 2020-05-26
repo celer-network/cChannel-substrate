@@ -46,7 +46,7 @@ pub enum TokenType {
     ERC20,
 }
 
-// Currently ETH is only uspported.
+// Currently native token is only uspported.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenInfo  {
     pub token_type: TokenType

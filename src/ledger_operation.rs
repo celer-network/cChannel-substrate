@@ -1481,7 +1481,7 @@ fn batch_transfer_out<T: Trait>(
     amounts: Vec<BalanceOf<T>>
 ) -> Result<(), DispatchError> {
     let zero_balance: BalanceOf<T> = Zero::zero();
-    for i in 0..1 {
+    for i in 0..2 {
         if amounts[i] == zero_balance {
             continue;
         }
@@ -3626,7 +3626,6 @@ pub mod tests {
 
             let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>)
                 = CelerModule::get_balance_map(channel_id);
-            
             assert_eq!(deposits, [500, 500]);
             assert_eq!(withdrawals, [0, 0]);
 
@@ -5592,7 +5591,7 @@ pub mod tests {
         return cooperative_withdraw_request;
     }
 
-    fn approve(owner: AccountId, spender: AccountId, value: Balance) {
+    pub fn approve(owner: AccountId, spender: AccountId, value: Balance) {
         let _ = EthPool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
     }
 
@@ -5622,7 +5621,7 @@ pub mod tests {
         return channel_id;
     }
 
-    fn get_cosigned_intend_settle(
+    pub fn get_cosigned_intend_settle(
         channel_ids: Vec<H256>,
         pay_amounts_array: Vec<Vec<Vec<Balance>>>,
         seq_nums: Vec<u128>,
@@ -5739,7 +5738,7 @@ pub mod tests {
         );
     }
 
-    fn get_pay_id_list_info(
+    pub fn get_pay_id_list_info(
         pay_amounts: Vec<Vec<Balance>>,
         pay_conditions: u8
     ) -> (
@@ -5850,7 +5849,7 @@ pub mod tests {
         );
     }
 
-    fn get_signed_simplex_state_array(
+    pub fn get_signed_simplex_state_array(
         channel_ids: Vec<H256>,
         seq_nums: Vec<u128>,
         transfer_amounts: Vec<Balance>,
@@ -5895,7 +5894,7 @@ pub mod tests {
         return signed_simplex_state_array;
     }
 
-    fn get_single_signed_simplex_state(
+    pub fn get_single_signed_simplex_state(
         channel_id: H256,
         signer: AccountId,
         peers_pair: Vec<sr25519::Pair>
@@ -5935,7 +5934,7 @@ pub mod tests {
         }
     }
 
-    fn get_co_signed_simplex_state(
+    pub fn get_co_signed_simplex_state(
         channel_id: H256,
         peer_from: AccountId,
         seq_num: u128,
@@ -6021,7 +6020,7 @@ pub mod tests {
         return cooperative_settle_request;
     }
 
-    fn get_token_transfer(
+    pub fn get_token_transfer(
         account: AccountId,
         amount: Balance
     ) -> TokenTransfer<AccountId, Balance> {
@@ -6042,7 +6041,7 @@ pub mod tests {
         return token_transfer;
     }
 
-    fn get_transfer_func_2(
+    pub fn get_transfer_func_2(
         amount: Balance
     ) -> TransferFunction<AccountId, Balance> {
         let account_amt_pair = AccountAmtPair {
