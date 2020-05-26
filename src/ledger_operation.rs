@@ -419,7 +419,8 @@ impl<T: Trait> LedgerOperation<T> {
             withdraw_intent: withdraw_intent,
         };
 
-        let amt_sum: BalanceOf<T> = amounts[0].checked_add(&amounts[1]).ok_or(Error::<T>::OverFlow)?;
+        let amt_sum: BalanceOf<T> = amounts[0]
+                .checked_add(&amounts[1]).ok_or(Error::<T>::OverFlow)?;
         let zero_balance: BalanceOf<T> = Zero::zero();
         // if total deposit is 0
         if amt_sum == zero_balance {
@@ -493,7 +494,8 @@ impl<T: Trait> LedgerOperation<T> {
             T::Currency::free_balance(&caller) >= amount,
             "caller does not have enough balances."
         );
-        let deposit_amount: BalanceOf<T> = amount.checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
+        let deposit_amount: BalanceOf<T> = amount
+                .checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
         add_deposit::<T>(channel_id, receiver.clone(), deposit_amount)?;
 
         let zero_balance: BalanceOf<T> = Zero::zero();
@@ -613,7 +615,7 @@ impl<T: Trait> LedgerOperation<T> {
                 ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel));
             }
 
-            if i == state_len - 1 {
+            if i == state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 let current_channel: ChannelOf<T> = match ChannelMap::<T>::get(current_channel_id) {
                     Some(channel) => channel,
                     None => Err(Error::<T>::ChannelNotExist)?
@@ -622,7 +624,7 @@ impl<T: Trait> LedgerOperation<T> {
                 let seq_nums = get_state_seq_nums::<T>(current_channel_id);
                 Module::<T>::emit_snapshot_states(current_channel_id, seq_nums[0], seq_nums[1])?;
                
-            } else if i < state_len - 1 {
+            } else if i < state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 simplex_state = signed_simplex_state_array.signed_simplex_states[i+1].simplex_state.clone();
                 // enforce channel_ids of simplex states are ascending
                 ensure!(
@@ -752,15 +754,15 @@ impl<T: Trait> LedgerOperation<T> {
         if rid == 0 {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[0].deposit).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_add(&state_2.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_1.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_1.pending_pay_out).ok_or(Error::<T>::OverFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&state_1.transfer_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&state_1.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         } else {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_add(&state_1.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_2.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_2.pending_pay_out).ok_or(Error::<T>::OverFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&state_2.transfer_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&state_2.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         }
         ensure!(
             amount <= withdraw_limit,
@@ -792,7 +794,8 @@ impl<T: Trait> LedgerOperation<T> {
         
             withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
         } else {
-            let new_amount: BalanceOf<T> = c.peer_profiles[1].clone().withdrawal.unwrap().checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+            let new_amount: BalanceOf<T> = c.peer_profiles[1].clone().withdrawal.unwrap()
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
                 deposit: c.peer_profiles[1].deposit,
@@ -894,7 +897,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         // require an increment of exactly 1 for seq_num of each cooperative withdraw request
         let cal_seq = withdraw_info.seq_num
-            .checked_sub(c.cooperative_withdraw_seq_num.unwrap_or(0)).ok_or(Error::<T>::OverFlow)?;
+            .checked_sub(c.cooperative_withdraw_seq_num.unwrap_or(0)).ok_or(Error::<T>::UnderFlow)?;
         ensure!(
             cal_seq == 1,
             "seq_num error"
@@ -909,7 +912,8 @@ impl<T: Trait> LedgerOperation<T> {
         let zero_balance: BalanceOf<T> = Zero::zero();
 
         if receiver.clone() == c.peer_profiles[0].peer_addr {
-            let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance) + amount; 
+            let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?; 
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
                 deposit: c.peer_profiles[0].deposit,
@@ -931,7 +935,8 @@ impl<T: Trait> LedgerOperation<T> {
        
             withdraw_funds::<T>(new_channel, channel_id, receiver.clone(), amount, recipient_channel_id)?;
         } else if receiver.clone() == c.peer_profiles[1].peer_addr {
-            let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance) + amount; 
+            let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?; 
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
                 deposit: c.peer_profiles[1].deposit,
@@ -1109,6 +1114,7 @@ impl<T: Trait> LedgerOperation<T> {
                         withdraw_intent: c.withdraw_intent,
                     };
                     ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel.clone()));
+
                     _clear_pays::<T>(new_channel, current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;
                 }
             } else if simplex_state.seq_num == 0 { // null state
@@ -1366,7 +1372,8 @@ impl<T: Trait> LedgerOperation<T> {
         );
 
         let settle_balance = vec![settle_info.settle_balance[0].amt, settle_info.settle_balance[1].amt];
-        let total_settle_balance = settle_balance[0].checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
+        let total_settle_balance = settle_balance[0]
+                .checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
         let total_balance = Module::<T>::get_total_balance(channel_id)?;
         ensure!(
             total_settle_balance == total_balance,
@@ -1447,7 +1454,8 @@ fn add_deposit<T: Trait>(
 
     if c.balance_limits_enabled == true {
         let total_balance = Module::<T>::get_total_balance(channel_id.clone())?;
-        let added_amount = amount.checked_add(&total_balance).ok_or(Error::<T>::OverFlow)?;
+        let added_amount = amount
+                .checked_add(&total_balance).ok_or(Error::<T>::OverFlow)?;
         let limits = match c.balance_limits {
             Some(limits) => limits,
             None => Err(Error::<T>::BalanceLimitsNotExist)?
@@ -1649,7 +1657,6 @@ fn _clear_pays<T: Trait>(
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
-
             ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
         } else {
             // Note: if there are more uncleared pays in this state, because resolved pay amount 
@@ -1682,7 +1689,6 @@ fn _clear_pays<T: Trait>(
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
-
             ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
         }
     } else {
@@ -1735,7 +1741,6 @@ fn _clear_pays<T: Trait>(
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
-
             ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
         } else {
             // Note: if there are more uncleared pays in this state, because resolved pay amount 
@@ -1743,7 +1748,8 @@ fn _clear_pays<T: Trait>(
             //      pending_pay_out, the updated pending_pay_out may be equal to or larger than the real
             //      pending_pay_out. This will lead to decreasing the maximum withdraw amount (withdraw_limit)
             //      from potentially maliciout non-cooperative withdraw.
-            let new_pending_pay_out = state_2.pending_pay_out - total_amt_out;
+            let new_pending_pay_out = state_2.pending_pay_out
+                    .checked_sub(&total_amt_out).ok_or(Error::<T>::UnderFlow)?;
             let new_state_2 = PeerStateOf::<T> {
                 seq_num: state_2.seq_num,
                 transfer_out: new_transfer_out_2,
@@ -1768,7 +1774,6 @@ fn _clear_pays<T: Trait>(
                 cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
                 withdraw_intent: c.withdraw_intent
             };
-
             ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
         }
     }
@@ -1891,7 +1896,7 @@ fn validate_settle_balance<T: Trait>(c: ChannelOf<T>) -> Result<(bool, Vec<Balan
         }
 
         settle_balance[i as usize] = settle_balance[i as usize]
-            .checked_sub(&sub_amt).ok_or(Error::<T>::OverFlow)?;
+            .checked_sub(&sub_amt).ok_or(Error::<T>::UnderFlow)?;
     }
 
     return Ok((true, vec![settle_balance[0], settle_balance[1]]));
@@ -1953,8 +1958,8 @@ fn update_balance<T: Trait>(
             w.balance >= amount,
             "balance of amount is not deposited"
         );
-        new_amount = w.balance.checked_sub(&amount)
-            .ok_or(Error::<T>::OverFlow)?;
+        new_amount = w.balance
+            .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         let new_wallet = WalletOf::<T> {
             owners: w.owners,
             balance: new_amount,
@@ -1972,8 +1977,8 @@ fn update_balance<T: Trait>(
             T::Currency::free_balance(&caller) >= amount,
             "caller does not have enough balances."
         );
-        new_amount = w.balance.checked_add(&amount)
-            .ok_or(Error::<T>::OverFlow)?;
+        new_amount = w.balance
+            .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
         let new_wallet = WalletOf::<T> {
             owners: w.owners,
             balance: new_amount,
@@ -2935,7 +2940,7 @@ pub mod tests {
             let cooperative_withdraw_request
                 = get_cooperative_withdraw_request(channel_id_1, 1, 200, different_peers[0], 9999999, channel_id_2, peers_pair_1.clone());
             let err = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap_err();
-            assert_eq!(err, DispatchError::Module { index: 0, error:6, message: Some("NotChannelPeer")}); 
+            assert_eq!(err, DispatchError::Module { index: 0, error:7, message: Some("NotChannelPeer")}); 
         })
     }
 
@@ -3429,7 +3434,7 @@ pub mod tests {
             let hash_zero = zero_hash::<TestRuntime>();
 
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
-            assert_eq!(err, DispatchError::Module { index: 0, error: 7, message: Some("ConfirmSettleFail") });
+            assert_eq!(err, DispatchError::Module { index: 0, error: 8, message: Some("ConfirmSettleFail") });
         })
     }
 
@@ -4937,7 +4942,7 @@ pub mod tests {
             let mut pay_id_list_info = get_pay_id_list_info(vec![vec![1, 2]], 1);
             let pay_id_lists_1 = vec![pay_id_list_info.0[0].clone()];
             let total_pending_amount_1 = pay_id_list_info.3;
-            let mut signed_simplex_state_array = get_signed_simplex_state_array(
+            let signed_simplex_state_array = get_signed_simplex_state_array(
                 vec![channel_id],
                 vec![5],
                 vec![100],

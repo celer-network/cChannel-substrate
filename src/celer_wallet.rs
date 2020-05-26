@@ -57,7 +57,8 @@ fn update_balance<T: Trait>(
     let wallet_account = celer_wallet_account::<T>();
 
     // Currently ETH is only supported.
-    let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+    let new_amount = w.balance
+            .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
     
     let new_wallet: WalletOf<T> = WalletOf::<T> {
         owners: w.owners,

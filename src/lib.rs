@@ -510,6 +510,7 @@ decl_error! {
     pub enum Error for Module<T: Trait> {
         Error,
         OverFlow,
+        UnderFlow,
         PeerNotExist,
         BalanceLimitsNotExist,
         ChannelNotExist,
@@ -630,8 +631,8 @@ impl<T: Trait> Module<T> {
         let zero_balance: BalanceOf<T> = Zero::zero();
         let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
         balance = balance.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
         return Ok(balance);
     }
 
