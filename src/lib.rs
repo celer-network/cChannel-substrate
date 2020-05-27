@@ -1,4 +1,4 @@
-
+#![recursion_limit = "200"]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod ledger_operation;
@@ -7,13 +7,12 @@ mod pool;
 mod pay_registry;
 mod pay_resolver;
 mod mock_condition;
-mod r#struct;
 mod mock;
 mod migration;
 
 use pallet_timestamp;
 use frame_support::{decl_storage, decl_module, decl_event, decl_error,
-    ensure, storage::{StorageMap, StorageDoubleMap},
+    ensure, storage::StorageMap,
     traits::{Currency},
 };
 use codec::{Encode, Decode};
@@ -114,7 +113,7 @@ decl_module! {
 
         /// Celer Ledger
         // Set the balance limits
-        pub fn set_balance_limits(
+        fn set_balance_limits(
             origin,
             channel_id: T::Hash,
             limits: BalanceOf<T>
@@ -128,7 +127,7 @@ decl_module! {
         }
 
         // Disable balance limits 
-        pub fn disable_balance_limits(
+        fn disable_balance_limits(
             origin,
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
@@ -138,7 +137,7 @@ decl_module! {
         }
 
         // Enable balance limits
-        pub fn enable_balance_limits(
+        fn enable_balance_limits(
             origin,
             channel_id: T::Hash    
         ) -> Result<(), DispatchError> {
@@ -148,7 +147,7 @@ decl_module! {
         }
 
         // Open a state channel through auth withdraw message
-        pub fn open_channel(
+        fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
             amount: BalanceOf<T>
@@ -167,8 +166,8 @@ decl_module! {
             Ok(())
         }
 
-        // Deposit Celer or ERC20 tokens into the channel
-        pub fn deposit(
+        // Deposit native token into the channel
+        fn deposit(
             origin,
             channel_id: T::Hash,
             receiver: T::AccountId,
@@ -187,8 +186,8 @@ decl_module! {
             Ok(())
         }
 
-        // Deposit Celer via Pool or ERC20 tokens into the channel
-        pub fn deposit_in_batch(
+        // Deposit native tokens into the channel
+        fn deposit_in_batch(
             origin,
             channel_ids: Vec<T::Hash>,
             receivers: Vec<T::AccountId>,
@@ -224,7 +223,7 @@ decl_module! {
         }
 
         // Store signed simplex states on-chain as checkpoints
-        pub fn snapshot_states(
+        fn snapshot_states(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
         ) -> Result<(), DispatchError> {
@@ -234,7 +233,7 @@ decl_module! {
         }
 
         // Intend to withdraw funds from channel
-        pub fn intend_withdraw(
+        fn intend_withdraw(
             origin,
             channel_id: T::Hash,
             amount: BalanceOf<T>,
@@ -251,7 +250,7 @@ decl_module! {
         }
 
         // Confirm channel withdrawal
-        pub fn confirm_withdraw(
+        fn confirm_withdraw(
             origin,
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
@@ -273,7 +272,7 @@ decl_module! {
         }
 
         // Veto current withdrawal intent
-        pub fn veto_withdraw(
+        fn veto_withdraw(
             origin,
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
@@ -283,7 +282,7 @@ decl_module! {
         }
 
         // Cooperatively withdraw specific amount of balance
-        pub fn cooperative_withdraw(
+        fn cooperative_withdraw(
             origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
         ) -> Result<(), DispatchError> {
@@ -304,7 +303,7 @@ decl_module! {
         }
 
         // Intent to settle channel with an array of signed simplex states
-        pub fn intend_settle(
+        fn intend_settle(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
         ) -> Result<(), DispatchError> {
@@ -313,7 +312,7 @@ decl_module! {
         }
 
         // Read payment results and add results to corresponding simplex payment channel
-        pub fn clear_pays(
+        fn clear_pays(
             origin,
             channel_id: T::Hash,
             peer_from: T::AccountId,
@@ -324,7 +323,7 @@ decl_module! {
         }
 
         // Confirm channel settlement
-        pub fn confirm_settle(
+        fn confirm_settle(
             origin,
             channel_id: T::Hash
         ) -> Result<(), DispatchError> {
@@ -338,7 +337,7 @@ decl_module! {
         }
 
         // Cooperatively settle the channel
-        pub fn cooperative_settle(
+        fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
         ) -> Result<(), DispatchError>{
@@ -353,20 +352,20 @@ decl_module! {
         }
         
         /// Celer Wallet
-        // Deposit ETH to a wallet.
-        pub fn deposit_celer(
+        // Deposit native token to a wallet.
+        fn deposit_native_token(
             origin, 
             wallet_id: T::Hash, 
             amount: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let (_wallet_id, _amount): (T::Hash, BalanceOf<T>) = CelerWallet::<T>::deposit_celer(origin, wallet_id, amount)?;
+            let (_wallet_id, _amount): (T::Hash, BalanceOf<T>) = CelerWallet::<T>::deposit_native_token(origin, wallet_id, amount)?;
             Self::deposit_event(RawEvent::DepositToWallet(_wallet_id, _amount));
             Ok(())
         }
 
         /// Pool
-        // Deposit ETH to ETH Pool
-        pub fn deposit_pool(
+        // Deposit native token into Pool
+        fn deposit_pool(
             origin,
             receiver: T::AccountId,
             amount: BalanceOf<T>
@@ -376,8 +375,8 @@ decl_module! {
             Ok(())
         }
 
-        // Withdraw ETH from ETH Pool
-        pub fn withdraw(
+        // Withdraw native token from Pool
+        fn withdraw(
             origin,
             value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
@@ -385,8 +384,8 @@ decl_module! {
             Ok(())
         }
 
-        // Approve the passed address the spend the specified amount of ETH on behalf of caller.
-        pub fn approve(
+        // Approve the passed address the spend the specified amount of native token on behalf of caller.
+        fn approve(
             origin,
             spender: T::AccountId,
             value: BalanceOf<T>
@@ -397,20 +396,34 @@ decl_module! {
             Ok(())
         }
 
-        // Transfer to ETH from one address to a wallet in CelerWallet Module.
-        pub fn transfer_to_celer_wallet(
+        // Transfer native token from one address to another.
+        fn transfer_from(
+            origin,
+            from: T::AccountId,
+            to: T::AccountId,
+            value: BalanceOf<T>
+        ) -> Result<(), DispatchError> {
+            let (_from, _to, _value): (T::AccountId, T::AccountId, BalanceOf<T>)
+                = Pool::<T>::transfer_from(origin, from, to, value)?;
+            Self::deposit_event(RawEvent::Transfer(_from, _to, value));
+            Ok(())
+        }
+
+        // Transfer to native token from one address to a wallet in CelerWallet Module.
+        fn transfer_to_celer_wallet(
             origin,
             from: T::AccountId,
             wallet_id: T::Hash,
             amount: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let (_wallet_id, _from, _amount): (T::Hash, T::AccountId, BalanceOf<T>) = Pool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
+            let (_wallet_id, _from, _amount): (T::Hash, T::AccountId, BalanceOf<T>) 
+                = Pool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
             Self::deposit_event(RawEvent::TransferToCelerWallet(_wallet_id, _from, _amount));
             Ok(())
         }
 
-        // Increase the amount of ETH that an owner allowed to a spender.
-        pub fn increase_allowance(
+        // Increase the amount of native token that an owner allowed to a spender.
+        fn increase_allowance(
             origin,
             spender: T::AccountId,
             added_value: BalanceOf<T>
@@ -421,8 +434,8 @@ decl_module! {
             Ok(())
         }
 
-        // Decrease the amount of ETH that an owner allowed to a spender.
-        pub fn decrease_allowance(
+        // Decrease the amount of native token that an owner allowed to a spender.
+        fn decrease_allowance(
             origin,
             spender: T::AccountId,
             subtracted_value: BalanceOf<T>
@@ -435,7 +448,7 @@ decl_module! {
 
         // PayResolver
         // Resolve a payment by onchain getting its conditons outcomes
-        pub fn resolve_payment_by_conditions(
+        fn resolve_payment_by_conditions(
             origin, 
             resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
         ) -> Result<(), DispatchError> {
@@ -447,7 +460,7 @@ decl_module! {
         }
 
         // Resolve a payment by submitting an offchain vouched result
-        pub fn resolve_payment_by_vouched_result(
+        fn resolve_payment_by_vouched_result(
             origin,
             vouched_pay_result: VouchedCondPayResultOf<T>
         ) -> Result<(), DispatchError> {
