@@ -39,14 +39,13 @@ pub enum TransferFunctionType {
     NumericMin,
 }
 
+// Currently native token is only supoorted.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum TokenType {
     INVALID,
-    CELER,
-    ERC20,
+    CELER, // native token. If Kusama network,change from CELER to KSM. 
 }
 
-// Currently native token is only uspported.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenInfo  {
     pub token_type: TokenType

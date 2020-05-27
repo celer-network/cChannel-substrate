@@ -378,7 +378,6 @@ impl<T: Trait> LedgerOperation<T> {
 
         // Insert new Channel to ChannelMap.
         let zero_balance: BalanceOf<T> = Zero::zero();
-        let zero_hash: T::Hash = zero_hash::<T>();
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let peer_state = PeerStateOf::<T> {
             seq_num: 0,
@@ -454,7 +453,7 @@ impl<T: Trait> LedgerOperation<T> {
                 "amount mismatch"
             );
             if amounts[msg_value_receiver] > zero_balance {
-                CelerWallet::<T>::deposit_celer(origin, channel_id, amount)?;
+                CelerWallet::<T>::deposit_native_token(origin, channel_id, amount)?;
             }
 
             // peer ID of non-msg_value_receiver
@@ -501,7 +500,7 @@ impl<T: Trait> LedgerOperation<T> {
         let zero_balance: BalanceOf<T> = Zero::zero();
         if c.token.token_type == TokenType::CELER {
             if amount > zero_balance {
-                CelerWallet::<T>::deposit_celer(origin, channel_id, amount)?;
+                CelerWallet::<T>::deposit_native_token(origin, channel_id, amount)?;
             }
             let ledger_account = Self::ledger_account();
             if transfer_from_amount > zero_balance {
@@ -616,14 +615,8 @@ impl<T: Trait> LedgerOperation<T> {
             }
 
             if i == state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
-                let current_channel: ChannelOf<T> = match ChannelMap::<T>::get(current_channel_id) {
-                    Some(channel) => channel,
-                    None => Err(Error::<T>::ChannelNotExist)?
-                };
-                
                 let seq_nums = get_state_seq_nums::<T>(current_channel_id);
                 Module::<T>::emit_snapshot_states(current_channel_id, seq_nums[0], seq_nums[1])?;
-               
             } else if i < state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 simplex_state = signed_simplex_state_array.signed_simplex_states[i+1].simplex_state.clone();
                 // enforce channel_ids of simplex states are ascending
@@ -1790,7 +1783,6 @@ fn update_overall_states_by_intend_state<T: Trait>(
         None => Err(Error::<T>::NotChannelPeer)?
     };
 
-    let zero_blocknumber: T::BlockNumber = Zero::zero();
     let new_setttle_finalized_time: T::BlockNumber = <frame_system::Module<T>>::block_number()
             .checked_add(&c.dispute_timeout).ok_or(Error::<T>::OverFlow)?;
     let new_channel = ChannelOf::<T> {
@@ -1911,8 +1903,8 @@ fn get_state_seq_nums<T: Trait>(channel_id: T::Hash) -> Vec<u128> {
     return vec![state_1.seq_num, state_2.seq_num];
 }
 
-/// Celer Wallet
-/// function which modifier is onlyOperator
+// Celer Wallet
+// function which modifier is onlyOperator
 fn withdraw<T: Trait>(
     wallet_id: T::Hash,
     receiver: T::AccountId,
@@ -1921,7 +1913,6 @@ fn withdraw<T: Trait>(
     update_balance::<T>(receiver.clone(), wallet_id, MathOperation::Sub, amount)?;
     // Emit WithdrawFromWallet Event
     Module::<T>::emit_withdraw_from_wallet(wallet_id, receiver, amount)?;
-    
     Ok(())
 }
 
@@ -1969,7 +1960,8 @@ fn update_balance<T: Trait>(
     
         T::Currency::transfer(
             &wallet_account, 
-            &caller, amount, 
+            &caller, 
+            amount, 
             ExistenceRequirement::AllowDeath
         )?;
     } else if op == MathOperation::Add {
@@ -1996,31 +1988,6 @@ fn update_balance<T: Trait>(
         Err(Error::<T>::Error)?
     }
 
-    Ok(())
-}
-
-// Get peer id
-fn get_peer_id<T: Trait>(channel_id: T::Hash, peer_from: T::AccountId) -> usize {
-    let c: ChannelOf<T> = ChannelMap::<T>::get(channel_id).unwrap();
-    if c.peer_profiles[0].peer_addr == peer_from {
-        return 0 as usize;
-    } else {
-        return 1 as usize;
-    }
-}
-
-// Internal function to withdraw out one type of token
-fn withdraw_token<T: Trait>(
-    receiver: T::AccountId,
-    amount: BalanceOf<T>
-) -> Result<(), DispatchError> {
-    let wallet_account = celer_wallet_account::<T>();
-    T::Currency::transfer(
-        &wallet_account, 
-        &receiver, 
-        amount, 
-        ExistenceRequirement::AllowDeath
-    )?;
     Ok(())
 }
 
@@ -2052,11 +2019,20 @@ fn transfer_to_wallet<T: Trait>(
 
     let from_wallet_amount = from_wallet.balance
             .checked_sub(&amount).ok_or(Error::<T>::OverFlow)?;
+    let new_from_wallet = WalletOf::<T> {
+        owners: from_wallet.owners,
+        balance: from_wallet_amount
+    };
+
     let to_wallet_amount = to_wallet.balance
             .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+    let new_to_wallet = WalletOf::<T> {
+        owners: to_wallet.owners,
+        balance: to_wallet_amount
+    };
 
-    Wallets::<T>::mutate(&from_wallet_id, |wallet| *wallet = Some(from_wallet));
-    Wallets::<T>::mutate(&to_wallet_id, |wallet| *wallet = Some(to_wallet));
+    Wallets::<T>::mutate(&from_wallet_id, |wallet| *wallet = Some(new_from_wallet));
+    Wallets::<T>::mutate(&to_wallet_id, |wallet| *wallet = Some(new_to_wallet));
 
     Ok(())
 }

@@ -53,7 +53,7 @@ impl<T: Trait> Pool<T> {
         return Ok((receiver, amount));
     }
 
-    // Withdraw celer from ETH Pool
+    // Withdraw celer from Pool
     pub fn withdraw( 
         origin: T::Origin,
         value: BalanceOf<T>
@@ -93,7 +93,7 @@ impl<T: Trait> Pool<T> {
         return Ok((caller, spender, value));
     }
 
-    // Transfer Celer from one address to another
+    // Transfer native token from one address to another
     pub fn transfer_from(
         origin: T::Origin,
         from: T::AccountId,
@@ -103,7 +103,7 @@ impl<T: Trait> Pool<T> {
         let caller = ensure_signed(origin)?;
         
         let exist_allowed: bool = Allowed::<T>::contains_key(&from, &caller);
-        ensure!(exist_allowed == true, "Corresponding Allowrd not exist");
+        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
         let allowed_balances = Allowed::<T>::get(&from, &caller).unwrap();
         ensure!(allowed_balances >= value, "spender does not have enough allowed balances");
         let new_allowed_balances = allowed_balances
@@ -123,7 +123,7 @@ impl<T: Trait> Pool<T> {
         return Ok((from, to, value));
     }
 
-    // Transfer Celer from one address to a wallet in CelerWallet Module.
+    // Transfer native token from one address to a wallet in CelerWallet Module.
     pub fn transfer_to_celer_wallet(
         origin: T::Origin,
         from: T::AccountId,
@@ -172,7 +172,7 @@ impl<T: Trait> Pool<T> {
         return Ok((wallet_id, wallet_account, amount));
     }
 
-    // Transfer ETH from one address to a wallet in CelerWallet Module.
+    // Transfer native token from one address to a wallet in CelerWallet Module.
     // This function called by Celer Ledger.
     pub fn transfer_to_celer_wallet_by_ledger(
         ledger_addr: T::AccountId,
@@ -230,7 +230,7 @@ impl<T: Trait> Pool<T> {
         return Ok((wallet_id, wallet_account, amount));
     }
 
-    // Increase the amount of ETH that an owner allowed to a spender.
+    // Increase the amount of native token that an owner allowed to a spender.
     pub fn increase_allowance(
         origin: T::Origin,
         spender: T::AccountId,
@@ -250,7 +250,7 @@ impl<T: Trait> Pool<T> {
         return Ok((caller, spender, new_balances));
     }
 
-    // Decrease the amount of ETH that an owner allowed to a spender.
+    // Decrease the amount of native token that an owner allowed to a spender.
     pub fn decrease_allowance(
         origin: T::Origin,
         spender: T::AccountId,
