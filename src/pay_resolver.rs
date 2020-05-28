@@ -393,8 +393,6 @@ fn get_cond_address<T: Trait>(
 ) -> Option<T::AccountId> {
     if cond.condition_type == ConditionType::DeployedContract {
         return cond.deployed_contract_address;
-    //} else if cond.condition_type == ConditionType::VIRTUAL_CONTRACT {
-        // Implment after implemted of VirtResolver
     } else {
         return None;
     }
