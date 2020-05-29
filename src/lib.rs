@@ -14,6 +14,7 @@ use pallet_timestamp;
 use frame_support::{decl_storage, decl_module, decl_event, decl_error,
     ensure, storage::StorageMap,
     traits::{Currency},
+    weights::{SimpleDispatchInfo},
 };
 use codec::{Encode, Decode};
 use sp_runtime::{DispatchError, RuntimeDebug};
@@ -112,7 +113,12 @@ decl_module! {
         fn deposit_event() = default;
 
         /// Celer Ledger
-        // Set the balance limits
+        /// Set the balance limits
+        ///
+        /// Parameters:
+        /// - `channel_id`: Id of the channel
+        /// - `limits`: Limits amount of channel
+        #[weight = SimpleDispatchInfo::default()]
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
@@ -126,7 +132,11 @@ decl_module! {
             Ok(())
         }
 
-        // Disable balance limits 
+        /// Disable balance limits 
+        /// 
+        /// Parameter:
+        /// `channel_id`: Id of the channel
+        #[weight = SimpleDispatchInfo::default()]
         fn disable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -136,7 +146,11 @@ decl_module! {
             Ok(())
         }
 
-        // Enable balance limits
+        ///Enable balance limits
+        ///
+        /// Parameter:
+        /// `channel_id`: Id of the channel
+        #[weight = SimpleDispatchInfo::default()]
         fn enable_balance_limits(
             origin,
             channel_id: T::Hash    
@@ -146,7 +160,12 @@ decl_module! {
             Ok(())
         }
 
-        // Open a state channel through auth withdraw message
+        /// Open a state channel through auth withdraw message
+        ///
+        /// Parameters:
+        /// `open_request`: open channel request message
+        /// `amount`: caller's deposit amount
+        #[weight = SimpleDispatchInfo::default()]
         fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
@@ -166,7 +185,14 @@ decl_module! {
             Ok(())
         }
 
-        // Deposit native token into the channel
+        /// Deposit native token into the channel
+        ///
+        /// Parameters:
+        /// `channel_id`: Id of the channel
+        /// `receiver`: address of the receiver
+        /// `amount`: caller's deposit amount
+        /// `transfer_from_amount`: amount of funds to be transfered from Pool
+        #[weight = SimpleDispatchInfo::default()]
         fn deposit(
             origin,
             channel_id: T::Hash,
@@ -186,7 +212,14 @@ decl_module! {
             Ok(())
         }
 
-        // Deposit native tokens into the channel
+        /// Deposit native tokens into the channel
+        ///
+        /// Parameters:
+        /// `channel_ids`: Ids of channel
+        /// `receivers`: addresses of receiver
+        /// `amounts`: caller's deposit amounts
+        /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
+        #[weight = SimpleDispatchInfo::default()]
         fn deposit_in_batch(
             origin,
             channel_ids: Vec<T::Hash>,
@@ -222,7 +255,17 @@ decl_module! {
             Ok(())
         }
 
-        // Store signed simplex states on-chain as checkpoints
+        /// Store signed simplex states on-chain as checkpoints
+        ///
+        /// Dev: simplex states in this array are not necessarily in the same channel,
+        ///      which means snapshotStates natively supports multi-channel batch processing.
+        ///      This function only updates seqNum, transferOut, pendingPayOut of each on-chain
+        ///      simplex state. It can't ensure that the pending pays will be cleared during
+        ///      settling the channel, which requires users call intendSettle with the same state.
+        ///
+        /// Parameter:
+        /// `signed_simplex_state_array`: SignedSimplexStateArray message
+        #[weight = SimpleDispatchInfo::default()]
         fn snapshot_states(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
@@ -232,7 +275,16 @@ decl_module! {
             Ok(())
         }
 
-        // Intend to withdraw funds from channel
+        /// Intend to withdraw funds from channel
+        ///
+        /// Dev: only peers can call intend_withdraw
+        ///
+        /// Parameters:
+        /// `channel_id`: Id of channel
+        /// `amount`: amount of funds to withdraw
+        /// `receipient_channel_id`: withdraw to receiver address if hash(0),
+        ///     otherwise deposit to receiver address in the recipient channel
+        #[weight = SimpleDispatchInfo::default()]
         fn intend_withdraw(
             origin,
             channel_id: T::Hash,
@@ -249,7 +301,13 @@ decl_module! {
             Ok(())
         }
 
-        // Confirm channel withdrawal
+        /// Confirm channel withdrawal
+        ///
+        /// Dev: anyone can confirm a withdrawal intent
+        ///
+        /// Parameter:
+        /// `channel_id`: Id of channel
+        #[weight = SimpleDispatchInfo::default()]
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
@@ -271,7 +329,14 @@ decl_module! {
             Ok(())
         }
 
-        // Veto current withdrawal intent
+        /// Veto current withdrawal intent
+        ///
+        /// Dev: only peers can veto withdrawal intent;
+        ///      peers can veto a withdrawal even after (request_time + dispute_timeout)
+        ///
+        /// Parameter
+        /// `channel_id`: Id of channel
+        #[weight = SimpleDispatchInfo::default()]
         fn veto_withdraw(
             origin,
             channel_id: T::Hash
@@ -281,7 +346,11 @@ decl_module! {
             Ok(())
         }
 
-        // Cooperatively withdraw specific amount of balance
+        /// Cooperatively withdraw specific amount of balance
+        /// 
+        /// Parameter
+        /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
+        #[weight = SimpleDispatchInfo::default()]
         fn cooperative_withdraw(
             origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
@@ -302,7 +371,16 @@ decl_module! {
             Ok(())
         }
 
-        // Intent to settle channel with an array of signed simplex states
+        /// Intent to settle channel with an array of signed simplex states
+        /// 
+        /// Dev: simplex states in this array are not necessarily in the same channel,
+        ///      which means intendSettle natively supports multi-channel batch processing.
+        ///      A simplex state with non-zero seqNum (non-null state) must be co-signed by both peers,
+        ///      while a simplex state with seqNum=0 (null state) only needs to be signed by one peer.
+        ///
+        /// Parameters
+        /// `signed_simplex_state_array`: SignedSimplexStateArray message
+        #[weight = SimpleDispatchInfo::default()]
         fn intend_settle(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
@@ -311,7 +389,13 @@ decl_module! {
             Ok(())
         }
 
-        // Read payment results and add results to corresponding simplex payment channel
+        /// Read payment results and add results to corresponding simplex payment channel
+        ///
+        /// Parameters:
+        /// `channel_id`: Id of channel
+        /// `peer_from`: address of the peer who send out funds
+        /// `pay_id_list`: PayIdList
+        #[weight = SimpleDispatchInfo::default()]
         fn clear_pays(
             origin,
             channel_id: T::Hash,
@@ -322,7 +406,13 @@ decl_module! {
             Ok(())
         }
 
-        // Confirm channel settlement
+        /// Confirm channel settlement
+        ///
+        /// Dev: This must be called after settle_finalized_time
+        ///
+        /// Parameters:
+        /// `channel_id`: Id of channel
+        #[weight = SimpleDispatchInfo::default()]
         fn confirm_settle(
             origin,
             channel_id: T::Hash
@@ -336,7 +426,11 @@ decl_module! {
             Ok(())
         }
 
-        // Cooperatively settle the channel
+        /// Cooperatively settle the channel
+        ///
+        /// Parameter
+        /// `settle_request`: CooperativeSettleRequest message
+        #[weight = SimpleDispatchInfo::default()]
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
@@ -352,7 +446,12 @@ decl_module! {
         }
         
         /// Celer Wallet
-        // Deposit native token to a wallet.
+        /// Deposit native token to a wallet.
+        /// 
+        /// Parameter:
+        /// `wallet_id`: Id of the wallet to deposit into
+        /// `amount`: depoist amount
+        #[weight = SimpleDispatchInfo::default()]
         fn deposit_native_token(
             origin, 
             wallet_id: T::Hash, 
@@ -364,7 +463,12 @@ decl_module! {
         }
 
         /// Pool
-        // Deposit native token into Pool
+        /// Deposit native token into Pool
+        ///
+        /// Parameters:
+        /// `receiver`: the address native token is deposited to
+        /// `amount`: amount of deposit
+        #[weight = SimpleDispatchInfo::default()]
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
@@ -375,7 +479,11 @@ decl_module! {
             Ok(())
         }
 
-        // Withdraw native token from Pool
+        /// Withdraw native token from Pool
+        ///
+        /// Parameter:
+        /// `value`: amount of native token to withdraw
+        #[weight = SimpleDispatchInfo::default()]
         fn withdraw(
             origin,
             value: BalanceOf<T>
@@ -384,7 +492,12 @@ decl_module! {
             Ok(())
         }
 
-        // Approve the passed address the spend the specified amount of native token on behalf of caller.
+        /// Approve the passed address the spend the specified amount of native token on behalf of caller.
+        /// 
+        /// Parameters:
+        /// `spender`: the address which will spend the funds
+        /// `value`: amount of native token to spent
+        #[weight = SimpleDispatchInfo::default()]
         fn approve(
             origin,
             spender: T::AccountId,
@@ -396,7 +509,13 @@ decl_module! {
             Ok(())
         }
 
-        // Transfer native token from one address to another.
+        /// Transfer native token from one address to another.
+        ///
+        /// Parameters:
+        /// `from`: the address which you want to transfer native token from
+        /// `to`: the address which you want to transfer to
+        /// `value`: amount of native token to be transferred
+        #[weight = SimpleDispatchInfo::default()]
         fn transfer_from(
             origin,
             from: T::AccountId,
@@ -409,7 +528,13 @@ decl_module! {
             Ok(())
         }
 
-        // Transfer to native token from one address to a wallet in CelerWallet Module.
+        /// Transfer to native token from one address to a wallet in CelerWallet Module.
+        ///
+        /// Parameters:
+        /// `from`: the address which you want to transfer native token from
+        /// `wallet_id`: Id of the wallet you want to deposit native token into
+        /// `amount`: amount of native token to be transfered
+        #[weight = SimpleDispatchInfo::default()]
         fn transfer_to_celer_wallet(
             origin,
             from: T::AccountId,
@@ -422,7 +547,12 @@ decl_module! {
             Ok(())
         }
 
-        // Increase the amount of native token that an owner allowed to a spender.
+        /// Increase the amount of native token that an owner allowed to a spender.
+        ///
+        /// Parameters:
+        /// `spender`: the address which spend the funds.
+        /// `added_value`: amount of native token to increase the allowance by
+        #[weight = SimpleDispatchInfo::default()]
         fn increase_allowance(
             origin,
             spender: T::AccountId,
@@ -434,7 +564,12 @@ decl_module! {
             Ok(())
         }
 
-        // Decrease the amount of native token that an owner allowed to a spender.
+        /// Decrease the amount of native token that an owner allowed to a spender.
+        ///
+        /// Parameters:
+        /// `spender`: the address which will spend the funds
+        /// `subtracted_value`: amount of native tokent o decrease the allowance by
+        #[weight = SimpleDispatchInfo::default()]
         fn decrease_allowance(
             origin,
             spender: T::AccountId,
@@ -446,8 +581,16 @@ decl_module! {
             Ok(())
         }
 
-        // PayResolver
-        // Resolve a payment by onchain getting its conditons outcomes
+        /// PayResolver
+        /// Resolve a payment by onchain getting its conditons outcomes
+        ///
+        /// Dev: HASH_LOCK should only be used for establishing multi-hop paymetns,
+        ///      and is always required to be true for all transfer function logic types.
+        ///      a pay with not condiiton or only true HASH_LOCK conditions in condition array.
+        ///
+        /// Parameters:
+        /// `resolve_pay_request`: ResolvePayByConditionsRequest message
+        #[weight = SimpleDispatchInfo::default()]
         fn resolve_payment_by_conditions(
             origin, 
             resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
@@ -459,7 +602,11 @@ decl_module! {
             Ok(())
         }
 
-        // Resolve a payment by submitting an offchain vouched result
+        ///　Resolve a payment by submitting an offchain vouched result
+        ///
+        /// Parameter:
+        /// `vouched_pay_result`: VouchedCondPayResult message
+        #[weight = SimpleDispatchInfo::default()]
         fn resolve_payment_by_vouched_result(
             origin,
             vouched_pay_result: VouchedCondPayResultOf<T>
@@ -542,7 +689,298 @@ decl_error! {
 
 
 impl<T: Trait> Module<T> {
-    // Helper of Celer Ledger
+    /// CelerLedger
+    /// Get channel settle open time
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_settle_finalized_time(channel_id: T::Hash) -> Option<T::BlockNumber> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return c.settle_finalized_time;
+    }
+
+    /// Get channel status
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_channel_status(channel_id: T::Hash) -> ChannelStatus {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return ChannelStatus::Uninitialized
+        };
+        return c.status;
+    }
+
+    /// Get cooperative withdraw seq_num
+    /// 
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_cooperative_withdraw_seq_num(channel_id: T::Hash) -> Option<u128> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return c.cooperative_withdraw_seq_num;
+    }
+
+    /// Return one channel's total balance amount
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_total_balance(channel_id: T::Hash) -> Result<BalanceOf<T>, DispatchError> {
+        let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
+        let zero_balance: BalanceOf<T> = Zero::zero();
+        let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
+        balance = balance.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+        return Ok(balance);
+    }
+
+
+    /// Return one channel's balance info
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_balance_map(channel_id: T::Hash) -> (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>) {
+        let c = Self::channel_map(channel_id).unwrap();
+        let zero_balance: BalanceOf<T> = Zero::zero();
+        return (
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+            vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
+        );
+    }
+
+    /// Return channel's dispute timeout    
+    ///
+    /// Parameter:
+    /// `channel_id: Id of channel
+    pub fn get_dispute_time_out(channel_id: T::Hash) -> Option<T::BlockNumber> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some(c.dispute_timeout);
+    }
+
+    /// Return state seq_num map of a duplex channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_state_seq_num_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<u128>)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].state.seq_num, c.peer_profiles[1].state.seq_num]
+        ));
+    }
+
+    /// Return transfer_out map of a duplex channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_transfer_out_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].state.transfer_out, c.peer_profiles[1].state.transfer_out]
+        ));
+    }
+
+    /// Return next_pay_id_list_hash map of a duplex channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_next_pay_id_list_hash_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<T::Hash>)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+
+        let hash_zero = Self::zero_hash();
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(hash_zero), c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(hash_zero)]
+        ));
+    }
+
+    /// Return last_pay_resolve_deadline map of a duplex channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_last_pay_resolve_deadline_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<T::BlockNumber>)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].state.last_pay_resolve_deadline, c.peer_profiles[1].state.last_pay_resolve_deadline]
+        ));
+    }
+
+    /// Return pending_pay_out map of a duplex channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_pending_pay_out_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].state.pending_pay_out, c.peer_profiles[1].state.pending_pay_out]
+        ));
+    }
+
+    /// Return the withdraw intent info of the channel
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_withdraw_intent(channel_id: T::Hash) -> Option<(T::AccountId, BalanceOf<T>, T::BlockNumber, T::Hash)> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+
+        let zero_balance: BalanceOf<T> = Zero::zero();
+        let zero_block_number: T::BlockNumber = Zero::zero();
+        let zero_channel_id: T::Hash = Self::zero_hash();
+        let withdraw_intent = c.withdraw_intent;
+        return Some((
+            withdraw_intent.receiver,
+            withdraw_intent.amount.unwrap_or(zero_balance),
+            withdraw_intent.request_time.unwrap_or(zero_block_number),
+            withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id)
+        ));
+    }
+
+    /// Get the seq_num of two simplex channel states
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_channel_status_num(channel_status: u8) -> Option<u8> {
+        return <ChannelStatusNums>::get(channel_status);
+    }
+
+    /// Return balance limit 
+    ///
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_balance_limit(channel_id: T::Hash) -> Option<BalanceOf<T>> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return c.balance_limits;
+    }
+
+    /// Return balanceLimitsEnabled
+    /// 
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_balance_limits_enabled(channel_id: T::Hash) -> Option<bool> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        return Some(c.balance_limits_enabled);
+    }
+
+    /// Return migration info of the peers in the channel
+    /// 
+    /// Parameter:
+    /// `channel_id`: Id of channel
+    pub fn get_peers_migration_info(
+        channel_id: T::Hash
+    ) -> Option<(
+        Vec<T::AccountId>,
+        Vec<BalanceOf<T>>,
+        Vec<BalanceOf<T>>,
+        Vec<u128>,
+        Vec<BalanceOf<T>>,
+        Vec<BalanceOf<T>>
+    )> {
+        let c = match Self::channel_map(channel_id) {
+            Some(channel) => channel,
+            None => return None
+        };
+        let zero_balance: BalanceOf<T> = Zero::zero();
+
+        return Some((
+            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
+            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+            vec![c.peer_profiles[0].withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].withdrawal.unwrap_or(zero_balance)],
+            vec![c.peer_profiles[0].state.seq_num, c.peer_profiles[1].state.seq_num],
+            vec![c.peer_profiles[0].state.transfer_out, c.peer_profiles[1].state.transfer_out],
+            vec![c.peer_profiles[0].state.pending_pay_out, c.peer_profiles[1].state.pending_pay_out]
+        ));
+    }
+
+    /// Celer Wallet
+    /// Return wallet owner conrresponding tp wallet_id
+    /// 
+    /// Parameter:
+    /// `wallet_id`: Id of the wallet
+    pub fn get_wallet_owners(wallet_id: T::Hash) -> Option<Vec<T::AccountId>> {
+        let w: WalletOf<T> = match Self::wallet(wallet_id) {
+            Some(wallet) => wallet,
+            None => return None
+        };
+
+        let owners = w.owners;
+        return Some(owners);
+    }
+
+    /// Return balance in a given wallet
+    ///
+    /// Parameter:
+    /// `wallet_id`: Id of the wallet
+    pub fn get_balance(
+        wallet_id: T::Hash, 
+    ) -> Option<BalanceOf<T>> {
+        let w: WalletOf<T> = match Self::wallet(wallet_id) {
+            Some(wallet) => wallet,
+            None => return None
+        };
+
+        let balance = w.balance;
+        return Some(balance);
+    }
+
+    /// Pool
+    /// Return balnce in pooled Pool
+    ///
+    /// Prameter:
+    /// `owner`: the address of query balance of
+    pub fn balance_of(owner: T::AccountId) -> Option<BalanceOf<T>> {
+        return Self::balances(owner);
+    }
+
+    /// Return amount of owner allowed to a spender
+    ///
+    /// Parameters:
+    /// `owner`: the address which owns the funds
+    /// `spender`: the address which will spend the funds
+    pub fn allowance(
+        owner: T::AccountId, 
+        spender: T::AccountId
+    ) -> Option<BalanceOf<T>> {
+        return Self::allowed(owner, spender);
+    }
+
+    /// Helper
     // Emit Deposit event
     pub fn emit_deposit_event(
         channel_id: T::Hash
@@ -607,248 +1045,9 @@ impl<T: Trait> Module<T> {
     ) -> Result<(), DispatchError> {
         Self::deposit_event(RawEvent::WithdrawFromWallet(wallet_id, receiver, amount));
         Ok(())
-   }
-
-    // Get channel settle open time
-    pub fn get_settle_finalized_time(channel_id: T::Hash) -> Option<T::BlockNumber> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return c.settle_finalized_time;
     }
 
-    //pub fn get_token_type(channel_id: T::Hash) -> TokenType {}
-
-    // Get channel status
-    pub fn get_channel_status(channel_id: T::Hash) -> ChannelStatus {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return ChannelStatus::Uninitialized
-        };
-        return c.status;
-    }
-
-    // Get cooperative withdraw seq_num
-    pub fn get_cooperative_withdraw_seq_num(channel_id: T::Hash) -> Option<u128> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return c.cooperative_withdraw_seq_num;
-    }
-
-    // Return one channel's total balance amount
-    pub fn get_total_balance(channel_id: T::Hash) -> Result<BalanceOf<T>, DispatchError> {
-        let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
-        balance = balance.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
-        return Ok(balance);
-    }
-
-
-    // Return one channel's balance info
-    pub fn get_balance_map(channel_id: T::Hash) -> (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>) {
-        let c = Self::channel_map(channel_id).unwrap();
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        return (
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-            vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
-        );
-    }
-
-    // Return channel's dispute timeout    
-    pub fn get_dispute_time_out(channel_id: T::Hash) -> Option<T::BlockNumber> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some(c.dispute_timeout);
-    }
-
-    // Return state seq_num map of a duplex channel
-    pub fn get_state_seq_num_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<u128>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.seq_num, c.peer_profiles[1].state.seq_num]
-        ));
-    }
-
-    // Return transfer_out map of a duplex channel
-    pub fn get_transfer_out_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.transfer_out, c.peer_profiles[1].state.transfer_out]
-        ));
-    }
-
-    // Return next_pay_id_list_hash map of a duplex channel
-    pub fn get_next_pay_id_list_hash_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<T::Hash>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-
-        let hash_zero = Self::zero_hash();
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(hash_zero), c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(hash_zero)]
-        ));
-    }
-
-    // Return last_pay_resolve_deadline map of a duplex channel
-    pub fn get_last_pay_resolve_deadline_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<T::BlockNumber>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.last_pay_resolve_deadline, c.peer_profiles[1].state.last_pay_resolve_deadline]
-        ));
-    }
-
-    // Return pending_pay_out map of a duplex channel
-    pub fn get_pending_pay_out_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].state.pending_pay_out, c.peer_profiles[1].state.pending_pay_out]
-        ));
-    }
-
-    // Return the withdraw intent info of the channel
-    pub fn get_withdraw_intent(channel_id: T::Hash) -> Option<(T::AccountId, BalanceOf<T>, T::BlockNumber, T::Hash)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        let zero_block_number: T::BlockNumber = Zero::zero();
-        let zero_channel_id: T::Hash = Self::zero_hash();
-        let withdraw_intent = c.withdraw_intent;
-        return Some((
-            withdraw_intent.receiver,
-            withdraw_intent.amount.unwrap_or(zero_balance),
-            withdraw_intent.request_time.unwrap_or(zero_block_number),
-            withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id)
-        ));
-    }
-
-    // Get the seq_num of two simplex channel states
-    pub fn get_channel_status_num(channel_status: u8) -> Option<u8> {
-        return <ChannelStatusNums>::get(channel_status);
-    }
-
-    // Return balance limit 
-    pub fn get_balance_limit(channel_id: T::Hash) -> Option<BalanceOf<T>> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return c.balance_limits;
-    }
-
-    // Return balanceLimitsEnabled
-    pub fn get_balance_limits_enabled(channel_id: T::Hash) -> Option<bool> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        return Some(c.balance_limits_enabled);
-    }
-
-    // Return migration info of the peers in the channel
-    pub fn get_peers_migration_info(
-        channel_id: T::Hash
-    ) -> Option<(
-        Vec<T::AccountId>,
-        Vec<BalanceOf<T>>,
-        Vec<BalanceOf<T>>,
-        Vec<u128>,
-        Vec<BalanceOf<T>>,
-        Vec<BalanceOf<T>>
-    )> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None
-        };
-        let zero_balance: BalanceOf<T> = Zero::zero();
-
-        return Some((
-            vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-            vec![c.peer_profiles[0].withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].withdrawal.unwrap_or(zero_balance)],
-            vec![c.peer_profiles[0].state.seq_num, c.peer_profiles[1].state.seq_num],
-            vec![c.peer_profiles[0].state.transfer_out, c.peer_profiles[1].state.transfer_out],
-            vec![c.peer_profiles[0].state.pending_pay_out, c.peer_profiles[1].state.pending_pay_out]
-        ));
-    }
-    
-    /**
-    // Currently ETH is only supported.
-    // Deposit ERC20 tokens to a wallet.
-    pub fn deposit_erc20(
-        origin: T::Origin, 
-        wallet_id: T::Hash, 
-        token_address: T::AccountId, 
-        amount: BalanceOf<T>
-    )-> Result<(), DispatchError> {
-        let result: (T::Hash, T::AccountId, BalanceOf<T>) = CelerWallet::<T>::deposit_erc20(origin, wallet_id, token_address, amount)?;
-        Self::deposit_event(RawEvent::DepositToWallet(result.0, result.1, result.2));
-        Ok(())
-    }
-    */
-
-    pub fn get_wallet_owners(wallet_id: T::Hash) -> Option<Vec<T::AccountId>> {
-        let w: WalletOf<T> = match Self::wallet(wallet_id) {
-            Some(wallet) => wallet,
-            None => return None
-        };
-
-        let owners = w.owners;
-        return Some(owners);
-    }
-
-    pub fn get_balance(
-        wallet_id: T::Hash, 
-    ) -> Option<BalanceOf<T>> {
-        let w: WalletOf<T> = match Self::wallet(wallet_id) {
-            Some(wallet) => wallet,
-            None => return None
-        };
-
-        let balance = w.balance;
-        return Some(balance);
-    }
-
-    pub fn balance_of(owner: T::AccountId) -> Option<BalanceOf<T>> {
-        return Self::balances(owner);
-    }
-
-    pub fn allowance(
-        owner: T::AccountId, 
-        spender: T::AccountId
-    ) -> Option<BalanceOf<T>> {
-        return Self::allowed(owner, spender);
-    }
-
+    // Emit Approval event
     pub fn emit_approval_event(
         from: T::AccountId,
         spender: T::AccountId,
@@ -858,7 +1057,6 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    /// Helper
     pub fn valid_signers(
         signatures: Vec<<T as Trait>::Signature>,
 	    encoded: &[u8],
