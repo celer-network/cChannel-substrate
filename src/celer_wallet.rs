@@ -3,12 +3,11 @@ use frame_support::{ensure, storage::{StorageMap}};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
-use sp_runtime::traits::{AccountIdConversion};
+use sp_runtime::traits::{AccountIdConversion, CheckedAdd};
 use super::{
     Trait, Error, BalanceOf, Wallets,
 };
 
-// Currently ETH is only supported.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Wallet<AccountId, Balance> {
     pub owners: Vec<AccountId>,
@@ -23,7 +22,7 @@ pub struct CelerWallet<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: Trait> CelerWallet<T> {
 
-    pub fn deposit_celer(
+    pub fn deposit_native_token(
         origin: T::Origin,
         wallet_id: T::Hash,
         amount: BalanceOf<T>
@@ -39,9 +38,6 @@ impl<T: Trait> CelerWallet<T> {
         
         return Ok((wallet_id, amount));
     }
-
-    
-    // Currently CELER is only supported.
 }
 
 /// Add balance of Wallet
@@ -57,8 +53,8 @@ fn update_balance<T: Trait>(
 
     let wallet_account = celer_wallet_account::<T>();
 
-    // Currently ETH is only supported.
-    let new_amount = w.balance + amount;
+    let new_amount = w.balance
+            .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
     
     let new_wallet: WalletOf<T> = WalletOf::<T> {
         owners: w.owners,
@@ -67,7 +63,12 @@ fn update_balance<T: Trait>(
     
     Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
     
-    T::Currency::transfer(&caller, &wallet_account, amount, ExistenceRequirement::AllowDeath)?;
+    T::Currency::transfer(
+        &caller, 
+        &wallet_account, 
+        amount, 
+        ExistenceRequirement::AllowDeath
+    )?;
 
     Ok(())
 }
@@ -84,7 +85,7 @@ mod tests {
     use crate::ledger_operation::tests::*;
 
     #[test]
-    fn test_pass_deposit_celer() {
+    fn test_pass_deposit_native_token() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -96,14 +97,14 @@ mod tests {
             let wallet_id = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
             
             let (_wallet_id, _amount) 
-                = CelerWallet::<TestRuntime>::deposit_celer(Origin::signed(channel_peers[0]), wallet_id, 100).unwrap();
+                = CelerWallet::<TestRuntime>::deposit_native_token(Origin::signed(channel_peers[0]), wallet_id, 100).unwrap();
             assert_eq!(_wallet_id, wallet_id);
             assert_eq!(_amount, 100);
         })
     }
 
     #[test]
-    fn test_fail_deposit_celer_because_peer_does_not_have_enough_balance() {
+    fn test_fail_deposit_native_token_because_peer_does_not_have_enough_balance() {
         ExtBuilder::build().execute_with(||  {
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -114,7 +115,7 @@ mod tests {
                 = get_open_channel_request(false, 0, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
             let wallet_id = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
             
-            let err = CelerWallet::<TestRuntime>::deposit_celer(Origin::signed(channel_peers[0]), wallet_id, 2000).unwrap_err();
+            let err = CelerWallet::<TestRuntime>::deposit_native_token(Origin::signed(channel_peers[0]), wallet_id, 2000).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller does not have enough balances")); 
         })
     }

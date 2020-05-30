@@ -3,7 +3,7 @@ use frame_support::{ensure};
 use pallet_timestamp;
 use frame_system::{self as system};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
-use sp_runtime::traits::{Hash, AccountIdConversion, Zero};
+use sp_runtime::traits::{Hash, AccountIdConversion, Zero, CheckedAdd};
 use super::{
     Trait, Module, Error, BalanceOf, 
 };
@@ -39,14 +39,13 @@ pub enum TransferFunctionType {
     NumericMin,
 }
 
+// Currently native token is only supoorted.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum TokenType {
     INVALID,
-    CELER,
-    ERC20,
+    CELER, // native token. If Kusama network,change from CELER to KSM. 
 }
 
-// Currently ETH is only uspported.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenInfo  {
     pub token_type: TokenType
@@ -218,9 +217,9 @@ fn resolve_payment<T: Trait>(
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             new_deadline = block_number.clone();
         } else {
-            let timeout = block_number + pay.resolve_timeout;
+            let timeout = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             if timeout < pay.resolve_deadline {
-                new_deadline = block_number + pay.resolve_timeout;
+                new_deadline = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             } else {
                 new_deadline = pay.resolve_deadline;
             }
@@ -394,8 +393,6 @@ fn get_cond_address<T: Trait>(
 ) -> Option<T::AccountId> {
     if cond.condition_type == ConditionType::DeployedContract {
         return cond.deployed_contract_address;
-    //} else if cond.condition_type == ConditionType::VIRTUAL_CONTRACT {
-        // Implment after implemted of VirtResolver
     } else {
         return None;
     }
@@ -439,7 +436,6 @@ pub fn encode_conditional_pay<T: Trait>(
     encoded.extend(pay.resolve_deadline.encode());
     encoded.extend(pay.resolve_timeout.encode());
     let condition_len = pay.conditions.len();
-    let mut hash_lock_len: usize;
     for i in 0..condition_len {
         encoded.extend(pay.conditions[i].clone().condition_type.encode());
         encoded.extend(pay.conditions[i].clone().hash_lock.encode());
@@ -587,7 +583,6 @@ pub mod tests {
             };
 
             let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
             let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
             let cond_pay_result = CondPayResult {
@@ -619,7 +614,6 @@ pub mod tests {
                 resolve_timeout: 10,
             };
             let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let pay_request = ResolvePaymentConditionsRequest {
                 cond_pay: cond_pay,
                 hash_preimages: vec![H256::from_low_u64_be(1)]
@@ -646,7 +640,6 @@ pub mod tests {
             };
 
             let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
             let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
             let cond_pay_result = CondPayResult {
@@ -682,7 +675,6 @@ pub mod tests {
                 resolve_timeout: 10,
             };
             let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
             let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
             let cond_pay_result = CondPayResult {
@@ -714,7 +706,6 @@ pub mod tests {
                 resolve_timeout: 10,
             };
             let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
             let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
             let cond_pay_result = CondPayResult {
@@ -753,7 +744,6 @@ pub mod tests {
                 resolve_timeout: 10,
             };
             let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
-            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
             let pay_request = ResolvePaymentConditionsRequest {
                 cond_pay: cond_pay,
                 hash_preimages: vec![H256::from_low_u64_be(1), H256::from_low_u64_be(0)]
