@@ -47,9 +47,10 @@ use pool::Pool;
 use pay_resolver::{
     PayResolver, 
     ResolvePaymentConditionsRequestOf, 
-    VouchedCondPayResultOf
+    VouchedCondPayResultOf,
 };
 use pay_registry::{
+    PayRegistry,
     PayInfoOf,
 };
 
@@ -202,11 +203,12 @@ decl_module! {
         ) -> Result<(), DispatchError> {
             LedgerOperation::<T>::deposit(origin, channel_id, receiver, amount, transfer_from_amount)?;
             let c = Self::channel_map(channel_id).unwrap();
+            let zero_balance: BalanceOf<T> = Zero::zero();
             Self::deposit_event(RawEvent::Deposit(
                 channel_id,
                 vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
                 vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-                vec![c.peer_profiles[0].clone().withdrawal.unwrap(), c.peer_profiles[1].clone().withdrawal.unwrap()]
+                vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
             ));
 
             Ok(())
@@ -352,7 +354,7 @@ decl_module! {
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
         #[weight = SimpleDispatchInfo::default()]
         fn cooperative_withdraw(
-            origin,
+            _origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
         ) -> Result<(), DispatchError> {
             let (_channel_id, _withdrawn_amount, _receiver, _receipient_channel_id, _seq_num): (T::Hash, BalanceOf<T>, T::AccountId, T::Hash, u128) 
@@ -397,7 +399,7 @@ decl_module! {
         /// `pay_id_list`: PayIdList
         #[weight = SimpleDispatchInfo::default()]
         fn clear_pays(
-            origin,
+            _origin,
             channel_id: T::Hash,
             peer_from: T::AccountId,
             pay_id_list: PayIdList<T::Hash>
@@ -474,7 +476,8 @@ decl_module! {
             receiver: T::AccountId,
             amount: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            let (_receiver, _amount): (T::AccountId, BalanceOf<T>) = Pool::<T>::deposit_pool(origin, receiver, amount)?;
+            let (_receiver, _amount): (T::AccountId, BalanceOf<T>) 
+                = Pool::<T>::deposit_pool(origin, receiver, amount)?;
             Self::deposit_event(RawEvent::PoolDeposit(_receiver, _amount));
             Ok(())
         }
@@ -484,11 +487,13 @@ decl_module! {
         /// Parameter:
         /// `value`: amount of native token to withdraw
         #[weight = SimpleDispatchInfo::default()]
-        fn withdraw(
+        fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
         ) -> Result<(), DispatchError> {
-            Pool::<T>::withdraw(origin, value)?;
+            let (_receiver, _amount): (T::AccountId, BalanceOf<T>)
+                = Pool::<T>::withdraw(origin, value)?;
+            Self::deposit_event(RawEvent::WithdrawFromPool(_receiver, _amount));
             Ok(())
         }
 
@@ -656,6 +661,7 @@ decl_event! (
 
         // Pool
         PoolDeposit(AccountId, Balance),
+        WithdrawFromPool(AccountId, Balance),
         Transfer(AccountId, AccountId, Balance),
         TransferToCelerWallet(Hash, AccountId, Balance),
         Approval(AccountId, AccountId, Balance),
@@ -980,6 +986,16 @@ impl<T: Trait> Module<T> {
         return Self::allowed(owner, spender);
     }
 
+    /// PayRegistry
+    /// Calculate pay id
+    ///
+    /// Parameter:
+    /// `pay_hash`: hash of serialized cond_pay
+    pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
+        let pay_id = PayRegistry::<T>::calculate_pay_id(pay_hash);
+        return pay_id;
+    }
+
     /// Helper
     // Emit Deposit event
     pub fn emit_deposit_event(
@@ -1086,5 +1102,669 @@ impl<T: Trait> Module<T> {
         let zero_vec = vec![0 as u8];
         let zero_hash = T::Hashing::hash(&zero_vec);
         return zero_hash;
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::RawEvent;
+    use crate::mock::*;
+    use super::*;
+    use frame_support::assert_ok;
+    use sp_runtime::traits::AccountIdConversion;
+    use sp_core::{H256, hashing, Pair};
+    use crate::pay_resolver::tests::*;
+    use crate::pay_resolver::{
+        PayResolver, ConditionalPay, 
+        ResolvePaymentConditionsRequest, 
+        CondPayResult, VouchedCondPayResult
+    };
+    use crate::ledger_operation::{LedgerOperation, SignedSimplexStateArray};
+    use crate::ledger_operation::tests::*;
+    use crate::pool::{Pool};
+    use crate::celer_wallet::WALLET_ID;
+
+    #[test]
+    fn test_pass_open_channel() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
+            
+            // Test OpenChannel event
+            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let expected_event = TestEvent::celer(
+                RawEvent::OpenChannel(
+                    channel_id,
+                    channel_peers,
+                    vec![100, 200]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_set_balnce_limits() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
+            
+            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            assert_ok!(CelerModule::set_balance_limits(Origin::signed(channel_peers[0]), channel_id, 200));
+
+            // Test SetBalanceLimits event
+            let expected_event = TestEvent::celer(
+                RawEvent::SetBalanceLimits(
+                    channel_id,
+                    200
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_disable_balance_limits() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
+            
+            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            assert_ok!(CelerModule::disable_balance_limits(Origin::signed(channel_peers[0]), channel_id));
+
+            // Test DisableBalanceLimits event
+            let expected_event = TestEvent::celer(
+                RawEvent::DisableBalanceLimits(
+                    channel_id,
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_enable_balance_limits() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(false, 0, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
+            
+            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            assert_ok!(CelerModule::enable_balance_limits(Origin::signed(channel_peers[0]), channel_id));
+
+            // Test EnableBalanceLimits event
+            let expected_event = TestEvent::celer(
+                RawEvent::EnableBalanceLimits(
+                    channel_id,
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_deposit() {
+        ExtBuilder::build().execute_with(|| {
+            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            approve(channel_peers[0], ledger_addr, 100);
+
+            let open_channel_request
+                = get_open_channel_request(true, 1000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
+            assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
+            
+            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+
+            // Test Deposit event
+            assert_ok!(CelerModule::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 200, 0));
+            let expected_event = TestEvent::celer(
+                RawEvent::Deposit(
+                    channel_id,
+                    channel_peers,
+                    vec![300, 200],
+                    vec![0, 0]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_intend_withdraw() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            let open_channel_request 
+                = get_open_channel_request(true, 300, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 300, 0)
+            );
+
+            let zero_channel_id = CelerModule::zero_hash();
+            assert_ok!(CelerModule::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 200, zero_channel_id));
+
+            // Test IntendWithdraw event
+            let expected_event = TestEvent::celer(
+                RawEvent::IntendWithdraw(
+                    channel_id,
+                    channel_peers[0],
+                    200
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_confirm_withdraw() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            let open_channel_request 
+                = get_open_channel_request(true, 800, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 300, 0)
+            );
+
+            let zero_channel_id = CelerModule::zero_hash();
+            let _ = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 200, zero_channel_id).unwrap();
+
+            System::set_block_number(System::block_number() + 11);
+
+            assert_ok!(CelerModule::confirm_withdraw(Origin::signed(channel_peers[0]), channel_id));
+
+            // Test ConfirmWithdraw event
+            let expected_event = TestEvent::celer(
+                RawEvent::ConfirmWithdraw(
+                    channel_id,
+                    200,
+                    channel_peers[0],
+                    zero_channel_id,
+                    vec![300, 0],
+                    vec![200, 0]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_veto_withdraw() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            
+            let open_channel_request 
+                = get_open_channel_request(true, 300, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 300, 0)
+            );
+
+            let zero_channel_id = CelerModule::zero_hash();
+            let _ = LedgerOperation::<TestRuntime>::intend_withdraw(Origin::signed(channel_peers[0]), channel_id, 200, zero_channel_id).unwrap();
+
+            assert_ok!(
+                CelerModule::veto_withdraw(Origin::signed(channel_peers[1]), channel_id)
+            );
+
+            // Test VetoWithdraw event
+            let expected_event = TestEvent::celer(
+                RawEvent::VetoWithdraw(
+                    channel_id
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_cooperative_withdraw() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+
+            let open_channel_request 
+                = get_open_channel_request(true, 800, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 300, 0)
+            );
+
+            let zero_channel_id = CelerModule::zero_hash();
+            let cooperative_withdraw_request 
+                = get_cooperative_withdraw_request(channel_id, 1, 200, channel_peers[0], 9999999, zero_channel_id, peers_pair);
+            assert_ok!(CelerModule::cooperative_withdraw(Origin::signed(channel_peers[0]),  cooperative_withdraw_request));
+
+            // Test CooperativeWithdraw event
+            let expected_event = TestEvent::celer(
+                RawEvent::CooperativeWithdraw(
+                    channel_id,
+                    200,
+                    channel_peers[0],
+                    zero_channel_id,
+                    vec![300, 0],
+                    vec![200, 0],
+                    1
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_confirm_settle() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 20000, 500000, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 500, 0)
+            );
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[1]), channel_id, channel_peers[1], 500, 0)
+            );
+
+            // the meaning of the index: [peer index][pay hash list index][pay index]
+            let peers_pay_hash_lists_amts: Vec<Vec<Vec<Balance>>> 
+                = vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]];
+            
+            let global_result :(
+                SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
+                Vec<BlockNumber>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<H256>>,
+                Vec<Vec<PayIdList<H256>>>
+            ) = get_cosigned_intend_settle(
+                vec![channel_id, channel_id],
+                peers_pay_hash_lists_amts,
+                vec![1, 1], // seq_nums
+                vec![10, 20], // transfer amounts
+                vec![99999, 99999], // last_pay_resolve_deadlines
+                vec![channel_peers[0], channel_peers[1]],
+                vec![channel_peers[0], channel_peers[1]],
+                channel_peers[0],
+                vec![peers_pair[0].clone(), peers_pair[1].clone()],
+                1
+            );
+
+            let signed_simplex_state_array = global_result.0;
+            let cond_pays = global_result.2;
+
+            for peer_index in 0..2 {
+                for list_index in 0..cond_pays[peer_index as usize].len() {
+                    for pay_index in 0..cond_pays[peer_index as usize][list_index as usize].len() {
+                        let pay_request = ResolvePaymentConditionsRequest {
+                            cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
+                            hash_preimages: vec![]
+                        };
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                    }
+                }
+            }
+
+            // pass onchain  resolve deadline of all onchain resolved pays
+            System::set_block_number(System::block_number() + 6);
+
+            // intend settle
+            let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
+
+            let pay_id_list_array = global_result.4;
+
+            for peer_index in 0..2 {
+                assert_ok!(
+                    LedgerOperation::<TestRuntime>::clear_pays(
+                        channel_id, 
+                        channel_peers[peer_index as usize], 
+                        pay_id_list_array[peer_index as usize][1].clone()
+                    )
+                )
+            }
+
+            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            System::set_block_number(settle_finalized_time);
+
+            assert_ok!(CelerModule::confirm_settle(Origin::signed(channel_peers[0]), channel_id));
+
+            // Test ConfirmSettle event
+            let expected_event = TestEvent::celer(
+                RawEvent::ConfirmSettle(
+                    channel_id,
+                    vec![526, 474]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_cooperative_settle() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request 
+                = get_open_channel_request(true, 800, 500000, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[0]), open_channel_request, 0).unwrap();
+            assert_ok!(
+                LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 200, 0)
+            );
+
+            let cooperative_settle_request = get_cooperative_settle_request(channel_id, 2, channel_peers.clone(), vec![150, 50], 500000, peers_pair);
+            assert_ok!(CelerModule::cooperative_settle(Origin::signed(channel_peers[0]), cooperative_settle_request));
+
+            // Test CooperativeSettle event
+            let expected_event = TestEvent::celer(
+                RawEvent::CooperativeSettle(
+                    channel_id,
+                    vec![150, 50]
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_deposit_celer() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+
+            let open_channel_request 
+                = get_open_channel_request(false, 0, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
+            let wallet_id = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            
+            assert_ok!(CelerModule::deposit_native_token(Origin::signed(channel_peers[0]), wallet_id, 100));
+
+            // Test DepositToWallet event
+            let expected_event = TestEvent::celer(
+                RawEvent::DepositToWallet(
+                    wallet_id,
+                    100
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }   
+
+    #[test]
+    fn test_pass_deposit_pool() {
+        ExtBuilder::build().execute_with(|| {
+            let alice = account_key("Alice");
+            assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
+
+            // Test PoolDepoist event
+            let expected_event = TestEvent::celer(
+                RawEvent::PoolDeposit(
+                    alice, 
+                    100
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_withdraw_from_pool() {
+        ExtBuilder::build().execute_with(|| {
+            let alice = account_key("Alice");
+            assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
+            assert_ok!(CelerModule::withdraw_from_pool(Origin::signed(alice), 100));
+
+            // Test WithdrawFromPool event
+            let expected_event = TestEvent::celer(
+                RawEvent::WithdrawFromPool(
+                    alice,
+                    100
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_approve() {
+        ExtBuilder::build().execute_with(|| {
+            let bob = account_key("Bob"); // owner address 
+            let risa = account_key("Risa"); // spender address
+            assert_ok!(CelerModule::approve(Origin::signed(bob.clone()), risa.clone(), 100));
+
+            // Test Approval event
+            let expected_event = TestEvent::celer(
+                RawEvent::Approval(
+                    bob,
+                    risa,
+                    100
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_transfer_to_celer_wallet() {
+        ExtBuilder::build().execute_with(|| {
+            let risa = account_key("Risa"); // spender address
+            let alice_pair = account_pair("Alice"); // owner address
+            let bob_pair = account_pair("Bob"); // owner address
+            let (channel_peers, peers_pair)
+                = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+
+            let open_channel_request 
+                = get_open_channel_request(false, 0, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
+            let wallet_id 
+                = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
+            assert_ok!(CelerModule::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 200));
+            assert_ok!(CelerModule::approve(Origin::signed(channel_peers[0].clone()), risa.clone(), 200));
+
+            assert_ok!(CelerModule::transfer_to_celer_wallet(
+                Origin::signed(risa), 
+                channel_peers[0].clone(), 
+                wallet_id, 
+                200
+            ));
+
+            // Test TransferToCelerWallet event
+            let wallet_addr = WALLET_ID.into_account();
+            let expected_event = TestEvent::celer(
+                RawEvent::TransferToCelerWallet(
+                    wallet_id,
+                    wallet_addr,
+                    200
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_increase_allowance() {
+        ExtBuilder::build().execute_with(|| {
+            let bob = account_key("Bob"); // owner address
+            let risa = account_key("Risa"); // spender address
+            approve(bob, risa, 100);
+
+            assert_ok!(CelerModule::increase_allowance(Origin::signed(bob), risa, 50));
+
+            // Test Approval event
+            let expected_event = TestEvent::celer(
+                RawEvent::Approval(
+                    bob,
+                    risa,
+                    150
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_decrease_allowacne() {
+        ExtBuilder::build().execute_with(|| {
+            let bob = account_key("Bob"); // owner address
+            let risa = account_key("Risa"); // spender address
+            approve(bob, risa, 100);
+
+            assert_ok!(CelerModule::decrease_allowance(Origin::signed(bob), risa, 50));
+
+            // Test Approval event
+            let expected_event = TestEvent::celer(
+                RawEvent::Approval(
+                    bob, 
+                    risa,
+                    50
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_resolve_payment_by_conditions() {
+        ExtBuilder::build().execute_with(|| {
+            let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
+            let cond_pay = ConditionalPay {
+               pay_timestamp: Timestamp::get(),
+               src: account_key("src"),
+               dest: account_key("dest"),
+               conditions: vec![get_condition(0), get_condition(1), get_condition(1)],
+               transfer_func: transfer_func,
+               resolve_deadline: 99999,
+               resolve_timeout: 10,
+            };
+            let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
+            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
+            let pay_request = ResolvePaymentConditionsRequest {
+                cond_pay: cond_pay,
+                hash_preimages: vec![H256::from_low_u64_be(1)]
+            };
+
+            assert_ok!(CelerModule::resolve_payment_by_conditions(Origin::signed(account_key("Alice")),pay_request));
+
+            // Test ResolvePayment event
+            let pay_id = CelerModule::calculate_pay_id(pay_hash);
+            let expected_event = TestEvent::celer(
+                RawEvent::ResolvePayment(
+                    pay_id,
+                    10,
+                    System::block_number()
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
+    }
+
+    #[test]
+    fn test_pass_payment_by_vouched_result() {
+        ExtBuilder::build().execute_with(|| {
+            let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
+            let shared_pay = ConditionalPay {
+                pay_timestamp: 0,
+                src: account_key("src"),
+                dest: account_key("dest"),
+                conditions: vec![get_condition(0), get_condition(3), get_condition(4)],
+                transfer_func: transfer_func,
+                resolve_deadline: 99999,
+                resolve_timeout: 10,
+            };
+
+            let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
+            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
+            let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
+            let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
+            let cond_pay_result = CondPayResult {
+                cond_pay: shared_pay,
+                amount: 10
+            };
+            let vouched_cond_pay_result = VouchedCondPayResult {
+                cond_pay_result: cond_pay_result,
+                sig_of_src: sig_of_src,
+                sig_of_dest: sig_of_dest
+            };
+            assert_ok!(CelerModule::resolve_payment_by_vouched_result(Origin::signed(account_key("Alice")), vouched_cond_pay_result));
+
+            // Test ResolvePayment event
+            let pay_id = CelerModule::calculate_pay_id(pay_hash);
+            let expected_event = TestEvent::celer(
+                RawEvent::ResolvePayment(
+                    pay_id,
+                    10,
+                    System::block_number() + 10
+                )
+            );
+            assert!(System::events().iter().any(|a| a.event == expected_event));
+        })
     }
 }

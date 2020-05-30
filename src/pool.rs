@@ -440,12 +440,12 @@ mod tests {
             let wallet_id 
                 = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request.clone(), 0).unwrap();
             
-            // Depost celer to pool
+            // Depost native token to pool
             deposit_pool(channel_peers[0], 200);
-            // Approve risa to use celer
+            // Approve risa to use native token
             approve(channel_peers[0], risa, 200);
 
-            // Transfer to celer wallet by risa
+            // Transfer to native token wallet by risa
             let (_wallet_id, _, _amount)
                 = Pool::<TestRuntime>::transfer_to_celer_wallet(Origin::signed(risa), channel_peers[0], wallet_id, 200).unwrap();
             assert_eq!(_wallet_id, wallet_id);

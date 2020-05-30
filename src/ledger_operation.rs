@@ -2967,7 +2967,7 @@ pub mod tests {
                 hash_preimages: vec![]
             };
 
-            let (pay_id, _amount_1, resolve_deadline)
+            let (pay_id, _amount_1, _)
                 = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
 
             System::set_block_number(System::block_number() + 5);
@@ -3045,7 +3045,7 @@ pub mod tests {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![]
                 };
-                let (pay_id, _, _) = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
             } 
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -3406,9 +3406,6 @@ pub mod tests {
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
-            let (_, hashes) = CelerModule::get_next_pay_id_list_hash_map(channel_id).unwrap();
-            let hash_zero = zero_hash::<TestRuntime>();
-
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
             assert_eq!(err, DispatchError::Module { index: 0, error: 8, message: Some("ConfirmSettleFail") });
         })
@@ -3661,8 +3658,6 @@ pub mod tests {
             encoded.extend(pay_id_list_array[0][1].pay_ids[1].encode());
            
             let hash = hashing::blake2_256(&encoded).into();
-
-            let hash_zero = zero_hash::<TestRuntime>();
             assert_eq!(next_list_hash.unwrap(), hash);
 
             for peer_index in 0..2 {
@@ -3852,7 +3847,6 @@ pub mod tests {
 
             for i in 0..2 { // for each simplex state
                 for j in 0..2 { // for each pays in head PayIdList
-                    let log_index = i * 2 + j;
                     let encoded = encode_conditional_pay(cond_pays[i][0][j].clone());
                     let pay_hash = hashing::blake2_256(&encoded).into();
                     let pay_id = PayRegistry::<TestRuntime>::calculate_pay_id(pay_hash);
@@ -3917,7 +3911,6 @@ pub mod tests {
             );
 
             let signed_simplex_state_array = global_result.0;
-            let cond_pays = global_result.2;
 
             // ensure it passes the lat pay resolve deadline
             System::set_block_number(System::block_number() + 2);
@@ -4108,6 +4101,7 @@ pub mod tests {
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
             let expected_single_settle_finalized_time = 10 + System::block_number();
+            assert_eq!(settle_finalized_time, expected_single_settle_finalized_time);
 
             let status = CelerModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
@@ -4685,7 +4679,7 @@ pub mod tests {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![]
                 };
-                let (pay_id, _, _) = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
             } 
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -4760,7 +4754,7 @@ pub mod tests {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![]
                 };
-                let (pay_id, _, _) = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
             } 
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -5607,7 +5601,7 @@ pub mod tests {
         return initializer;
     }
 
-    fn get_cooperative_withdraw_request(
+    pub fn get_cooperative_withdraw_request(
         channel_id: H256,
         seq_num: u128,
         amount: Balance,
@@ -6033,7 +6027,7 @@ pub mod tests {
         return signed_simplex_state;
     }
 
-    fn get_cooperative_settle_request(
+    pub fn get_cooperative_settle_request(
         channel_id: H256,
         seq_num: u128,
         channel_peers: Vec<AccountId>,
@@ -6118,5 +6112,19 @@ pub mod tests {
         };
         
         return transfer_func;
+    }
+
+    pub fn create_channel_id(
+        open_request: OpenChannelRequest<AccountId, BlockNumber, Balance, Signature>,
+        channel_peers: Vec<AccountId>    
+    ) -> H256 {
+        let channel_initializer = open_request.channel_initializer;
+        let encoded_1 = encode_channel_initializer::<TestRuntime>(channel_initializer);
+        let nonce: H256 = hashing::blake2_256(&encoded_1).into();
+        let mut encoded_2 = channel_peers[0].encode();
+        encoded_2.extend(channel_peers[1].encode());
+        encoded_2.extend(nonce.encode());
+        let channel_id = hashing::blake2_256(&encoded_2).into();
+        return channel_id;
     }
 }
