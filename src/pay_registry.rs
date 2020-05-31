@@ -175,7 +175,6 @@ impl<T: Trait> PayRegistry<T> {
         last_pay_resolve_deadline: T::BlockNumber
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
         let mut amounts: Vec<BalanceOf<T>> = vec![];
-        
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let pay_id_len = pay_ids.len();
     

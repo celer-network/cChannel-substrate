@@ -456,7 +456,7 @@ pub mod tests {
     use sp_core::{H256, hashing, Pair};
 
     #[test]
-    fn test_pass_resolve_payment_by_conditions_boolean_and_condition_true() {
+    fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
             let cond_pay = ConditionalPay {
@@ -484,7 +484,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_pass_resolve_payment_by_conditions_boolean_and_condition_false() {
+    fn test_pass_resolve_payment_by_conditions_boolean_and_and_some_condition_false() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 20, 0);
             let cond_pay = ConditionalPay {
@@ -512,7 +512,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_pass_resolve_payment_by_conditions_boolean_or_conditions_true() {
+    fn test_pass_resolve_payment_by_conditions_boolean_or_and_some_conditions_true() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 30, 1);
             let cond_pay = ConditionalPay {
@@ -541,6 +541,35 @@ pub mod tests {
     }
 
     #[test]
+    fn test_pass_resolve_payment_by_conditions_when_the_logic_is_boolean_or_and_all_conditions_false() {
+        ExtBuilder::build().execute_with(|| {
+            let transfer_func = get_transfer_func(account_key("Alice"), 30, 1);
+            let cond_pay = ConditionalPay {
+                pay_timestamp: Timestamp::get(),
+                src: account_key("src"),
+                dest: account_key("dest"),
+                conditions: vec![get_condition(0), get_condition(2), get_condition(2)],
+                transfer_func: transfer_func,
+                resolve_deadline: 99999,
+                resolve_timeout: 10,
+            };
+
+            let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
+            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
+            let pay_request = ResolvePaymentConditionsRequest {
+                cond_pay: cond_pay,
+                hash_preimages: vec![H256::from_low_u64_be(1)]
+            };
+
+            let (pay_id, amount, resolve_deadline) =
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+            assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
+            assert_eq!(amount, 0);
+            assert_eq!(resolve_deadline, System::block_number() + 10);
+        })
+    }
+
+    #[test]
     fn test_pass_resolve_payment_by_vouched_result() {
         ExtBuilder::build().execute_with(|| {
             test_resolve_payment_by_vouched_result(20);
@@ -550,6 +579,7 @@ pub mod tests {
     #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_25() {
         ExtBuilder::build().execute_with(|| {
+            test_resolve_payment_by_vouched_result(20);
             test_resolve_payment_by_vouched_result(25);
         })
     }
@@ -557,6 +587,8 @@ pub mod tests {
     #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_35() {
         ExtBuilder::build().execute_with(|| {
+            test_resolve_payment_by_vouched_result(20);
+            test_resolve_payment_by_vouched_result(25);
             test_resolve_payment_by_vouched_result(35);
         })
     }
@@ -564,7 +596,35 @@ pub mod tests {
     #[test]
     fn test_fail_resolve_payment_by_vouched_result_pass_when_new_result_is_smaller_than_old_result() {
         ExtBuilder::build().execute_with(|| {
-            test_resolve_payment_by_vouched_result(30);
+            test_resolve_payment_by_vouched_result(20);
+            test_resolve_payment_by_vouched_result(25);
+            test_resolve_payment_by_vouched_result(35);
+            let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
+            let shared_pay = ConditionalPay {
+                pay_timestamp: 0,
+                src: account_key("src"),
+                dest: account_key("dest"),
+                conditions: vec![get_condition(0), get_condition(3), get_condition(4)],
+                transfer_func: transfer_func,
+                resolve_deadline: 99999,
+                resolve_timeout: 10,
+            };
+
+            let encoded_cond_pay = encode_conditional_pay(shared_pay.clone());
+            let pay_hash: H256 = hashing::blake2_256(&encoded_cond_pay).into();
+            let sig_of_src = account_pair("src").sign(&encoded_cond_pay);
+            let sig_of_dest = account_pair("dest").sign(&encoded_cond_pay);
+            let cond_pay_result = CondPayResult {
+                cond_pay: shared_pay,
+                amount: 30
+            };
+            let vouched_cond_pay_result = VouchedCondPayResult {
+                cond_pay_result: cond_pay_result,
+                sig_of_src: sig_of_src,
+                sig_of_dest: sig_of_dest
+            };
+            let err = PayResolver::<TestRuntime>::resolve_payment_vouched_result(vouched_cond_pay_result).unwrap_err();
+            assert_eq!(err, DispatchError::Other("New amount is not larger"));
         })
     }
 
