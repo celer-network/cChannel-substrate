@@ -992,10 +992,9 @@ impl<T: Trait> LedgerOperation<T> {
             
             if simplex_state.seq_num > 0 {
                 // Check signatures
-                let pay_id_len = signed_simplex_state_array.signed_simplex_states[i].simplex_state.pending_pay_ids.clone().unwrap().pay_ids.len();
+                let pay_id_len = simplex_state.pending_pay_ids.clone().unwrap().pay_ids.len();
                 let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize, pay_id_len as usize);
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
-
                 let channel_peer = vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()];
                 Module::<T>::valid_signers(sigs, &encoded, channel_peer)?;
             
@@ -1063,7 +1062,7 @@ impl<T: Trait> LedgerOperation<T> {
                         withdraw_intent: c.withdraw_intent,
                     };
                     ChannelMap::<T>::mutate(&current_channel_id, |channel| *channel = Some(new_channel.clone()));
-                
+
                     _clear_pays::<T>(new_channel, current_channel_id, peer_from_id, simplex_state.pending_pay_ids.clone().unwrap())?;
                 } else {
                     let new_state: PeerStateOf<T>;
@@ -1599,6 +1598,7 @@ fn _clear_pays<T: Trait>(
 ) -> Result<(), DispatchError> { 
     let zero_balance: BalanceOf<T> = Zero::zero();
     let out_amts: Vec<BalanceOf<T>>;
+   
     if peer_id == 0 {
         let state_1 = c.peer_profiles[0].state.clone();
         out_amts = PayRegistry::<T>::get_pay_amounts(
@@ -2917,7 +2917,7 @@ pub mod tests {
             assert_ok!(
                 LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 200, 0)
             );
-
+        
             // the meaning of the index: [peer index][pay hash list index][pay index]
             let peers_pay_hash_lists_amts: Vec<Vec<Vec<Balance>>> 
                 = vec![vec![vec![1, 2], vec![3, 4]], vec![vec![5, 6], vec![7, 8]]];
@@ -2932,13 +2932,13 @@ pub mod tests {
                 vec![channel_id, channel_id],
                 peers_pay_hash_lists_amts,
                 vec![1, 1], // seq_nums
-                vec![10, 20], // transfer amounts
+                vec![100, 200], // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
-                0
+                1
             );
 
             let signed_simplex_state_array = global_result.0;
@@ -2953,17 +2953,11 @@ pub mod tests {
             let (pay_id, _amount_1, _)
                 = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
 
-            System::set_block_number(System::block_number() + 5);
+            System::set_block_number(System::block_number() + 6);
 
             let simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
             let pay_id_list = simplex_state.pending_pay_ids.unwrap();
             assert_eq!(pay_id, pay_id_list.pay_ids[0]);
-
-            let (_amount_2, _resolve_deadline) = PayRegistry::<TestRuntime>::get_pay_info(pay_id).unwrap();
-            assert_eq!(_resolve_deadline, 6);
-
-            let err = PayRegistry::<TestRuntime>::get_pay_amounts(vec![pay_id], 99999).unwrap_err();
-            assert_eq!(err, DispatchError::Other("Payment is not finalized"));
 
             let err = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap_err();
             assert_eq!(err, DispatchError::Other("Payment is not finalized"));
