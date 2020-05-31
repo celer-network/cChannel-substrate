@@ -90,17 +90,22 @@ rustup target add wasm32-unknown-unknown --toolchain nightly
 ```
 rustup update
 ```
+5. Install celer-pay runtime module
+```
+git clone git@github.com:celer-network/cChannel-substrate.git
+```
+6. Go to cChannel-substrate's root directory
 
-5. Build celer pallet
+7. Build celer-pay runtime moodule
 
 ```
 cargo build --release
 ```
 
-6. Test celer pallet
+8. Test celer-pay runtime module
 
 ```
-cargo test -p celer-module
+cargo test -p celer-pay-module
 ```
 
 ![project supported by web3 foundation grants program](image/web3.jpg)
