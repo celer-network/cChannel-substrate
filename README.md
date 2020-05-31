@@ -104,4 +104,5 @@ cargo build --release
 cargo test -p celer-module
 ```
 
+![project supported by web3 foundation grants program](image/web3.jpg)
 
