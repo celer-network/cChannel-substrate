@@ -29,8 +29,7 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 * **Pool**: Pool enables the single-transaction channel opening feature of CelerPay
 
 ## Release Features
-* **Single-contract Multiple-token Support**: supports multiple Ethereum token standards in different channels under one single contract.
-* **Native token Support**: users can specify native token to open an Substrate-based channel.
+* **Native token Support**: users can specify polkadot native token to open an Substrate-based channel.
 * **Generalized State Channel**: resolves conditional state dependency by relying on dependent virtual channels.
 * **Fully Duplex Channel**: supports two independent simplex (single-direction) channels in a duplex channel, which makes off-chain communications much simpler and more efficient.
 * **Boolean Condition Interface**: defines the condition that returns boolean value.
@@ -40,7 +39,7 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 * **Numeric ADD Resolution Logic**: resolves a group of conditions based on numeric ADD logic.
 * **Numeric MAX Resolution Logic**: resolves a group of conditions based on numeric MAX logic.
 * **Numeric MIN Resolution Logic**: resolves a group of conditions based on numeric MIN logic.
-* **Single-transaction Channel Opening**: opens channel with a single on-chain transaction through funds approval for both ETH and ERC20 tokens.
+* **Single-transaction Channel Opening**: opens channel with a single on-chain transaction through funds approval for native token.
 * **Dynamic Withdraw**: withdraws fund before channel finalized as long as no peers disagree during challenge period.
 * **Cooperative Dynamic Withdraw**: skips challenge period and withdraws fund before channel finalized when both peers reach an agreement.
 * **Lightweight cooperative on-chain checkpoint**: support snapshotting transfer map of co-signed states on-chain.
