@@ -1,5 +1,5 @@
 [package]
-name = "celer-module"
+name = "celer-pay-module"
 version = "1.0.0"
 auhros = ["Celer"]
 edition = "2018"
