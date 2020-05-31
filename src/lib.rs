@@ -1141,7 +1141,7 @@ pub mod tests {
             assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
             
             // Test OpenChannel event
-            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             let expected_event = TestEvent::celer(
                 RawEvent::OpenChannel(
                     channel_id,
@@ -1169,7 +1169,7 @@ pub mod tests {
                 = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
             assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
             
-            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             assert_ok!(CelerModule::set_balance_limits(Origin::signed(channel_peers[0]), channel_id, 200));
 
             // Test SetBalanceLimits event
@@ -1199,7 +1199,7 @@ pub mod tests {
                 = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
             assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
             
-            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             assert_ok!(CelerModule::disable_balance_limits(Origin::signed(channel_peers[0]), channel_id));
 
             // Test DisableBalanceLimits event
@@ -1228,7 +1228,7 @@ pub mod tests {
                 = get_open_channel_request(false, 0, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
             assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
             
-            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             assert_ok!(CelerModule::enable_balance_limits(Origin::signed(channel_peers[0]), channel_id));
 
             // Test EnableBalanceLimits event
@@ -1257,7 +1257,7 @@ pub mod tests {
                 = get_open_channel_request(true, 1000, 50000, 10, false, channel_peers.clone(), 1, peers_pair);
             assert_ok!(CelerModule::open_channel(Origin::signed(channel_peers[0]), open_channel_request.clone(), 200));
             
-            let channel_id = create_channel_id(open_channel_request, channel_peers.clone());
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
 
             // Test Deposit event
             assert_ok!(CelerModule::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 200, 0));
