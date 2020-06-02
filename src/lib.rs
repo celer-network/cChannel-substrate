@@ -19,13 +19,9 @@ use frame_support::{decl_storage, decl_module, decl_event, decl_error,
 use codec::{Encode, Decode};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_runtime::traits::{
-    Hash, 
-    IdentifyAccount, 
-    Member, 
-    Verify, 
-    Zero,
-    CheckedAdd, 
-    CheckedSub
+    Hash, IdentifyAccount, 
+    Member, Verify, 
+    Zero, CheckedAdd, CheckedSub
 };
 use sp_std::{prelude::*, vec::Vec};
 use frame_system::{self as system, ensure_signed};
@@ -54,7 +50,6 @@ use pay_registry::{
     PayInfoOf,
 };
 
-
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 pub trait Trait: system::Trait + pallet_timestamp::Trait {
@@ -78,7 +73,6 @@ impl Default for Releases {
         Releases::V1_0_0
     }
 }
-
 
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
@@ -123,7 +117,7 @@ decl_module! {
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
-            limits: BalanceOf<T>
+            #[compact] limits: BalanceOf<T>
         ) -> Result<(), DispatchError> {
             LedgerOperation::<T>::set_balance_limits(origin, channel_id, limits)?;
             Self::deposit_event(RawEvent::SetBalanceLimits(
@@ -336,7 +330,7 @@ decl_module! {
         /// Dev: only peers can veto withdrawal intent;
         ///      peers can veto a withdrawal even after (request_time + dispute_timeout)
         ///
-        /// Parameter
+        /// Parameter:
         /// `channel_id`: Id of channel
         #[weight = SimpleDispatchInfo::default()]
         fn veto_withdraw(
@@ -350,7 +344,7 @@ decl_module! {
 
         /// Cooperatively withdraw specific amount of balance
         /// 
-        /// Parameter
+        /// Parameter:
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
         #[weight = SimpleDispatchInfo::default()]
         fn cooperative_withdraw(
@@ -380,7 +374,7 @@ decl_module! {
         ///      A simplex state with non-zero seqNum (non-null state) must be co-signed by both peers,
         ///      while a simplex state with seqNum=0 (null state) only needs to be signed by one peer.
         ///
-        /// Parameters
+        /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
         #[weight = SimpleDispatchInfo::default()]
         fn intend_settle(

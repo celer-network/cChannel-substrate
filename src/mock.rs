@@ -94,7 +94,6 @@ impl Trait for TestRuntime {
 
 pub type CelerModule = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
-pub type Balances = pallet_balances::Module<TestRuntime>;
 pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
 
 pub struct ExtBuilder;
