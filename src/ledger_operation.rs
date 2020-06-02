@@ -1,4 +1,3 @@
-
 use codec::{Encode, Decode};
 use frame_support::{ensure, storage::{StorageMap}};
 use frame_support::traits::{Currency, ExistenceRequirement};
