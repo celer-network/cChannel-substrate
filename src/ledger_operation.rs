@@ -2,6 +2,7 @@ use codec::{Encode, Decode};
 use frame_support::{ensure, storage::{StorageMap}};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_system::{self as system, ensure_signed};
+use sp_std::{vec, vec::Vec};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion, CheckedAdd, CheckedSub};
 use crate::celer_wallet::{CelerWallet, WALLET_ID, WalletOf};
