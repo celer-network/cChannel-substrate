@@ -10,7 +10,7 @@ CelerPay is a generalized payment network that supports efficient off-chain toke
 
 To learn more about Celer state channel network, please refer to the [CelerCore technical documentation](https://www.celer.network/docs/celercore/channel/overview.html). More specifically, [this page](https://www.celer.network/docs/celercore/channel/pay_contracts.html) gives a detailed description of our smart contract design, structure, and API flows.
 
-Celer state channel network  of Celer-pay Onchain runtime module and Celer-pay Offchain protocol. This repository is Celer-pay Onchain runtime module. Celer-pay Offchain protocol is not implemented yet. 
+Celer state channel network is composed of Celer-pay Onchain runtime module and Celer-pay Offchain protocol. This repository is Celer-pay Onchain runtime module. Celer-pay Offchain protocol is not implemented yet. 
 
 __WARNING__: This is a proof-of-concept prototype. This implementation is NOT ready for production use. 
 
