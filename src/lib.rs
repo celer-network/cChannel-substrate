@@ -23,7 +23,7 @@ use sp_runtime::traits::{
     Member, Verify, 
     Zero, CheckedAdd, CheckedSub
 };
-use sp_std::{prelude::*, vec::Vec};
+use sp_std::{prelude::*, vec, vec::Vec};
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
     LedgerOperation,
