@@ -1,6 +1,7 @@
 use codec::{Encode, Decode};
 use frame_support::{ensure, storage::{StorageMap}};
 use frame_system::{self as system};
+use sp_std::{vec, vec::Vec};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
 use super::{
@@ -83,7 +84,7 @@ impl<T: Trait> PayRegistry<T> {
             amount: Some(amt),
             resolve_deadline: Some(deadline)
         };
-        PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+        <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
 
         Ok(())
     }
@@ -182,24 +183,15 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_id_len {
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
                 pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
-                if pay_info.resolve_deadline.unwrap_or(zero_blocknumber) == zero_blocknumber {
-                    // should pass last pay resolve deadline if never resolved
-                    ensure!(
-                        <frame_system::Module<T>>::block_number() > last_pay_resolve_deadline,
-                        "Payment is not finalized"
-                    );
-                } else {
-                    // should pass resolve deadline if resolved
-                    ensure!(
-                        <frame_system::Module<T>>::block_number() > pay_info.resolve_deadline.unwrap(),
-                        "Payment is not finalized"
-                    );
-                }
+                ensure!(
+                    frame_system::Module::<T>::block_number() > pay_info.resolve_deadline.unwrap(),
+                    "Payment is not finalized"
+                );
                 amounts.push(pay_info.amount.unwrap());
             } else {
                 // should pass last pay resolve deadline if never resolved
                 ensure!(
-                    <frame_system::Module<T>>::block_number() > last_pay_resolve_deadline,
+                    frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
                     "Payment is not finalized"
                 );
                 let zero_balance: BalanceOf<T> = Zero::zero();

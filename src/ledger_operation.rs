@@ -1,8 +1,8 @@
-
 use codec::{Encode, Decode};
 use frame_support::{ensure, storage::{StorageMap}};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_system::{self as system, ensure_signed};
+use sp_std::{vec, vec::Vec};
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, Zero, AccountIdConversion, CheckedAdd, CheckedSub};
 use crate::celer_wallet::{CelerWallet, WALLET_ID, WalletOf};
@@ -339,7 +339,7 @@ impl<T: Trait> LedgerOperation<T> {
         );
 
         ensure!(
-            <frame_system::Module<T>>::block_number() < channel_initializer.open_deadline,
+            frame_system::Module::<T>::block_number() < channel_initializer.open_deadline,
             "Open deadline passed"
         );
 
@@ -671,7 +671,7 @@ impl<T: Trait> LedgerOperation<T> {
         let new_withdraw_intent = WithdrawIntentOf::<T> {
             receiver: receiver.clone(),
             amount: Some(amount),
-            request_time: Some(<frame_system::Module<T>>::block_number()),
+            request_time: Some(frame_system::Module::<T>::block_number()),
             recipient_channel_id: Some(recipient_channel_id)
         };
 
@@ -711,7 +711,7 @@ impl<T: Trait> LedgerOperation<T> {
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let dispute_timeout = withdraw_intent.request_time.unwrap_or(zero_blocknumber).checked_add(&c.dispute_timeout)
             .ok_or(Error::<T>::OverFlow)?;
-        let block_number = <frame_system::Module<T>>::block_number();
+        let block_number = frame_system::Module::<T>::block_number();
         ensure!(
             block_number >= dispute_timeout,
             "Dispute not timeout"
@@ -896,7 +896,7 @@ impl<T: Trait> LedgerOperation<T> {
             "seq_num error"
         );
         ensure!(
-            <frame_system::Module<T>>::block_number() <= withdraw_info.withdraw_deadline,
+            frame_system::Module::<T>::block_number() <= withdraw_info.withdraw_deadline,
             "Withdraw deadline passed"
         );
 
@@ -986,7 +986,7 @@ impl<T: Trait> LedgerOperation<T> {
             let zero_blocknumber: T::BlockNumber = Zero::zero();
             ensure!(
                 c.settle_finalized_time.unwrap_or(zero_blocknumber) == zero_blocknumber 
-                || <frame_system::Module<T>>::block_number() < c.settle_finalized_time.unwrap(),
+                || frame_system::Module::<T>::block_number() < c.settle_finalized_time.unwrap(),
                 "Settle has already finalized"
             );
             
@@ -1275,7 +1275,7 @@ impl<T: Trait> LedgerOperation<T> {
     ) -> Result<(T::Hash, Vec<BalanceOf<T>>), DispatchError> {
         let c = ChannelMap::<T>::get(channel_id).unwrap();
         let peer_profiles = vec![c.peer_profiles[0].clone(), c.peer_profiles[1].clone()];
-        let block_number = <frame_system::Module<T>>::block_number();
+        let block_number = frame_system::Module::<T>::block_number();
         ensure!(
             c.status == ChannelStatus::Settling,
             "Channel status error"
@@ -1783,7 +1783,7 @@ fn update_overall_states_by_intend_state<T: Trait>(
         None => Err(Error::<T>::NotChannelPeer)?
     };
 
-    let new_setttle_finalized_time: T::BlockNumber = <frame_system::Module<T>>::block_number()
+    let new_setttle_finalized_time: T::BlockNumber = frame_system::Module::<T>::block_number()
             .checked_add(&c.dispute_timeout).ok_or(Error::<T>::OverFlow)?;
     let new_channel = ChannelOf::<T> {
         balance_limits_enabled: c.balance_limits_enabled,
@@ -2112,6 +2112,7 @@ pub mod tests {
     use crate::mock::*;
     use super::*;
     use frame_support::{assert_ok, assert_noop};
+    use frame_system::{EventRecord, Phase};
     use sp_runtime::DispatchError;
     use sp_core::{H256, hashing, sr25519, Pair};
     use crate::pay_resolver::tests::*;
@@ -2686,6 +2687,7 @@ pub mod tests {
                 LedgerOperation::<TestRuntime>::deposit(Origin::signed(channel_peers[0]), channel_id, channel_peers[0], 300, 0)
             );
 
+            System::set_block_number(2);
             let zero_vec = vec![0 as u8];
             let zero_channel_id = hashing::blake2_256(&zero_vec).into();
             let cooperative_withdraw_request 
@@ -3357,7 +3359,7 @@ pub mod tests {
 
             // pass onchain  resolve deadline of all onchain resolved pays
             System::set_block_number(System::block_number() + 6);
-            let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
+            let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array);
 
             let pay_id_list_array = global_result.4;
 
@@ -3368,7 +3370,7 @@ pub mod tests {
                         channel_peers[peer_index as usize],
                         pay_id_list_array[peer_index as usize][1].clone()
                     )
-                )
+                );
             }
 
             let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>)
@@ -3556,7 +3558,7 @@ pub mod tests {
                         channel_peers[peer_index as usize],
                         pay_id_list_array[peer_index as usize][1].clone()
                     )
-                )
+                );
             }
 
             let err =  LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array.clone()).unwrap_err();
@@ -3644,7 +3646,7 @@ pub mod tests {
                         channel_peers[peer_index as usize], 
                         pay_id_list_array[peer_index as usize][1].clone()
                     )
-                )
+                );
             }
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
@@ -3809,7 +3811,8 @@ pub mod tests {
             let cond_pays = global_result.2;
 
             // ensure it passes the lat pay resolve deadline
-            System::set_block_number(System::block_number() + 2);
+            System::set_block_number(System::block_number() + 3);
+            assert_eq!(System::block_number(), 3);
 
             // intend settle
             let _ = CelerModule::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
@@ -3890,7 +3893,8 @@ pub mod tests {
             let signed_simplex_state_array = global_result.0;
 
             // ensure it passes the lat pay resolve deadline
-            System::set_block_number(System::block_number() + 2);
+            System::set_block_number(System::block_number() + 3);
+            assert_eq!(System::block_number(), 3);
 
             // intend settle
             let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
@@ -4946,6 +4950,27 @@ pub mod tests {
                 CelerModule::deposit_in_batch(Origin::signed(deposit_account), channel_ids.clone(), receivers.clone(), vec![0, 0], amounts.clone())
             );
 
+            let expected_deposits: Vec<Balance>;
+            if channel_peers[0] == receivers[0].clone() {
+                expected_deposits = vec![amounts[0], 0];
+            } else {
+                expected_deposits = vec![0, amounts[1]];
+            }
+
+            /**
+            let record = |event| EventRecord { phase: Phase::Initialization, event, topics: vec![] };
+            assert_eq!(System::events(), 
+                vec![record(TestEvent::celer(
+                    RawEvent::Deposit(
+                    channel_ids[0], 
+                    channel_peers.clone(), 
+                    expected_deposits, 
+                    vec![0, 0]
+                    )
+                ))]
+            );
+            */
+
             for i in 0..2 {
                 let expected_deposits: Vec<Balance>;
                 if channel_peers[0] == receivers[i].clone() {
@@ -4953,6 +4978,7 @@ pub mod tests {
                 } else {
                     expected_deposits = vec![0, amounts[i]];
                 }
+
                 let expected_event = TestEvent::celer(
                     RawEvent::Deposit(
                         channel_ids[i],
@@ -5311,7 +5337,8 @@ pub mod tests {
             // peer intend settle
             let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
 
-            System::set_block_number(System::block_number() + 2);
+            System::set_block_number(System::block_number() + 3);
+            assert_eq!(System::block_number(), 3);
 
             // non peer intend settle
             let result = get_cosigned_intend_settle(

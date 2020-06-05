@@ -8,26 +8,22 @@ mod pay_registry;
 mod pay_resolver;
 mod mock_condition;
 mod mock;
-mod migration;
+//mod migration;
 
 use pallet_timestamp;
 use frame_support::{decl_storage, decl_module, decl_event, decl_error,
     ensure, storage::StorageMap,
     traits::{Currency},
-    weights::{SimpleDispatchInfo},
+    weights::{Weight, SimpleDispatchInfo, WeighData},
 };
 use codec::{Encode, Decode};
-use sp_runtime::{DispatchError, RuntimeDebug};
+use sp_runtime::{DispatchError, RuntimeDebug, DispatchResult};
 use sp_runtime::traits::{
-    Hash, 
-    IdentifyAccount, 
-    Member, 
-    Verify, 
-    Zero,
-    CheckedAdd, 
-    CheckedSub
+    Hash, IdentifyAccount, 
+    Member, Verify, 
+    Zero, CheckedAdd, CheckedSub
 };
-use sp_std::{prelude::*, vec::Vec};
+use sp_std::{prelude::*, vec, vec::Vec};
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
     LedgerOperation,
@@ -54,7 +50,6 @@ use pay_registry::{
     PayInfoOf,
 };
 
-
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 pub trait Trait: system::Trait + pallet_timestamp::Trait {
@@ -78,7 +73,6 @@ impl Default for Releases {
         Releases::V1_0_0
     }
 }
-
 
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
@@ -110,21 +104,20 @@ decl_storage! {
 
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-
         fn deposit_event() = default;
 
         /// Celer Ledger
         /// Set the balance limits
         ///
         /// Parameters:
-        /// - `channel_id`: Id of the channel
+        // - `channel_id`: Id of the channel
         /// - `limits`: Limits amount of channel
         #[weight = SimpleDispatchInfo::default()]
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
-            limits: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+            #[compact] limits: BalanceOf<T>
+        ) -> DispatchResult {
             LedgerOperation::<T>::set_balance_limits(origin, channel_id, limits)?;
             Self::deposit_event(RawEvent::SetBalanceLimits(
                 channel_id,
@@ -141,7 +134,7 @@ decl_module! {
         fn disable_balance_limits(
             origin,
             channel_id: T::Hash
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::disable_balance_limits(origin, channel_id)?;
             Self::deposit_event(RawEvent::DisableBalanceLimits(channel_id));
             Ok(())
@@ -155,7 +148,7 @@ decl_module! {
         fn enable_balance_limits(
             origin,
             channel_id: T::Hash    
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::enable_balance_limits(origin, channel_id)?;
             Self::deposit_event(RawEvent::EnableBalanceLimits(channel_id));
             Ok(())
@@ -171,7 +164,7 @@ decl_module! {
             origin,
             open_request: OpenChannelRequestOf<T>,
             amount: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let channel_id: T::Hash = LedgerOperation::<T>::open_channel(origin, open_request, amount)?;
             let c = Self::channel_map(channel_id).unwrap();
             Self::deposit_event(RawEvent::OpenChannel(
@@ -200,7 +193,7 @@ decl_module! {
             receiver: T::AccountId,
             amount: BalanceOf<T>,
             transfer_from_amount: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::deposit(origin, channel_id, receiver, amount, transfer_from_amount)?;
             let c = Self::channel_map(channel_id).unwrap();
             let zero_balance: BalanceOf<T> = Zero::zero();
@@ -228,7 +221,7 @@ decl_module! {
             receivers: Vec<T::AccountId>,
             amounts: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
-        ) -> Result<(), DispatchError> {
+        )  {
             let _ = ensure_signed(origin.clone())?;
             
             ensure!(
@@ -253,8 +246,6 @@ decl_module! {
                     vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
                 ));
             }
-
-            Ok(())
         }
 
         /// Store signed simplex states on-chain as checkpoints
@@ -271,7 +262,7 @@ decl_module! {
         fn snapshot_states(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             LedgerOperation::<T>::snapshot_states(signed_simplex_state_array)?;
             Ok(())
@@ -292,7 +283,7 @@ decl_module! {
             channel_id: T::Hash,
             amount: BalanceOf<T>,
             receipient_channel_id: T::Hash
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_, _receiver, _amount): (T::Hash, T::AccountId, BalanceOf<T>) =
                 LedgerOperation::<T>::intend_withdraw(origin, channel_id, amount, receipient_channel_id)?;
             Self::deposit_event(RawEvent::IntendWithdraw(
@@ -313,7 +304,7 @@ decl_module! {
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let (_withdraw_amount, _receiver, _receipient_channel_id): (BalanceOf<T>, T::AccountId, T::Hash) 
                 = LedgerOperation::<T>::confirm_withdraw(channel_id)?;
@@ -336,13 +327,13 @@ decl_module! {
         /// Dev: only peers can veto withdrawal intent;
         ///      peers can veto a withdrawal even after (request_time + dispute_timeout)
         ///
-        /// Parameter
+        /// Parameter:
         /// `channel_id`: Id of channel
         #[weight = SimpleDispatchInfo::default()]
         fn veto_withdraw(
             origin,
             channel_id: T::Hash
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::veto_withdraw(origin, channel_id)?;
             Self::deposit_event(RawEvent::VetoWithdraw(channel_id));
             Ok(())
@@ -350,13 +341,13 @@ decl_module! {
 
         /// Cooperatively withdraw specific amount of balance
         /// 
-        /// Parameter
+        /// Parameter:
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
         #[weight = SimpleDispatchInfo::default()]
         fn cooperative_withdraw(
             _origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_channel_id, _withdrawn_amount, _receiver, _receipient_channel_id, _seq_num): (T::Hash, BalanceOf<T>, T::AccountId, T::Hash, u128) 
                 = LedgerOperation::<T>::cooperative_withdraw(cooperative_withdraw_request)?;
             let (_, _deposits, _withdrawals): (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>) 
@@ -380,13 +371,13 @@ decl_module! {
         ///      A simplex state with non-zero seqNum (non-null state) must be co-signed by both peers,
         ///      while a simplex state with seqNum=0 (null state) only needs to be signed by one peer.
         ///
-        /// Parameters
+        /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
         #[weight = SimpleDispatchInfo::default()]
         fn intend_settle(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array)?;
             Ok(())
         }
@@ -403,7 +394,7 @@ decl_module! {
             channel_id: T::Hash,
             peer_from: T::AccountId,
             pay_id_list: PayIdList<T::Hash>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             LedgerOperation::<T>::clear_pays(channel_id, peer_from, pay_id_list)?;
             Ok(())
         }
@@ -418,7 +409,7 @@ decl_module! {
         fn confirm_settle(
             origin,
             channel_id: T::Hash
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let (_channel_id, _settle_balance) = LedgerOperation::<T>::confirm_settle(channel_id)?;
             Self::deposit_event(RawEvent::ConfirmSettle(
@@ -436,7 +427,7 @@ decl_module! {
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
-        ) -> Result<(), DispatchError>{
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let (_channel_id, _settle_balance): (T::Hash, Vec<BalanceOf<T>>) 
                 = LedgerOperation::<T>::cooperative_settle(settle_request)?;
@@ -458,7 +449,7 @@ decl_module! {
             origin, 
             wallet_id: T::Hash, 
             amount: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_wallet_id, _amount): (T::Hash, BalanceOf<T>) = CelerWallet::<T>::deposit_native_token(origin, wallet_id, amount)?;
             Self::deposit_event(RawEvent::DepositToWallet(_wallet_id, _amount));
             Ok(())
@@ -475,7 +466,7 @@ decl_module! {
             origin,
             receiver: T::AccountId,
             amount: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_receiver, _amount): (T::AccountId, BalanceOf<T>) 
                 = Pool::<T>::deposit_pool(origin, receiver, amount)?;
             Self::deposit_event(RawEvent::PoolDeposit(_receiver, _amount));
@@ -490,7 +481,7 @@ decl_module! {
         fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_receiver, _amount): (T::AccountId, BalanceOf<T>)
                 = Pool::<T>::withdraw(origin, value)?;
             Self::deposit_event(RawEvent::WithdrawFromPool(_receiver, _amount));
@@ -507,7 +498,7 @@ decl_module! {
             origin,
             spender: T::AccountId,
             value: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_owner, _spender, _value): (T::AccountId, T::AccountId, BalanceOf<T>)
                 = Pool::<T>::approve(origin, spender, value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _value));
@@ -526,7 +517,7 @@ decl_module! {
             from: T::AccountId,
             to: T::AccountId,
             value: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_from, _to, _value): (T::AccountId, T::AccountId, BalanceOf<T>)
                 = Pool::<T>::transfer_from(origin, from, to, value)?;
             Self::deposit_event(RawEvent::Transfer(_from, _to, value));
@@ -545,7 +536,7 @@ decl_module! {
             from: T::AccountId,
             wallet_id: T::Hash,
             amount: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_wallet_id, _from, _amount): (T::Hash, T::AccountId, BalanceOf<T>) 
                 = Pool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
             Self::deposit_event(RawEvent::TransferToCelerWallet(_wallet_id, _from, _amount));
@@ -562,7 +553,7 @@ decl_module! {
             origin,
             spender: T::AccountId,
             added_value: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_owner, _spender, _added_value): (T::AccountId, T::AccountId, BalanceOf<T>) 
                 = Pool::<T>::increase_allowance(origin, spender, added_value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _added_value));
@@ -579,7 +570,7 @@ decl_module! {
             origin,
             spender: T::AccountId,
             subtracted_value: BalanceOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let (_owner, _spender, _subtracted_value): (T::AccountId, T::AccountId, BalanceOf<T>) 
                 = Pool::<T>::decrease_allowance(origin, spender, subtracted_value)?;
             Self::deposit_event(RawEvent::Approval(_owner, _spender, _subtracted_value));
@@ -599,7 +590,7 @@ decl_module! {
         fn resolve_payment_by_conditions(
             origin, 
             resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let (_pay_id, _amount, _resolve_deadline): (T::Hash, BalanceOf<T>, T::BlockNumber) 
                 = PayResolver::<T>::resolve_payment_by_conditions(resolve_pay_request)?;
@@ -615,17 +606,12 @@ decl_module! {
         fn resolve_payment_by_vouched_result(
             origin,
             vouched_pay_result: VouchedCondPayResultOf<T>
-        ) -> Result<(), DispatchError> {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let (_pay_id, _amount, _resolve_deadline): (T::Hash, BalanceOf<T>, T::BlockNumber)
                 = PayResolver::<T>::resolve_payment_vouched_result(vouched_pay_result)?;
             Self::deposit_event(RawEvent::ResolvePayment(_pay_id, _amount, _resolve_deadline));
             Ok(())
-        }
-
-        // Upgrade Celer runtime module
-        fn on_runtime_upgrade() {
-            migration::on_runtime_upgrade::<T>();
         }
     }
 }
@@ -692,7 +678,6 @@ decl_error! {
         ConditionAddressNotExist,
     }
 }
-
 
 impl<T: Trait> Module<T> {
     /// CelerLedger
@@ -1486,7 +1471,7 @@ pub mod tests {
                         channel_peers[peer_index as usize], 
                         pay_id_list_array[peer_index as usize][1].clone()
                     )
-                )
+                );
             }
 
             let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();

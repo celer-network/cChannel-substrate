@@ -2,6 +2,7 @@ use codec::{Encode, Decode};
 use frame_support::{ensure};
 use pallet_timestamp;
 use frame_system::{self as system};
+use sp_std::vec::Vec;
 use sp_runtime::{ModuleId, DispatchError, RuntimeDebug};
 use sp_runtime::traits::{Hash, AccountIdConversion, Zero, CheckedAdd};
 use super::{
@@ -179,7 +180,7 @@ fn resolve_payment<T: Trait>(
     pay_hash: T::Hash,
     amount: BalanceOf<T>
 ) -> Result<(T::Hash, BalanceOf<T>, T::BlockNumber), DispatchError> {
-    let block_number = <frame_system::Module<T>>::block_number();
+    let block_number = frame_system::Module::<T>::block_number();
     ensure!(
         block_number <= pay.resolve_deadline,
         "Passed pay resolve deadline in cond_pay msg"
