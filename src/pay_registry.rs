@@ -1,19 +1,17 @@
-use codec::{Encode, Decode};
-use frame_support::{ensure, storage::{StorageMap}};
+use super::{BalanceOf, PayInfoMap, Trait};
+use crate::pay_resolver::RESOLVER_ID;
+use codec::{Decode, Encode};
+use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system};
-use sp_std::{vec, vec::Vec};
+use sp_runtime::traits::{AccountIdConversion, Hash, Zero};
 use sp_runtime::{DispatchError, RuntimeDebug};
-use sp_runtime::traits::{Hash, Zero, AccountIdConversion};
-use super::{
-    Trait, BalanceOf, PayInfoMap,
-};
-use crate::pay_resolver::{RESOLVER_ID};
+use sp_std::{vec, vec::Vec};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct PayInfo<Balance, BlockNumber> {
     pub amount: Option<Balance>,
     pub resolve_deadline: Option<BlockNumber>,
-}   
+}
 
 pub type PayInfoOf<T> = PayInfo<BalanceOf<T>, <T as system::Trait>::BlockNumber>;
 
@@ -28,45 +26,42 @@ impl<T: Trait> PayRegistry<T> {
         return pay_id;
     }
 
-    pub fn set_pay_amount(
-        pay_hash: T::Hash, 
-        amt: BalanceOf<T>
-    ) -> Result<(), DispatchError> {
+    pub fn set_pay_amount(pay_hash: T::Hash, amt: BalanceOf<T>) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
-                resolve_deadline: pay_info.resolve_deadline
+                resolve_deadline: pay_info.resolve_deadline,
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
-                resolve_deadline: None
+                resolve_deadline: None,
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         }
-        
+
         Ok(())
     }
 
     pub fn set_pay_deadline(
-        pay_hash: T::Hash, 
-        deadline: T::BlockNumber
+        pay_hash: T::Hash,
+        deadline: T::BlockNumber,
     ) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
             let new_pay_info = PayInfoOf::<T> {
                 amount: pay_info.amount,
-                resolve_deadline: Some(deadline)
+                resolve_deadline: Some(deadline),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: None,
-                resolve_deadline: Some(deadline)
+                resolve_deadline: Some(deadline),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         }
@@ -77,12 +72,12 @@ impl<T: Trait> PayRegistry<T> {
     pub fn set_pay_info(
         pay_hash: T::Hash,
         amt: BalanceOf<T>,
-        deadline: T::BlockNumber
+        deadline: T::BlockNumber,
     ) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
         let new_pay_info = PayInfoOf::<T> {
             amount: Some(amt),
-            resolve_deadline: Some(deadline)
+            resolve_deadline: Some(deadline),
         };
         <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
 
@@ -91,7 +86,7 @@ impl<T: Trait> PayRegistry<T> {
 
     pub fn set_pay_amounts(
         pay_hashes: Vec<T::Hash>,
-        amts: Vec<BalanceOf<T>>
+        amts: Vec<BalanceOf<T>>,
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
@@ -104,13 +99,13 @@ impl<T: Trait> PayRegistry<T> {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
                     amount: Some(amts[i]),
-                    resolve_deadline: pay_info.resolve_deadline
+                    resolve_deadline: pay_info.resolve_deadline,
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: Some(amts[i]),
-                    resolve_deadline: None
+                    resolve_deadline: None,
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             }
@@ -121,7 +116,7 @@ impl<T: Trait> PayRegistry<T> {
 
     pub fn set_pay_deadlines(
         pay_hashes: Vec<T::Hash>,
-        deadlines: Vec<T::BlockNumber>
+        deadlines: Vec<T::BlockNumber>,
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == deadlines.len(), "Lengths do not match");
 
@@ -134,13 +129,13 @@ impl<T: Trait> PayRegistry<T> {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
                     amount: pay_info.amount,
-                    resolve_deadline: Some(deadlines[i])
+                    resolve_deadline: Some(deadlines[i]),
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: None,
-                    resolve_deadline: Some(deadlines[i])
+                    resolve_deadline: Some(deadlines[i]),
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             }
@@ -152,7 +147,7 @@ impl<T: Trait> PayRegistry<T> {
     pub fn set_pay_infos(
         pay_hashes: Vec<T::Hash>,
         amts: Vec<BalanceOf<T>>,
-        deadlines: Vec<T::BlockNumber>
+        deadlines: Vec<T::BlockNumber>,
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
@@ -161,9 +156,9 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_hash_len {
             pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
-           let new_pay_info = PayInfoOf::<T> {
+            let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amts[i]),
-                resolve_deadline: Some(deadlines[i])
+                resolve_deadline: Some(deadlines[i]),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         }
@@ -173,12 +168,12 @@ impl<T: Trait> PayRegistry<T> {
 
     pub fn get_pay_amounts(
         pay_ids: Vec<T::Hash>,
-        last_pay_resolve_deadline: T::BlockNumber
+        last_pay_resolve_deadline: T::BlockNumber,
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
         let mut amounts: Vec<BalanceOf<T>> = vec![];
         let zero_blocknumber: T::BlockNumber = Zero::zero();
         let pay_id_len = pay_ids.len();
-    
+
         let mut pay_info: PayInfoOf<T>;
         for i in 0..pay_id_len {
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
@@ -202,9 +197,7 @@ impl<T: Trait> PayRegistry<T> {
         return Ok(amounts);
     }
 
-    pub fn get_pay_info(
-        pay_id: T::Hash
-    ) -> Result<(BalanceOf<T>, T::BlockNumber), DispatchError> {
+    pub fn get_pay_info(pay_id: T::Hash) -> Result<(BalanceOf<T>, T::BlockNumber), DispatchError> {
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
             return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));
@@ -213,12 +206,11 @@ impl<T: Trait> PayRegistry<T> {
             let zero_blocknumber: T::BlockNumber = Zero::zero();
             let pay_info = PayInfoOf::<T> {
                 amount: Some(zero_amount),
-                resolve_deadline: Some(zero_blocknumber)
+                resolve_deadline: Some(zero_blocknumber),
             };
             PayInfoMap::<T>::insert(&pay_id, &pay_info);
             return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));
         }
-       
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
-name = "celer-module"
-version = "1.0.0"
+name = "celer-pay-module"
+version = "0.6.0"
 auhros = ["Celer"]
 edition = "2018"
 
@@ -29,62 +29,62 @@ version = '1.0.101'
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '1.2.0'
+version = '1.3.0'
 
 [dependencies.frame-support]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.sp-io]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.sp-runtime]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.frame-system]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'frame-system'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.node-primitives]
 default_features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'node-primitives'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.pallet-balances]
 default_features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'pallet-balances'
-rev =  'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev =  '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.sp-std]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev = '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
 
 [dependencies.pallet-timestamp]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'pallet-timestamp'
-rev =  'd1b9ccad107e4899978858de5ddd2868b9777aab'
-version = '2.0.0-alpha.5'
+rev =  '7e9a2ae78d27cc56e053fbec3b34a1a258b89561'
+version = '2.0.0-alpha.8'
