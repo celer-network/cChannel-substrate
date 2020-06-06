@@ -1224,7 +1224,7 @@ pub mod tests {
     use sp_core::{hashing, Pair, H256};
     use sp_runtime::traits::AccountIdConversion;
 
-    //#[test]
+    #[test]
     fn test_pass_open_channel() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -1266,7 +1266,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_set_balnce_limits() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -1404,7 +1404,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_deposit() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -1455,7 +1455,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_intend_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1501,7 +1501,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1562,7 +1562,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_veto_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1614,7 +1614,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_cooperative_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1675,7 +1675,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_confirm_settle() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1789,7 +1789,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_cooperative_settle() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1839,7 +1839,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_deposit_celer() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
@@ -1875,7 +1875,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_deposit_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
@@ -1887,7 +1887,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_withdraw_from_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
@@ -1900,7 +1900,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_approve() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -1917,7 +1917,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_transfer_to_celer_wallet() {
         ExtBuilder::build().execute_with(|| {
             let risa = account_key("Risa"); // spender address
@@ -1967,7 +1967,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_increase_allowance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -1986,7 +1986,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_decrease_allowacne() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -2005,7 +2005,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
@@ -2038,7 +2038,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_payment_by_vouched_result() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);

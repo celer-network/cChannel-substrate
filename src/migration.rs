@@ -135,7 +135,7 @@ pub mod test {
     use pay_resolver::*;
     
 
-    //#[test]
+    #[test]
     fn test_pass_migrate_operable_channel() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
@@ -163,7 +163,7 @@ pub mod test {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_migrate_settling_channel() {
         ExtBuilder::build().execute_with(|| {
             let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();

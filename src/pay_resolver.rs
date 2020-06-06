@@ -470,7 +470,7 @@ pub mod tests {
     use sp_core::{hashing, Pair, H256};
     use sp_runtime::DispatchError;
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
@@ -498,7 +498,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_some_condition_false() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 20, 0);
@@ -526,7 +526,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_or_and_some_conditions_true() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 30, 1);
@@ -555,7 +555,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_when_the_logic_is_boolean_or_and_all_conditions_false(
     ) {
         ExtBuilder::build().execute_with(|| {
@@ -585,14 +585,14 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_vouched_result() {
         ExtBuilder::build().execute_with(|| {
             test_resolve_payment_by_vouched_result(20);
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_25(
     ) {
         ExtBuilder::build().execute_with(|| {
@@ -601,7 +601,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_35(
     ) {
         ExtBuilder::build().execute_with(|| {
@@ -611,7 +611,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_vouched_result_pass_when_new_result_is_smaller_than_old_result()
     {
         ExtBuilder::build().execute_with(|| {
@@ -649,7 +649,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_vouched_result_pass_when_exceeding_max_amount() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
@@ -683,7 +683,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_conditions_when_deadline_passed() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
@@ -712,7 +712,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_vouched_result_when_deadline_passed() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
@@ -749,7 +749,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_vouched_result_after_onchain_resolve_pay_deadline() {
         ExtBuilder::build().execute_with(|| {
             test_resolve_payment_by_vouched_result(20);
@@ -789,7 +789,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_conditions_after_onchain_resolve_pay_deadline() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 0);
@@ -833,7 +833,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_resolve_payment_by_conditions_with_a_false_hashLock_condition() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 200, 1);
@@ -858,7 +858,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_add() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 3);
@@ -886,7 +886,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_max() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 4);
@@ -914,7 +914,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_min() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 5);
@@ -942,7 +942,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn should_resolve_pay_using_max_amount_with_any_transfer_logic_as_long_as_there_are_no_contract_conditions(
     ) {
         ExtBuilder::build().execute_with(|| {
@@ -988,7 +988,7 @@ pub mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn should_use_current_block_number_as_onchain_reolve_deadline_if_updated_amount_is_max() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 35, 3);

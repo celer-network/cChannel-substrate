@@ -347,14 +347,14 @@ mod tests {
     use crate::mock::*;
     use sp_runtime::DispatchError;
 
-    //#[test]
+    #[test]
     fn test_pass_deposit_pool() {
         ExtBuilder::build().execute_with(|| {
             deposit_pool(account_key("Bob"), 100);
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_deposit_pool_because_of_owner_does_not_enough_balance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob");
@@ -367,7 +367,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_withdraw_because_of_no_deposit() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
@@ -379,7 +379,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_withdraw() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob");
@@ -391,7 +391,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_approve() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -400,7 +400,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_transfer_from() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice"); // to address
@@ -418,7 +418,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_fail_transfer_from_because_approved_amount_is_not_enough() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice"); // to address
@@ -437,7 +437,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_increase_allowance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -453,7 +453,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_decrease_allowance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
@@ -469,7 +469,7 @@ mod tests {
         })
     }
 
-    //#[test]
+    #[test]
     fn test_pass_transfer_celer_wallet() {
         ExtBuilder::build().execute_with(|| {
             let risa = account_key("Risa"); // spender address
