@@ -2,15 +2,13 @@
 
 use super::*;
 use crate::{Module, Trait};
-use sp_runtime::Perbill;
-use sp_runtime::traits::{IdentityLookup, BlakeTwo256};
-use sp_runtime::testing::Header;
-use frame_support::{impl_outer_origin, impl_outer_event, 
-        parameter_types, weights::Weight};
-use sp_core::{sr25519, Pair, H256};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use frame_system as system;
 use pallet_balances;
-
+use sp_core::{sr25519, Pair, H256};
+use sp_runtime::testing::Header;
+use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
+use sp_runtime::Perbill;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRuntime;
@@ -22,7 +20,7 @@ pub(crate) type BlockNumber = u64;
 pub(crate) type Signature = sr25519::Signature;
 
 mod celer {
-    pub use crate::Event;
+    pub use super::super::*;
 }
 
 impl_outer_event! {
@@ -58,6 +56,9 @@ impl frame_system::Trait for TestRuntime {
     type Event = TestEvent;
     type BlockHashCount = BlockHashCount;
     type MaximumBlockWeight = MaximumBlockWeight;
+    type DbWeight = ();
+	type BlockExecutionWeight = ();
+	type ExtrinsicBaseWeight = ();
     type MaximumBlockLength = MaximumBlockLength;
     type AvailableBlockRatio = AvailableBlockRatio;
     type Version = ();
@@ -117,13 +118,11 @@ impl ExtBuilder {
 }
 
 pub(crate) fn account_pair(s: &str) -> sr25519::Pair {
-	sr25519::Pair::from_string(&format!("//{}", s), None).expect("static values are valid: qed")
+    sr25519::Pair::from_string(&format!("//{}", s), None).expect("static values are valid: qed")
 }
 
 pub(crate) fn account_key(s: &str) -> sr25519::Public {
-	sr25519::Pair::from_string(&format!("//{}", s), None)
-    	.expect("static values are valid; qed")
-		.public()
+    sr25519::Pair::from_string(&format!("//{}", s), None)
+        .expect("static values are valid; qed")
+        .public()
 }
-
-

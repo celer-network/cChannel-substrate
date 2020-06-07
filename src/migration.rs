@@ -127,7 +127,6 @@ pub mod test {
     use crate::*;
     use crate::mock::*;
     use frame_support::assert_ok;
-    use sp_runtime::traits::OnRuntimeUpgrade;
     use crate::ledger_operation::{LedgerOperation, WithdrawIntentOf};
     use crate::ledger_operation::tests::*;
     use crate::pool::Pool;
@@ -335,7 +334,7 @@ pub mod test {
                     channel_peers[peer_index as usize],
                     pay_id_list_array[peer_index as usize][1].clone()
                 )
-            )
+            );
         }
     }
 
