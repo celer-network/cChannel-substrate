@@ -33,6 +33,7 @@ use sp_std::{prelude::*, vec, vec::Vec};
 pub type BalanceOf<T> =
     <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
+
 pub trait Trait: system::Trait + pallet_timestamp::Trait {
     type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -334,6 +335,7 @@ decl_module! {
 
         /// Cooperatively withdraw specific amount of balance
         ///
+        /// 
         /// Parameter:
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
         /// TODO: weight calculation
