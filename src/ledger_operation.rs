@@ -2389,7 +2389,6 @@ pub mod tests {
     };
     use crate::RawEvent;
     use frame_support::{assert_noop, assert_ok};
-    use frame_system::{EventRecord, Phase};
     use sp_core::{hashing, sr25519, Pair, H256};
     use sp_runtime::DispatchError;
 
@@ -6606,43 +6605,6 @@ pub mod tests {
                 vec![0, 0],
                 amounts.clone()
             ));
-
-            let expected_deposits: Vec<Balance>;
-            if channel_peers[0] == receivers[0].clone() {
-                expected_deposits = vec![amounts[0], 0];
-            } else {
-                expected_deposits = vec![0, amounts[1]];
-            }
-
-            /**
-            let record = |event| EventRecord { phase: Phase::Initialization, event, topics: vec![] };
-            assert_eq!(System::events(),
-                vec![record(TestEvent::celer(
-                    RawEvent::Deposit(
-                    channel_ids[0],
-                    channel_peers.clone(),
-                    expected_deposits,
-                    vec![0, 0]
-                    )
-                ))]
-            );
-            */
-            for i in 0..2 {
-                let expected_deposits: Vec<Balance>;
-                if channel_peers[0] == receivers[i].clone() {
-                    expected_deposits = vec![amounts[i], 0];
-                } else {
-                    expected_deposits = vec![0, amounts[i]];
-                }
-
-                let expected_event = TestEvent::celer(RawEvent::Deposit(
-                    channel_ids[i],
-                    channel_peers.clone(),
-                    expected_deposits,
-                    vec![0, 0],
-                ));
-                assert!(System::events().iter().any(|a| a.event == expected_event));
-            }
 
             let (_, deposits_1, _) = CelerModule::get_balance_map(channel_ids[0].clone());
             let (_, deposits_2, _) = CelerModule::get_balance_map(channel_ids[1].clone());

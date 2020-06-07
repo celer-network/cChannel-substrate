@@ -16,7 +16,6 @@ use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
     storage::StorageMap,
     traits::Currency,
-    weights::{DispatchInfo, WeighData, Weight},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -209,7 +208,7 @@ decl_module! {
             receivers: Vec<T::AccountId>,
             amounts: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
-        )  {
+        ) -> DispatchResult {
             let _ = ensure_signed(origin.clone())?;
 
             ensure!(
@@ -234,6 +233,8 @@ decl_module! {
                     vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
                 ));
             }
+
+            Ok(())
         }
 
         /// Store signed simplex states on-chain as checkpoints
@@ -1208,8 +1209,6 @@ impl<T: Trait> Module<T> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use frame_system::{self, EventRecord, Phase};
-    use crate::celer_wallet::WALLET_ID;
     use crate::ledger_operation::tests::*;
     use crate::ledger_operation::{LedgerOperation, SignedSimplexStateArray};
     use crate::mock::*;
@@ -1219,10 +1218,8 @@ pub mod tests {
         VouchedCondPayResult,
     };
     use crate::pool::Pool;
-    use crate::RawEvent;
     use frame_support::assert_ok;
     use sp_core::{hashing, Pair, H256};
-    use sp_runtime::traits::AccountIdConversion;
 
     #[test]
     fn test_pass_open_channel() {
@@ -1254,15 +1251,6 @@ pub mod tests {
                 open_channel_request.clone(),
                 200
             ));
-
-            // Test OpenChannel event
-            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-            let expected_event = TestEvent::celer(RawEvent::OpenChannel(
-                channel_id,
-                channel_peers,
-                vec![100, 200],
-            ));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1303,10 +1291,6 @@ pub mod tests {
                 channel_id,
                 200
             ));
-
-            // Test SetBalanceLimits event
-            let expected_event = TestEvent::celer(RawEvent::SetBalanceLimits(channel_id, 200));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1346,18 +1330,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
-
-            // Test DisableBalanceLimits event
-            assert_eq!(
-                System::events(), 
-                vec![EventRecord {
-                    phase: Phase::Initialization,
-                    event: TestEvent::celer(RawEvent::DisableBalanceLimits(channel_id)),
-                    topics: vec![],
-                },]    
-            );
-            //let expected_event = TestEvent::celer(RawEvent::DisableBalanceLimits(channel_id));
-            //assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1397,10 +1369,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
-
-            // Test EnableBalanceLimits event
-            let expected_event = TestEvent::celer(RawEvent::EnableBalanceLimits(channel_id));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1434,24 +1402,6 @@ pub mod tests {
                 open_channel_request.clone(),
                 200
             ));
-
-            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-
-            // Test Deposit event
-            assert_ok!(CelerModule::deposit(
-                Origin::signed(channel_peers[0]),
-                channel_id,
-                channel_peers[0],
-                200,
-                0
-            ));
-            let expected_event = TestEvent::celer(RawEvent::Deposit(
-                channel_id,
-                channel_peers,
-                vec![300, 200],
-                vec![0, 0],
-            ));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1493,11 +1443,6 @@ pub mod tests {
                 200,
                 zero_channel_id
             ));
-
-            // Test IntendWithdraw event
-            let expected_event =
-                TestEvent::celer(RawEvent::IntendWithdraw(channel_id, channel_peers[0], 200));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1548,17 +1493,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
-
-            // Test ConfirmWithdraw event
-            let expected_event = TestEvent::celer(RawEvent::ConfirmWithdraw(
-                channel_id,
-                200,
-                channel_peers[0],
-                zero_channel_id,
-                vec![300, 0],
-                vec![200, 0],
-            ));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1607,10 +1541,6 @@ pub mod tests {
                 Origin::signed(channel_peers[1]),
                 channel_id
             ));
-
-            // Test VetoWithdraw event
-            let expected_event = TestEvent::celer(RawEvent::VetoWithdraw(channel_id));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1660,18 +1590,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 cooperative_withdraw_request
             ));
-
-            // Test CooperativeWithdraw event
-            let expected_event = TestEvent::celer(RawEvent::CooperativeWithdraw(
-                channel_id,
-                200,
-                channel_peers[0],
-                zero_channel_id,
-                vec![300, 0],
-                vec![200, 0],
-                1,
-            ));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1781,11 +1699,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
-
-            // Test ConfirmSettle event
-            let expected_event =
-                TestEvent::celer(RawEvent::ConfirmSettle(channel_id, vec![526, 474]));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1831,11 +1744,6 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 cooperative_settle_request
             ));
-
-            // Test CooperativeSettle event
-            let expected_event =
-                TestEvent::celer(RawEvent::CooperativeSettle(channel_id, vec![150, 50]));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1868,10 +1776,6 @@ pub mod tests {
                 wallet_id,
                 100
             ));
-
-            // Test DepositToWallet event
-            let expected_event = TestEvent::celer(RawEvent::DepositToWallet(wallet_id, 100));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1880,10 +1784,6 @@ pub mod tests {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
             assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
-
-            // Test PoolDepoist event
-            let expected_event = TestEvent::celer(RawEvent::PoolDeposit(alice, 100));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1893,10 +1793,6 @@ pub mod tests {
             let alice = account_key("Alice");
             assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
             assert_ok!(CelerModule::withdraw_from_pool(Origin::signed(alice), 100));
-
-            // Test WithdrawFromPool event
-            let expected_event = TestEvent::celer(RawEvent::WithdrawFromPool(alice, 100));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1910,10 +1806,6 @@ pub mod tests {
                 risa.clone(),
                 100
             ));
-
-            // Test Approval event
-            let expected_event = TestEvent::celer(RawEvent::Approval(bob, risa, 100));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1958,12 +1850,6 @@ pub mod tests {
                 wallet_id,
                 200
             ));
-
-            // Test TransferToCelerWallet event
-            let wallet_addr = WALLET_ID.into_account();
-            let expected_event =
-                TestEvent::celer(RawEvent::TransferToCelerWallet(wallet_id, wallet_addr, 200));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1979,10 +1865,6 @@ pub mod tests {
                 risa,
                 50
             ));
-
-            // Test Approval event
-            let expected_event = TestEvent::celer(RawEvent::Approval(bob, risa, 150));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -1998,10 +1880,6 @@ pub mod tests {
                 risa,
                 50
             ));
-
-            // Test Approval event
-            let expected_event = TestEvent::celer(RawEvent::Approval(bob, risa, 50));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -2029,12 +1907,6 @@ pub mod tests {
                 Origin::signed(account_key("Alice")),
                 pay_request
             ));
-
-            // Test ResolvePayment event
-            let pay_id = CelerModule::calculate_pay_id(pay_hash);
-            let expected_event =
-                TestEvent::celer(RawEvent::ResolvePayment(pay_id, 10, System::block_number()));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 
@@ -2069,15 +1941,6 @@ pub mod tests {
                 Origin::signed(account_key("Alice")),
                 vouched_cond_pay_result
             ));
-
-            // Test ResolvePayment event
-            let pay_id = CelerModule::calculate_pay_id(pay_hash);
-            let expected_event = TestEvent::celer(RawEvent::ResolvePayment(
-                pay_id,
-                10,
-                System::block_number() + 10,
-            ));
-            assert!(System::events().iter().any(|a| a.event == expected_event));
         })
     }
 }
