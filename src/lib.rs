@@ -9,6 +9,7 @@ mod pay_registry;
 mod pay_resolver;
 mod pool;
 //mod migration;
+mod benchmarking;
 
 use celer_wallet::{CelerWallet, WalletOf};
 use codec::{Decode, Encode};
@@ -1401,6 +1402,13 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
+            ));
+            assert_ok!(CelerModule::deposit(
+                Origin::signed(channel_peers[0]),
+                channel_id,
+                channel_peers[0],
+                300,
+                0
             ));
         })
     }
