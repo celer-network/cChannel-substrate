@@ -1403,6 +1403,8 @@ pub mod tests {
                 open_channel_request.clone(),
                 200
             ));
+
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             assert_ok!(CelerModule::deposit(
                 Origin::signed(channel_peers[0]),
                 channel_id,
