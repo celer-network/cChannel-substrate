@@ -9,14 +9,13 @@ mod pay_registry;
 mod pay_resolver;
 mod pool;
 //mod migration;
-mod benchmarking;
 
 use celer_wallet::{CelerWallet, WalletOf};
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, ensure,
+    decl_error, decl_event, decl_module, decl_storage, ensure, 
     storage::StorageMap,
-    traits::Currency,
+    traits::{Currency},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -86,6 +85,8 @@ decl_storage! {
 
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+        type Error = Error<T>;
+        
         fn deposit_event() = default;
 
         /// Celer Ledger
