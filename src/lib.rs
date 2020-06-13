@@ -15,7 +15,11 @@ use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure, 
     storage::StorageMap,
-    traits::{Currency},
+    traits::{Currency, Get},
+    dispatch::{
+        DispatchResult, DispatchResultWithPostInfo, DispatchError,
+    },
+    weights::{Weight, DispatchClass},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -27,7 +31,7 @@ use pay_registry::{PayInfoOf, PayRegistry};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf};
 use pool::Pool;
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, IdentifyAccount, Member, Verify, Zero};
-use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 use sp_std::{prelude::*, vec, vec::Vec};
 
 pub type BalanceOf<T> =
@@ -83,10 +87,43 @@ decl_storage! {
     }
 }
 
+mod weight_for {
+    use frame_support::{traits::Get, weights::Weight};
+    use super::Trait;
+
+    /// Calculate the weight for `deposit_in_batch`
+    pub(crate) fn deposit_in_batch<T: Trait>(
+        channel_id_len: u64,
+        channel_id_len_weight: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(7 * channel_id_len, 5 * channel_id_len)
+            .saturating_add(channel_id_len_weight.saturating_mul(100_000_000))
+    }
+
+    /// Calculate the weight for `snapshot_states`
+    pub(crate) fn snapshot_states<T: Trait>(
+        signed_simplex_states_len: u64,
+        signed_simplex_states_len_weight: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(signed_simplex_states_len, signed_simplex_states_len)
+            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
+    }
+
+    /// Calculate the weight for `intend_settle`
+    pub(crate) fn intend_settle<T: Trait>(
+        signed_simplex_states_len: u64,
+        signed_simplex_states_len_weight: u64,
+        pay_ids_len: Weight,
+        pay_ids_len_weight: Weight,
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(signed_simplex_states_len + 2 * pay_ids_len , 2 * signed_simplex_states_len + 2 * pay_ids_len)
+            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
+            .saturating_add(pay_ids_len_weight.saturating_mul(50_000_000))
+    }
+}
+
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-        type Error = Error<T>;
-        
         fn deposit_event() = default;
 
         /// Celer Ledger
@@ -95,8 +132,15 @@ decl_module! {
         /// Parameters:
         /// - `channel_id`: Id of the channel
         /// - `limits`: Limits amount of channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
@@ -114,8 +158,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of the channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `0(1)
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn disable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -129,8 +180,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of the channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `0(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn enable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -145,8 +203,19 @@ decl_module! {
         /// Parameters:
         /// `open_request`: open channel request message
         /// `amount`: caller's deposit amount
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        ///   - 1 storage write `ChannelMap`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
@@ -173,8 +242,21 @@ decl_module! {
         /// `receiver`: address of the receiver
         /// `amount`: caller's deposit amount
         /// `transfer_from_amount`: amount of funds to be transfered from Pool
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(7, 5)]
         fn deposit(
             origin,
             channel_id: T::Hash,
@@ -202,15 +284,35 @@ decl_module! {
         /// `receivers`: addresses of receiver
         /// `amounts`: caller's deposit amounts
         /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` channel_ids-len
+        /// - DB:
+        ///   - 2*N storage reads  `ChannelMap`
+        //    - N storage mutation `ChannelMap`
+        ///   - 2*N storage reads `Wallets`
+        ///   - 2*N storage mutation `Wallets`
+        ///   - N storage reads `Balances`
+        ///   - N storage mutation `Balances`
+        ///   - 2*N storage reads `Allowed`
+        ///   - N storage mutation `Allowed`
+        /// # </weight
+        #[weight = (
+            weight_for::deposit_in_batch::<T>(
+                channel_ids.len() as u64, // N
+                channel_ids.len() as Weight, // N
+            ),
+            DispatchClass::Operational
+        )]
         fn deposit_in_batch(
             origin,
             channel_ids: Vec<T::Hash>,
             receivers: Vec<T::AccountId>,
             amounts: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin.clone())?;
 
             ensure!(
@@ -236,7 +338,10 @@ decl_module! {
                 ));
             }
 
-            Ok(())
+            Ok(Some(weight_for::deposit_in_batch::<T>(
+                channel_ids.len() as u64,
+                channel_ids.len() as Weight,
+            )).into())
         }
 
         /// Store signed simplex states on-chain as checkpoints
@@ -249,15 +354,33 @@ decl_module! {
         ///
         /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` signed_simplex_states-len
+        /// - DB:
+        ///   - N storage reads `ChannelMap`
+        ///   - N storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = (
+            weight_for::snapshot_states::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            ),
+            DispatchClass::Operational
+        )]
         fn snapshot_states(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
-            LedgerOperation::<T>::snapshot_states(signed_simplex_state_array)?;
-            Ok(())
+            LedgerOperation::<T>::snapshot_states(signed_simplex_state_array.clone())?;
+            
+            Ok(Some(weight_for::snapshot_states::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            )).into())
         }
 
         /// Intend to withdraw funds from channel
@@ -269,8 +392,15 @@ decl_module! {
         /// `amount`: amount of funds to withdraw
         /// `receipient_channel_id`: withdraw to receiver address if hash(0),
         ///     otherwise deposit to receiver address in the recipient channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn intend_withdraw(
             origin,
             channel_id: T::Hash,
@@ -293,8 +423,17 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 2 storage mutation `ChannelMap`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
@@ -323,8 +462,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///    - 1 storage reads `ChannelMap`
+        ///    - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn veto_withdraw(
             origin,
             channel_id: T::Hash
@@ -338,8 +484,17 @@ decl_module! {
         ///
         /// Parameter:
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///    - 2 storage reads `ChannelMap`
+        ///    - 2 storage mutation `ChannelMap`
+        ///    - 2 storage reads `Wallets`
+        ///    - 2 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn cooperative_withdraw(
             _origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
@@ -369,15 +524,17 @@ decl_module! {
         ///
         /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
-        /// TODO: weight calculation
-        #[weight = 10_000]
-        fn intend_settle(
-            origin,
-            signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> DispatchResult {
-            LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array)?;
-            Ok(())
-        }
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N * M)`
+        ///     - `N` signed_simplex_states-len
+        ///     - `M` pay_hashes-len
+        /// - DB:
+        ///   - N storage reads `ChannelMap`
+        ///   - 2 * N storage mutation `ChannelMap`
+        ///   - 2 * M storage reads `PayInfoMap`
+        /// # </weight>
 
         /// Read payment results and add results to corresponding simplex payment channel
         ///
@@ -385,8 +542,16 @@ decl_module! {
         /// `channel_id`: Id of channel
         /// `peer_from`: address of the peer who send out funds
         /// `pay_id_list`: PayIdList
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        ///
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` pay_ids-len
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn clear_pays(
             _origin,
             channel_id: T::Hash,
@@ -403,8 +568,19 @@ decl_module! {
         ///
         /// Parameters:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 2 storage mutation `ChannelMap`
+        ///   - 1 storage reads `ChannelStatusNums`
+        ///   - 1 storage mutation `ChannelStatusNums`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(3, 4)]
         fn confirm_settle(
             origin,
             channel_id: T::Hash
@@ -422,8 +598,19 @@ decl_module! {
         ///
         /// Parameter
         /// `settle_request`: CooperativeSettleRequest message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        ///   - 1 storage reads `ChannelStatusNums`
+        ///   - 1 storage mutation `ChannelStatusNums`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
@@ -444,8 +631,15 @@ decl_module! {
         /// Parameter:
         /// `wallet_id`: Id of the wallet to deposit into
         /// `amount`: depoist amount
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Walletss`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 500_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn deposit_native_token(
             origin,
             wallet_id: T::Hash,
@@ -462,8 +656,15 @@ decl_module! {
         /// Parameters:
         /// `receiver`: the address native token is deposited to
         /// `amount`: amount of deposit
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// #</weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
@@ -479,8 +680,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `value`: amount of native token to withdraw
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
@@ -496,8 +704,14 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which will spend the funds
         /// `value`: amount of native token to spent
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage write `Allowed`
+        /// # </weight>
+        #[weight = 500_000 + T::DbWeight::get().writes(1)]
         fn approve(
             origin,
             spender: T::AccountId,
@@ -515,8 +729,17 @@ decl_module! {
         /// `from`: the address which you want to transfer native token from
         /// `to`: the address which you want to transfer to
         /// `value`: amount of native token to be transferred
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        ///   - 3 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(5, 2)]
         fn transfer_from(
             origin,
             from: T::AccountId,
@@ -535,8 +758,18 @@ decl_module! {
         /// `from`: the address which you want to transfer native token from
         /// `wallet_id`: Id of the wallet you want to deposit native token into
         /// `amount`: amount of native token to be transfered
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 2)]
         fn transfer_to_celer_wallet(
             origin,
             from: T::AccountId,
@@ -554,8 +787,15 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which spend the funds.
         /// `added_value`: amount of native token to increase the allowance by
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn increase_allowance(
             origin,
             spender: T::AccountId,
@@ -572,8 +812,15 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which will spend the funds
         /// `subtracted_value`: amount of native tokent o decrease the allowance by
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn decrease_allowance(
             origin,
             spender: T::AccountId,

@@ -674,7 +674,10 @@ impl<T: Trait> LedgerOperation<T> {
     pub fn confirm_withdraw(
         channel_id: T::Hash,
     ) -> Result<(BalanceOf<T>, T::AccountId, T::Hash), DispatchError> {
-        let c = ChannelMap::<T>::get(channel_id).unwrap();
+        let c = match ChannelMap::<T>::get(&channel_id) {
+            Some(_channel) => _channel,
+            None => Err(Error::<T>::ChannelNotExist)?,
+        };
         ensure!(c.status == ChannelStatus::Operable, "Channel status error");
         let ledger_addr = Self::ledger_account();
         let withdraw_intent = c.withdraw_intent;
@@ -1263,7 +1266,10 @@ impl<T: Trait> LedgerOperation<T> {
     pub fn confirm_settle(
         channel_id: T::Hash,
     ) -> Result<(T::Hash, Vec<BalanceOf<T>>), DispatchError> {
-        let c = ChannelMap::<T>::get(channel_id).unwrap();
+        let c = match ChannelMap::<T>::get(&channel_id) {
+            Some(_channel) => _channel,
+            None => Err(Error::<T>::ChannelNotExist)?,
+        };
         let peer_profiles = vec![c.peer_profiles[0].clone(), c.peer_profiles[1].clone()];
         let block_number = frame_system::Module::<T>::block_number();
         ensure!(c.status == ChannelStatus::Settling, "Channel status error");
