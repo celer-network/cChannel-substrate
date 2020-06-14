@@ -5,10 +5,11 @@ use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
     ensure,
     storage::{StorageDoubleMap, StorageMap},
+    dispatch::DispatchError,
 };
 use frame_system::ensure_signed;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub};
-use sp_runtime::{DispatchError, ModuleId};
+use sp_runtime::ModuleId;
 
 pub const POOL_ID: ModuleId = ModuleId(*b"_pool_id");
 

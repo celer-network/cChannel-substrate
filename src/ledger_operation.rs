@@ -5,10 +5,12 @@ use crate::pay_resolver::{AccountAmtPair, TokenInfo, TokenTransfer, TokenType};
 use crate::pool::Pool;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
-use frame_support::{ensure, storage::StorageMap};
+use frame_support::{ensure, storage::StorageMap,
+    dispatch::DispatchError
+};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, Hash, Zero};
-use sp_runtime::{DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::{ModuleId, RuntimeDebug};
 use sp_std::{vec, vec::Vec};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -949,9 +951,7 @@ impl<T: Trait> LedgerOperation<T> {
         let state_len = signed_simplex_state_array.signed_simplex_states.len();
         let zero_blocknumber: T::BlockNumber = Zero::zero();
 
-        let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0]
-            .simplex_state
-            .clone();
+        let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
         for i in 0..state_len {
             let current_channel_id = simplex_state.channel_id;
             let c: ChannelOf<T> = ChannelMap::<T>::get(current_channel_id).unwrap();

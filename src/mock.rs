@@ -19,7 +19,7 @@ pub(crate) type Balance = u64;
 pub(crate) type BlockNumber = u64;
 pub(crate) type Signature = sr25519::Signature;
 
-mod celer {
+pub mod celer {
     pub use super::super::*;
 }
 

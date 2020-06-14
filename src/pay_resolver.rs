@@ -2,11 +2,11 @@ use super::{BalanceOf, Error, Module, Trait};
 use crate::mock_condition::MockCondition;
 use crate::pay_registry::PayRegistry;
 use codec::{Decode, Encode};
-use frame_support::ensure;
+use frame_support::{ensure, dispatch::DispatchError};
 use frame_system::{self as system};
 use pallet_timestamp;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero};
-use sp_runtime::{DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::{ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
