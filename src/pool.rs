@@ -5,10 +5,11 @@ use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
     ensure,
     storage::{StorageDoubleMap, StorageMap},
+    dispatch::DispatchError,
 };
 use frame_system::ensure_signed;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub};
-use sp_runtime::{DispatchError, ModuleId};
+use sp_runtime::ModuleId;
 
 pub const POOL_ID: ModuleId = ModuleId(*b"_pool_id");
 
@@ -123,9 +124,7 @@ impl<T: Trait> Pool<T> {
         );
 
         // Decrease Allowed balances of spender
-        Allowed::<T>::mutate(&from, &caller, |balance| {
-            *balance = Some(new_allowed_balances)
-        });
+        Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
         Module::<T>::emit_approval_event(from.clone(), caller.clone(), new_allowed_balances)?;
 
         _transfer::<T>(from.clone(), to.clone(), value)?;
@@ -166,9 +165,7 @@ impl<T: Trait> Pool<T> {
         let new_allowed_balances = allowed_balances
             .checked_sub(&amount)
             .ok_or(Error::<T>::UnderFlow)?;
-        Allowed::<T>::mutate(&from, &caller, |balance| {
-            *balance = Some(new_allowed_balances)
-        });
+        Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
 
         // Increase owner's wallet balances
         let new_wallet_balance_amount =
@@ -231,8 +228,7 @@ impl<T: Trait> Pool<T> {
             "spender not have enough allowed balances"
         );
         let new_allowed_balances = allowed_balances
-            .checked_sub(&amount)
-            .ok_or(Error::<T>::UnderFlow)?;
+                .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         Allowed::<T>::mutate(&from, &ledger_addr, |balance| {
             *balance = Some(new_allowed_balances)
         });
@@ -246,8 +242,7 @@ impl<T: Trait> Pool<T> {
 
         // Decrease Pool Balances
         let new_pool_balances = pool_balances
-            .checked_sub(&amount)
-            .ok_or(Error::<T>::UnderFlow)?;
+                .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
         let pool_account = pool_account::<T>();
@@ -276,11 +271,8 @@ impl<T: Trait> Pool<T> {
             None => Err(Error::<T>::AllowedNotExist)?,
         };
         let new_balances = balances
-            .checked_add(&added_value)
-            .ok_or(Error::<T>::OverFlow)?;
-        Allowed::<T>::mutate(&caller, &spender, |balance| {
-            *balance = Some(new_balances.clone())
-        });
+                .checked_add(&added_value).ok_or(Error::<T>::OverFlow)?;
+        Allowed::<T>::mutate(&caller, &spender, |balance| {*balance = Some(new_balances.clone())});
 
         return Ok((caller, spender, new_balances));
     }
@@ -358,8 +350,7 @@ mod tests {
     fn test_fail_deposit_pool_because_of_owner_does_not_enough_balance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob");
-            let err =
-                Pool::<TestRuntime>::deposit_pool(Origin::signed(bob), bob, 2000).unwrap_err();
+            let err = Pool::<TestRuntime>::deposit_pool(Origin::signed(bob), bob, 2000).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("caller does not have enough balances")
@@ -428,8 +419,7 @@ mod tests {
             deposit_pool(bob, 200);
             approve(bob, risa, 100);
 
-            let err = Pool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 200)
-                .unwrap_err();
+            let err = Pool::<TestRuntime>::transfer_from(Origin::signed(risa), bob, alice, 200).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("spender does not have enough allowed balances")
@@ -477,22 +467,12 @@ mod tests {
             let bob_pair = account_pair("Bob"); // owner address
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            let open_channel_request = get_open_channel_request(
-                false,
-                0,
-                500001,
-                10,
-                true,
-                channel_peers.clone(),
-                1,
-                peers_pair,
-            );
+            let open_channel_request = get_open_channel_request(false, 0, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
             let wallet_id = LedgerOperation::<TestRuntime>::open_channel(
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
 
             // Depost native token to pool
             deposit_pool(channel_peers[0], 200);
@@ -505,8 +485,7 @@ mod tests {
                 channel_peers[0],
                 wallet_id,
                 200,
-            )
-            .unwrap();
+            ).unwrap();
             assert_eq!(_wallet_id, wallet_id);
             assert_eq!(_amount, 200);
         })
