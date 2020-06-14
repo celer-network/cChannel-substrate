@@ -1,10 +1,12 @@
-use super::{BalanceOf, PayInfoMap, Trait};
+use super::{BalanceOf, PayInfoMap, Trait, Module};
 use crate::pay_resolver::RESOLVER_ID;
 use codec::{Decode, Encode};
-use frame_support::{ensure, storage::StorageMap};
+use frame_support::{ensure, storage::StorageMap,
+    dispatch::DispatchError,
+};
 use frame_system::{self as system};
 use sp_runtime::traits::{AccountIdConversion, Hash, Zero};
-use sp_runtime::{DispatchError, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 use sp_std::{vec, vec::Vec};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -35,12 +37,18 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: pay_info.resolve_deadline,
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            // Emit PayInfoUpdate event
+            Module::<T>::emit_pay_info_update(pay_id, amt, pay_info.resolve_deadline.unwrap())?;
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
                 resolve_deadline: None,
             };
-            PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            PayInfoMap::<T>::insert(pay_id, new_pay_info);
+            
+            let zero_blocknumber: T::BlockNumber = Zero::zero();
+            // Emit PayInfoUpdate event
+            Module::<T>::emit_pay_info_update(pay_id, amt, zero_blocknumber)?;
         }
 
         Ok(())
@@ -58,12 +66,18 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: Some(deadline),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            // Emit PayInfoUpdate event
+            Module::<T>::emit_pay_info_update(pay_id, pay_info.amount.unwrap(), deadline)?;
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: None,
                 resolve_deadline: Some(deadline),
             };
-            PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            PayInfoMap::<T>::insert(pay_id, new_pay_info);
+            
+            let zero_amount: BalanceOf<T> = Zero::zero();
+            // Emit PayInfoUpdate event
+            Module::<T>::emit_pay_info_update(pay_id, zero_amount, deadline)?;
         }
 
         Ok(())
@@ -80,6 +94,8 @@ impl<T: Trait> PayRegistry<T> {
             resolve_deadline: Some(deadline),
         };
         <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+        // Emit PayInfoUpdate event
+        Module::<T>::emit_pay_info_update(pay_id, amt, deadline)?;
 
         Ok(())
     }
@@ -102,12 +118,18 @@ impl<T: Trait> PayRegistry<T> {
                     resolve_deadline: pay_info.resolve_deadline,
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                // Emit PayInfoUpdate event
+                Module::<T>::emit_pay_info_update(pay_id, amts[i], pay_info.resolve_deadline.unwrap())?;
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: Some(amts[i]),
                     resolve_deadline: None,
                 };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                PayInfoMap::<T>::insert(pay_id, new_pay_info);
+
+                let zero_blocknumber: T::BlockNumber = Zero::zero();
+                // Emit PayInfoUpdate event
+                Module::<T>::emit_pay_info_update(pay_id, amts[i], zero_blocknumber)?;
             }
         }
 
@@ -132,12 +154,18 @@ impl<T: Trait> PayRegistry<T> {
                     resolve_deadline: Some(deadlines[i]),
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                // Emit PayInfoUpdate event
+                Module::<T>::emit_pay_info_update(pay_id, pay_info.amount.unwrap(), deadlines[i])?;
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: None,
                     resolve_deadline: Some(deadlines[i]),
                 };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                PayInfoMap::<T>::insert(pay_id, new_pay_info);
+                
+                let zero_balance: BalanceOf<T> = Zero::zero();
+                // Emit PayInfoUpdate event
+                Module::<T>::emit_pay_info_update(pay_id, zero_balance, deadlines[i])?;
             }
         }
 
@@ -161,6 +189,8 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: Some(deadlines[i]),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            // Emit PayInfoUpdate event
+            Module::<T>::emit_pay_info_update(pay_id, amts[i], deadlines[i])?;
         }
 
         Ok(())

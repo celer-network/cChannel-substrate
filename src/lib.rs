@@ -13,9 +13,13 @@ mod pool;
 use celer_wallet::{CelerWallet, WalletOf};
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, ensure,
+    decl_error, decl_event, decl_module, decl_storage, ensure, 
     storage::StorageMap,
-    traits::Currency,
+    traits::{Currency, Get},
+    dispatch::{
+        DispatchResult, DispatchResultWithPostInfo, DispatchError,
+    },
+    weights::{Weight, DispatchClass},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -27,7 +31,7 @@ use pay_registry::{PayInfoOf, PayRegistry};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf};
 use pool::Pool;
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, IdentifyAccount, Member, Verify, Zero};
-use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 use sp_std::{prelude::*, vec, vec::Vec};
 
 pub type BalanceOf<T> =
@@ -84,6 +88,59 @@ decl_storage! {
     }
 }
 
+mod weight_for {
+    use frame_support::{traits::Get, weights::Weight};
+    use super::Trait;
+
+    /// Calculate the weight for `deposit_in_batch`
+    pub(crate) fn deposit_in_batch<T: Trait>(
+        channel_id_len: u64,
+        channel_id_len_weight: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(7 * channel_id_len, 5 * channel_id_len)
+            .saturating_add(channel_id_len_weight.saturating_mul(100_000_000))
+    }
+
+    /// Calculate the weight for `snapshot_states`
+    pub(crate) fn snapshot_states<T: Trait>(
+        signed_simplex_states_len: u64,
+        signed_simplex_states_len_weight: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(signed_simplex_states_len, signed_simplex_states_len)
+            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
+    }
+
+    /// Calculate the weight for `intend_settle`
+    pub(crate) fn intend_settle<T: Trait>(
+        signed_simplex_states_len: u64,
+        signed_simplex_states_len_weight: u64,
+        pay_ids_len: Weight,
+        pay_ids_len_weight: Weight,
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(signed_simplex_states_len + 2 * pay_ids_len , 2 * pay_ids_len)
+            .saturating_add(pay_ids_len_weight.saturating_mul(50_000_000))
+            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
+    }
+
+    /// Calculate the weight for `resolve_payment_by_conditions`
+    pub(crate) fn resolve_payment_by_conditions<T: Trait>(
+        conditions_len: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(2, 1)
+            .saturating_add(100_000_000)
+            .saturating_add(conditions_len.saturating_mul(50_000_000))
+    }
+
+    /// Calculate the weight for `resolve_payment_vouched_result`
+    pub(crate) fn resolve_payment_by_vouched_result<T: Trait>(
+        conditions_len: Weight
+    ) -> Weight {
+        T::DbWeight::get().reads_writes(2, 1)
+            .saturating_add(100_000_000)
+            .saturating_add(conditions_len.saturating_mul(50_000_000))
+    }
+}
+
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event() = default;
@@ -94,8 +151,15 @@ decl_module! {
         /// Parameters:
         /// - `channel_id`: Id of the channel
         /// - `limits`: Limits amount of channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
@@ -113,8 +177,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of the channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `0(1)
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn disable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -128,8 +199,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of the channel
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `0(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// #</weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn enable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -144,8 +222,20 @@ decl_module! {
         /// Parameters:
         /// `open_request`: open channel request message
         /// `amount`: caller's deposit amount
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        ///   - 1 storage write `ChannelMap`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        ///   - 1 storage write `WalletNum`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 5)]
         fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
@@ -172,8 +262,21 @@ decl_module! {
         /// `receiver`: address of the receiver
         /// `amount`: caller's deposit amount
         /// `transfer_from_amount`: amount of funds to be transfered from Pool
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(7, 5)]
         fn deposit(
             origin,
             channel_id: T::Hash,
@@ -201,15 +304,35 @@ decl_module! {
         /// `receivers`: addresses of receiver
         /// `amounts`: caller's deposit amounts
         /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` channel_ids-len
+        /// - DB:
+        ///   - 2*N storage reads  `ChannelMap`
+        //    - N storage mutation `ChannelMap`
+        ///   - 2*N storage reads `Wallets`
+        ///   - 2*N storage mutation `Wallets`
+        ///   - N storage reads `Balances`
+        ///   - N storage mutation `Balances`
+        ///   - 2*N storage reads `Allowed`
+        ///   - N storage mutation `Allowed`
+        /// # </weight
+        #[weight = (
+            weight_for::deposit_in_batch::<T>(
+                channel_ids.len() as u64, // N
+                channel_ids.len() as Weight, // N
+            ),
+            DispatchClass::Operational
+        )]
         fn deposit_in_batch(
             origin,
             channel_ids: Vec<T::Hash>,
             receivers: Vec<T::AccountId>,
             amounts: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin.clone())?;
 
             ensure!(
@@ -235,7 +358,10 @@ decl_module! {
                 ));
             }
 
-            Ok(())
+            Ok(Some(weight_for::deposit_in_batch::<T>(
+                channel_ids.len() as u64,
+                channel_ids.len() as Weight,
+            )).into())
         }
 
         /// Store signed simplex states on-chain as checkpoints
@@ -248,15 +374,33 @@ decl_module! {
         ///
         /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` signed_simplex_states-len
+        /// - DB:
+        ///   - N storage reads `ChannelMap`
+        ///   - N storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = (
+            weight_for::snapshot_states::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            ),
+            DispatchClass::Operational
+        )]
         fn snapshot_states(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
-            LedgerOperation::<T>::snapshot_states(signed_simplex_state_array)?;
-            Ok(())
+            LedgerOperation::<T>::snapshot_states(signed_simplex_state_array.clone())?;
+            
+            Ok(Some(weight_for::snapshot_states::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            )).into())
         }
 
         /// Intend to withdraw funds from channel
@@ -268,8 +412,15 @@ decl_module! {
         /// `amount`: amount of funds to withdraw
         /// `receipient_channel_id`: withdraw to receiver address if hash(0),
         ///     otherwise deposit to receiver address in the recipient channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn intend_withdraw(
             origin,
             channel_id: T::Hash,
@@ -292,8 +443,17 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 2 storage mutation `ChannelMap`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
@@ -322,8 +482,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///    - 1 storage reads `ChannelMap`
+        ///    - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn veto_withdraw(
             origin,
             channel_id: T::Hash
@@ -338,8 +505,17 @@ decl_module! {
         /// 
         /// Parameter:
         /// `cooperative_withdraw_request`: CooprativeWithdrawRequest message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///    - 2 storage reads `ChannelMap`
+        ///    - 2 storage mutation `ChannelMap`
+        ///    - 2 storage reads `Wallets`
+        ///    - 2 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn cooperative_withdraw(
             _origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
@@ -369,14 +545,38 @@ decl_module! {
         ///
         /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
-        /// TODO: weight calculation
-        #[weight = 10_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N * M)`
+        ///     - `N` signed_simplex_states-len
+        ///     - `M` pay_hashes-len
+        /// - DB:
+        ///   - N storage reads `ChannelMap`
+        ///   - 2 * N storage mutation `ChannelMap`
+        ///   - 2 * M storage reads `PayInfoMap`
+        /// # </weight>
+        #[weight = (
+            weight_for::intend_settle::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64,
+                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as u64, // M
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as Weight, // M
+            ),
+            DispatchClass::Operational
+        )]
         fn intend_settle(
             origin,
             signed_simplex_state_array: SignedSimplexStateArrayOf<T>
-        ) -> DispatchResult {
-            LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array)?;
-            Ok(())
+        ) -> DispatchResultWithPostInfo {
+            LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array.clone())?;
+
+            Ok(Some(weight_for::intend_settle::<T>(
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as u64, // M
+                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as Weight, // M
+            )).into())
         }
 
         /// Read payment results and add results to corresponding simplex payment channel
@@ -385,8 +585,16 @@ decl_module! {
         /// `channel_id`: Id of channel
         /// `peer_from`: address of the peer who send out funds
         /// `pay_id_list`: PayIdList
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        ///
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - `N` pay_ids-len
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn clear_pays(
             _origin,
             channel_id: T::Hash,
@@ -403,8 +611,19 @@ decl_module! {
         ///
         /// Parameters:
         /// `channel_id`: Id of channel
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `ChannelMap`
+        ///   - 2 storage mutation `ChannelMap`
+        ///   - 1 storage reads `ChannelStatusNums`
+        ///   - 1 storage mutation `ChannelStatusNums`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(3, 4)]
         fn confirm_settle(
             origin,
             channel_id: T::Hash
@@ -422,8 +641,19 @@ decl_module! {
         ///
         /// Parameter
         /// `settle_request`: CooperativeSettleRequest message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
+        ///   - 1 storage reads `ChannelStatusNums`
+        ///   - 1 storage mutation `ChannelStatusNums`
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
@@ -444,8 +674,15 @@ decl_module! {
         /// Parameter:
         /// `wallet_id`: Id of the wallet to deposit into
         /// `amount`: depoist amount
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Walletss`
+        ///   - 1 storage mutation `Wallets`
+        /// # </weight>
+        #[weight = 500_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn deposit_native_token(
             origin,
             wallet_id: T::Hash,
@@ -462,8 +699,15 @@ decl_module! {
         /// Parameters:
         /// `receiver`: the address native token is deposited to
         /// `amount`: amount of deposit
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// #</weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
@@ -479,8 +723,15 @@ decl_module! {
         ///
         /// Parameter:
         /// `value`: amount of native token to withdraw
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
@@ -496,8 +747,14 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which will spend the funds
         /// `value`: amount of native token to spent
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage write `Allowed`
+        /// # </weight>
+        #[weight = 500_000 + T::DbWeight::get().writes(1)]
         fn approve(
             origin,
             spender: T::AccountId,
@@ -515,8 +772,17 @@ decl_module! {
         /// `from`: the address which you want to transfer native token from
         /// `to`: the address which you want to transfer to
         /// `value`: amount of native token to be transferred
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        ///   - 3 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(5, 2)]
         fn transfer_from(
             origin,
             from: T::AccountId,
@@ -535,8 +801,18 @@ decl_module! {
         /// `from`: the address which you want to transfer native token from
         /// `wallet_id`: Id of the wallet you want to deposit native token into
         /// `amount`: amount of native token to be transfered
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Wallets`
+        ///   - 1 storage mutation `Wallets`
+        ///   - 1 storage reads `Balances`
+        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 2)]
         fn transfer_to_celer_wallet(
             origin,
             from: T::AccountId,
@@ -554,8 +830,15 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which spend the funds.
         /// `added_value`: amount of native token to increase the allowance by
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn increase_allowance(
             origin,
             spender: T::AccountId,
@@ -572,8 +855,15 @@ decl_module! {
         /// Parameters:
         /// `spender`: the address which will spend the funds
         /// `subtracted_value`: amount of native tokent o decrease the allowance by
-        /// TODO: weight calculation
-        #[weight = 50_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(1)`
+        /// - DB:
+        ///   - 1 storage reads `Allowed`
+        ///   - 1 storage mutation `Allowed`
+        /// # </weight>
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn decrease_allowance(
             origin,
             spender: T::AccountId,
@@ -594,34 +884,66 @@ decl_module! {
         ///
         /// Parameters:
         /// `resolve_pay_request`: ResolvePayByConditionsRequest message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - N: condtions-len
+        /// - DB:
+        ///   - 2 storage reads `PayRegistry`
+        ///   - 1 storage mutation `PayRegistry`
+        /// # </weight>
+        #[weight = (
+            weight_for::resolve_payment_by_conditions::<T>(
+                resolve_pay_request.cond_pay.conditions.len() as Weight
+            ),
+            DispatchClass::Operational
+        )]
         fn resolve_payment_by_conditions(
             origin,
             resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let (_pay_id, _amount, _resolve_deadline): (T::Hash, BalanceOf<T>, T::BlockNumber)
-                = PayResolver::<T>::resolve_payment_by_conditions(resolve_pay_request)?;
+                = PayResolver::<T>::resolve_payment_by_conditions(resolve_pay_request.clone())?;
             Self::deposit_event(RawEvent::ResolvePayment(_pay_id, _amount, _resolve_deadline));
-            Ok(())
+            
+            Ok(Some(weight_for::resolve_payment_by_conditions::<T>(
+                resolve_pay_request.cond_pay.conditions.len() as Weight, // N
+            )).into())
         }
 
         ///　Resolve a payment by submitting an offchain vouched result
         ///
         /// Parameter:
         /// `vouched_pay_result`: VouchedCondPayResult message
-        /// TODO: weight calculation
-        #[weight = 100_000]
+        /// 
+        /// # <weight>
+        /// ## Weight
+        /// - Complexity: `O(N)`
+        ///     - N: conditions-len
+        /// - DB:
+        ///   - 2 storage reads `PayRegistry`
+        ///   - 1 storage mutation `PayRegistry`
+        /// # </weight>
+        #[weight = (
+            weight_for::resolve_payment_by_vouched_result::<T>(
+                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as Weight
+            ),
+            DispatchClass::Operational
+        )]
         fn resolve_payment_by_vouched_result(
             origin,
             vouched_pay_result: VouchedCondPayResultOf<T>
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let (_pay_id, _amount, _resolve_deadline): (T::Hash, BalanceOf<T>, T::BlockNumber)
-                = PayResolver::<T>::resolve_payment_vouched_result(vouched_pay_result)?;
+                = PayResolver::<T>::resolve_payment_vouched_result(vouched_pay_result.clone())?;
             Self::deposit_event(RawEvent::ResolvePayment(_pay_id, _amount, _resolve_deadline));
-            Ok(())
+            
+            Ok(Some(weight_for::resolve_payment_by_vouched_result::<T>(
+                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as Weight, // N
+            )).into())
         }
     }
 }
@@ -634,57 +956,96 @@ decl_event! (
         <T as system::Trait>::BlockNumber
     {
         /// CelerLedger
+        /// SetBalanceLimits(channel_id, limits)
         SetBalanceLimits(Hash, Balance),
+        /// DisableBalanceLimits(channel_id)
         DisableBalanceLimits(Hash),
+        /// EnableBalanceLimits(channel_id)
         EnableBalanceLimits(Hash),
+        /// OpnChannel(channel_id, channel_peers, deposits)
         OpenChannel(Hash, Vec<AccountId>, Vec<Balance>),
+        /// Deposit(channel_id, chanel_peers, deposits, withdrawals)
         Deposit(Hash, Vec<AccountId>, Vec<Balance>, Vec<Balance>),
+        /// SnapshotStates(channel_id,seq_nums)
         SnapshotStates(Hash, Vec<u128>),
-        IntendSettle(Hash, Vec<u128>),
-        ClearOnePay(Hash, Hash, AccountId, Balance),
-        ConfirmSettle(Hash, Vec<Balance>),
-        ConfirmSettleFail(Hash),
+        /// IntendWithdraw(channel_id, receiver, amount)
         IntendWithdraw(Hash, AccountId, Balance),
+        /// ConfirmWithdraw(channel_id, withdrawn_amount, receiver, receipient_channel_id, deposits, withdrawals)
         ConfirmWithdraw(Hash, Balance, AccountId, Hash, Vec<Balance>, Vec<Balance>),
+        /// VetoWithdraw(channel_id)
         VetoWithdraw(Hash),
+        /// CooperativeWithdraw(channel_id, withdrawn_amount, receiver, recipient_channel_id, deposits, withdrawals, seq_num)
         CooperativeWithdraw(Hash, Balance, AccountId, Hash, Vec<Balance>, Vec<Balance>, u128),
+        /// IntendSettle(channel_id, seq_nums)
+        IntendSettle(Hash, Vec<u128>),
+        /// ClearOnePay(channel_id, pay_id, peer_from, amount)
+        ClearOnePay(Hash, Hash, AccountId, Balance),
+        /// ConfirmSettle(channel_id, settle_balances)
+        ConfirmSettle(Hash, Vec<Balance>),
+        /// ConfirmSettleFail(channel_id)
+        ConfirmSettleFail(Hash),
+        /// CooperativeSettle(channel_id, settle_balances)
         CooperativeSettle(Hash, Vec<Balance>),
 
-        // Celer Wallet
+        /// Celer Wallet
+        /// CreateWallet(channel_id, channel_peers)
         CreateWallet(Hash, Vec<AccountId>),
+        /// DepositToWallet(wallet_id, amount)
         DepositToWallet(Hash, Balance),
+        /// WithdrawFromWallet(wallet_id, receiver, amount)
         WithdrawFromWallet(Hash, AccountId, Balance),
 
-        // Pool
+        /// Pool
+        /// PoolDeposit(receiver, amount)
         PoolDeposit(AccountId, Balance),
+        /// WithdrawFromPool(receiver, amount)
         WithdrawFromPool(AccountId, Balance),
+        /// Transfer(sender, receiver, amount)
         Transfer(AccountId, AccountId, Balance),
+        /// TransferToCelerWallet(wallet_id, from, amount)
         TransferToCelerWallet(Hash, AccountId, Balance),
+        /// Approval(channel_id, owner, spender)
         Approval(AccountId, AccountId, Balance),
 
-        // PayRegsitry
+        /// PayRegsitry
+        /// PayInfoUpdate(pay_id, amount, resolve_deadline)
         PayInfoUpdate(Hash, Balance, BlockNumber),
+        /// ResolvePayment(pay_id, amount, resolve_deadline)
         ResolvePayment(Hash, Balance, BlockNumber),
     }
 );
 
 decl_error! {
     pub enum Error for Module<T: Trait> {
+        // error
         Error,
+        // overflow
         OverFlow,
+        // underflow
         UnderFlow,
+        // channel peer is not exist
         PeerNotExist,
+        // balance_limits is not exist
         BalanceLimitsNotExist,
+        // channel is not exist
         ChannelNotExist,
+        // withdrraw_intent is not exist
         WithdrawIntentNotExist,
+        // who is not channel peer
         NotChannelPeer,
+        // confrom_settle fail
         ConfirmSettleFail,
-        StateNotExist,
+        // Balances is not exist
         BalancesNotExist,
+        // Wallet is not exist
         WalletNotExist,
+        // Allowed is not exist
         AllowedNotExist,
+        // PayInfo is not exist
         PayInfoNotExist,
+        // hash_lock is not exit
         HashLockNotExist,
+        // condition_address is not exit
         ConditionAddressNotExist,
     }
 }
@@ -1080,13 +1441,13 @@ impl<T: Trait> Module<T> {
 
     /// Helper
     // Emit DisableBalanceLimits event
-    pub fn emit_disable_balance_limits(channel_id: T::Hash) -> Result<(), DispatchError> {
+    pub fn emit_disable_balance_limits(channel_id: T::Hash) -> DispatchResult {
         Self::deposit_event(RawEvent::DisableBalanceLimits(channel_id));
         Ok(())
     }
 
     // Emit Deposit event
-    pub fn emit_deposit_event(channel_id: T::Hash) -> Result<(), DispatchError> {
+    pub fn emit_deposit_event(channel_id: T::Hash) -> DispatchResult {
         let c = match Self::channel_map(channel_id) {
             Some(channel) => channel,
             None => return Err(Error::<T>::ChannelNotExist)?,
@@ -1118,7 +1479,7 @@ impl<T: Trait> Module<T> {
         channel_id: T::Hash,
         seq_num_1: u128,
         seq_num_2: u128,
-    ) -> Result<(), DispatchError> {
+    ) -> DispatchResult {
         Self::deposit_event(RawEvent::SnapshotStates(
             channel_id,
             vec![seq_num_1, seq_num_2],
@@ -1130,7 +1491,7 @@ impl<T: Trait> Module<T> {
     pub fn emit_intend_settle(
         channel_id: T::Hash,
         seq_nums: Vec<u128>,
-    ) -> Result<(), DispatchError> {
+    ) -> DispatchResult {
         Self::deposit_event(RawEvent::IntendSettle(
             channel_id,
             vec![seq_nums[0], seq_nums[1]],
@@ -1139,7 +1500,7 @@ impl<T: Trait> Module<T> {
     }
 
     // Emit ConfirmSettleFail event
-    pub fn emit_confirm_settle_fail(channel_id: T::Hash) -> Result<(), DispatchError> {
+    pub fn emit_confirm_settle_fail(channel_id: T::Hash) -> DispatchResult {
         Self::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
         Ok(())
     }
@@ -1150,7 +1511,7 @@ impl<T: Trait> Module<T> {
         pay_id: T::Hash,
         peer_from: T::AccountId,
         amount: BalanceOf<T>,
-    ) -> Result<(), DispatchError> {
+    ) -> DispatchResult {
         Self::deposit_event(RawEvent::ClearOnePay(channel_id, pay_id, peer_from, amount));
         Ok(())
     }
@@ -1160,7 +1521,7 @@ impl<T: Trait> Module<T> {
         wallet_id: T::Hash,
         receiver: T::AccountId,
         amount: BalanceOf<T>,
-    ) -> Result<(), DispatchError> {
+    ) -> DispatchResult {
         Self::deposit_event(RawEvent::WithdrawFromWallet(wallet_id, receiver, amount));
         Ok(())
     }
@@ -1170,8 +1531,18 @@ impl<T: Trait> Module<T> {
         from: T::AccountId,
         spender: T::AccountId,
         value: BalanceOf<T>,
-    ) -> Result<(), DispatchError> {
+    ) -> DispatchResult {
         Self::deposit_event(RawEvent::Approval(from, spender, value));
+        Ok(())
+    }
+
+    // Emit PayInfoUpdate event
+    pub fn emit_pay_info_update(
+        pay_id: T::Hash,
+        amount: BalanceOf<T>,
+        deadline: T::BlockNumber,
+    ) -> DispatchResult {
+        Self::deposit_event(RawEvent::PayInfoUpdate(pay_id, amount, deadline));
         Ok(())
     }
 
@@ -1403,6 +1774,15 @@ pub mod tests {
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
+            ));
+
+            let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
+            assert_ok!(CelerModule::deposit(
+                Origin::signed(channel_peers[0]),
+                channel_id,
+                channel_peers[0],
+                300,
+                0
             ));
         })
     }

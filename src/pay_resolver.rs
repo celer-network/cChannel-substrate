@@ -2,11 +2,11 @@ use super::{BalanceOf, Error, Module, Trait};
 use crate::mock_condition::MockCondition;
 use crate::pay_registry::PayRegistry;
 use codec::{Decode, Encode};
-use frame_support::ensure;
+use frame_support::{ensure, dispatch::DispatchError};
 use frame_system::{self as system};
 use pallet_timestamp;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero};
-use sp_runtime::{DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::{ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
@@ -140,8 +140,7 @@ impl<T: Trait> PayResolver<T> {
                 resolve_pay_request.hash_preimages,
             )?;
         } else if func_type == TransferFunctionType::BooleanOr {
-            amount =
-                calculate_boolean_or_payment::<T>(pay.clone(), resolve_pay_request.hash_preimages)?;
+            amount = calculate_boolean_or_payment::<T>(pay.clone(), resolve_pay_request.hash_preimages)?;
         } else if is_numeric_logic::<T>(func_type.clone()) {
             amount = calculate_numeric_logic_payment::<T>(
                 pay.clone(),
@@ -229,13 +228,9 @@ fn resolve_payment<T: Trait>(
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             new_deadline = block_number.clone();
         } else {
-            let timeout = block_number
-                .checked_add(&pay.resolve_timeout)
-                .ok_or(Error::<T>::OverFlow)?;
+            let timeout = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             if timeout < pay.resolve_deadline {
-                new_deadline = block_number
-                    .checked_add(&pay.resolve_timeout)
-                    .ok_or(Error::<T>::OverFlow)?;
+                new_deadline = block_number.checked_add(&pay.resolve_timeout).ok_or(Error::<T>::OverFlow)?;
             } else {
                 new_deadline = pay.resolve_deadline;
             }
