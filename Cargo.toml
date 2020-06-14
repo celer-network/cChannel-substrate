@@ -12,18 +12,11 @@ std = [
 	"sp-core/std",
 	"frame-support/std",
 	"frame-system/std",
-	"frame-benchmarking/std",
 	"node-primitives/std",
 	"serde",
 	"sp-std/std",
 	"pallet-balances/std",
 	"pallet-timestamp/std",
-]
-runtime-benchmarks = [
-	"frame-benchmarking",
-	"frame-system/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
 ]
 
 [package.metadata.docs.rs]
@@ -62,14 +55,6 @@ version = '2.0.0-alpha.8'
 git = 'https://github.com/paritytech/substrate.git'
 default-features = false
 package = 'frame-system'
-tag = 'v2.0.0-alpha.8'
-version = '2.0.0-alpha.8'
-
-[dependencies.frame-benchmarking]
-git = 'https://github.com/paritytech/substrate.git'
-optional = true
-default-features = false
-package = 'frame-benchmarking'
 tag = 'v2.0.0-alpha.8'
 version = '2.0.0-alpha.8'
 
