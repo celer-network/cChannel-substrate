@@ -126,7 +126,7 @@ fn upgrade_v1_to_v2<T: Trait>() {
 pub mod test {
     use crate::*;
     use crate::mock::*;
-    use frame_support::assert_ok;
+    use frame_support::{assert_ok, traits::OnRuntimeUpgrade};
     use crate::ledger_operation::{LedgerOperation, WithdrawIntentOf};
     use crate::ledger_operation::tests::*;
     use crate::pool::Pool;

@@ -106,13 +106,10 @@ impl ExtBuilder {
         let carl: sr25519::Public = account_key("Carl");
 
         let mut t = system::GenesisConfig::default()
-            .build_storage::<TestRuntime>()
-            .unwrap();
+            .build_storage::<TestRuntime>().unwrap();
         pallet_balances::GenesisConfig::<TestRuntime> {
             balances: vec![(alice, 1000), (bob, 1000), (risa, 1000), (carl, 100000)],
-        }
-        .assimilate_storage(&mut t)
-        .unwrap();
+        }.assimilate_storage(&mut t).unwrap();
         sp_io::TestExternalities::new(t)
     }
 }
