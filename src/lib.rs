@@ -8,7 +8,7 @@ mod mock_condition;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
-//mod migration;
+mod migration;
 
 use celer_wallet::{CelerWallet, WalletOf};
 use codec::{Decode, Encode};
@@ -84,7 +84,7 @@ decl_storage! {
                 map hasher(blake2_128_concat) T::Hash => Option<PayInfoOf<T>>;
 
         // Storage version of the pallet
-        pub StorageVersion build(|_| Releases::V1_0_0): Releases;
+        StorageVersion build(|_| Releases::V1_0_0): Releases;
     }
 }
 
@@ -195,7 +195,7 @@ decl_module! {
             Ok(())
         }
 
-        ///Enable balance limits
+        /// Enable balance limits
         ///
         /// Parameter:
         /// `channel_id`: Id of the channel
@@ -944,6 +944,11 @@ decl_module! {
             Ok(Some(weight_for::resolve_payment_by_vouched_result::<T>(
                 vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as Weight, // N
             )).into())
+        }
+
+        fn on_runtime_upgrade() -> Weight {
+            migration::on_runtime_upgrade::<T>();
+            500_000
         }
     }
 }
