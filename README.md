@@ -102,6 +102,7 @@ git clone git@github.com:celer-network/cChannel-substrate.git
 7. Build celer-pay runtime moodule
 
 ```
+cd ./pallets/celer-pay
 cargo build --release
 ```
 
