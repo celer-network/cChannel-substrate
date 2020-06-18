@@ -73,7 +73,7 @@ construct_runtime!(
   UncheckedExtrinsic = UncheckedExtrinsic
   {
     # --snip--
-    /// Add following sentence. (code line is 283)
+    // Add following sentence. (code line is 283)
     CelerPayModule: celer_pay::{Module, Call, Storage, Event<T>},
   }
 );
