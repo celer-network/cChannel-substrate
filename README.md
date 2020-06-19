@@ -115,7 +115,7 @@ cargo test -p celer-pay-module
 ## Run in Docker
 First, install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
 
-Then run the following command to a single node development chain.
+Then run the following command to a single node development chain which is integrated celer-pay runtime module.
 ```
 ./scripts/docker_run.sh
 ```
