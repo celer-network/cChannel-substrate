@@ -150,7 +150,7 @@ version = '2.0.0-rc3'
 default-features = false
 package = 'celer-pay-module'
 path = '../pallets/celer-pay'
-version = '0.8.1'
+version = '0.8.3'
 
 [dependencies.timestamp]
 default-features = false

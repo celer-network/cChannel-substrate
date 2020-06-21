@@ -1,6 +1,6 @@
 [package]
 name = "celer-pay-module"
-version = "0.8.1"
+version = "0.8.3"
 auhros = ["Celer"]
 edition = "2018"
 
