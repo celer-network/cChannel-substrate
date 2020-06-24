@@ -2440,20 +2440,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multi-sesion-app"
-version = "0.8.3"
-dependencies = [
- "celer-pay-module",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "multihash"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4711,20 +4697,6 @@ checksum = "94f478ede9f64724c5d173d7bb56099ec3e2d9fc2774aac65d34b8b890405f41"
 dependencies = [
  "arc-swap",
  "libc",
-]
-
-[[package]]
-name = "single-session-app"
-version = "0.8.3"
-dependencies = [
- "celer-pay-module",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
