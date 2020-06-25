@@ -2,6 +2,8 @@
 members = [
     'node',
     'pallets/celer-pay',
+    'pallets/capp/single-session-app',
+    'pallets/capp/multi-session-app',
     'runtime',
 ]
 [profile.release]
