@@ -128,7 +128,7 @@ pub mod test {
     use crate::mock::*;
     use frame_support::{assert_ok, traits::OnRuntimeUpgrade};
     use crate::ledger_operation::{LedgerOperation, WithdrawIntentOf};
-    use crate::ledger_operation::tests::*;
+    use crate::tests::ledger_operation::test_ledger_operation::*;
     use crate::pool::Pool;
     use crate::pay_registry::PayRegistry;
     use sp_core::{H256, hashing, sr25519};
