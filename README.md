@@ -3,8 +3,9 @@
 * [Overview](#overview)
 * [Core Concepts](#core-concepts)
 * [Release Features](#release-features)
-* [Building and Testing](#building-and-testing)
-* [Run in Docker](#run-in-docker)
+* [Run Celer local testnet in Docker](#run-celer-local-testnet-in-docker)
+* [Test celer-pay runtime module in Docker](#test-celer-pay-runtime-module-in-docker) 
+* [Buidling and Testing from source](#building-and-testing-from-source)
 
 ## Overview
 CelerPay is a generalized payment network that supports efficient off-chain token transfer with the capbability to resolve arbitrary conditional dependency on on-chain verifiable states. This repo implements the CelerPay runtime module with substrate. It includes a collection of runtime module acting as the binding of core CelerPay abstractions and supporting modules. CeleryPay runtime module only specify the interaction logic of two peers. A network of payment channels can be built using these single-hop primitives and protocols.
@@ -50,7 +51,22 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 * **Batch Multi-Payment Clearing**: clears *N* payments in one batch with a single on-chain transaction using PayIdList, which only requires O(1) on-chain storage and O(*n*/*N*) on-chain verifications to clear *n* payments.
 * **Cooperative Settle**: skips challenge period and settles a channel when both peers reach an agreement.
 
-## Building and Testing
+## Run Celer local testnet in Docker
+1. pull docker image
+```
+docker pull thashimoto19980924/celer-network:0.8.3
+```
+2. run local celer testnet 
+```
+docker run thashimoto19980924/celer-network:0.8.3
+````
+
+## Test celer-pay runtime module in Docker
+```
+./scripts/docker_test.sh
+```
+
+## Building and Testing from source
 1. Fast Installation
 
 Mac OS, Arch, or a Debian-based OS like Ubuntu
@@ -110,27 +126,6 @@ cargo build --release
 
 ```
 cargo test -p celer-pay-module
-```
-
-## Run in Docker
-First, install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-Then run the following command to a single node development chain which is integrated celer-pay runtime module.
-```
-./scripts/docker_run.sh
-```
-
-This command will firstly compile your code, and then start a local development network. You can also replace the default command (`cargo build --release && ./target/release/node-template --dev --ws-external`) by appending your own. A few useful ones are as follow.
-
-```bash
-# Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/node-template --dev --ws-external
-
-# Purge the local dev chain
-./scripts/docker_run.sh ./target/release/node-template purge-chain --dev
-
-# Check whether the code is compilable
-./scripts/docker_run.sh cargo check
 ```
 
 
