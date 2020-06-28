@@ -56,7 +56,7 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 ```
 docker pull thashimoto19980924/celer-network:0.8.3
 ```
-2. run local celer testnet 
+2. run celer local testnet 
 ```
 docker run thashimoto19980924/celer-network:0.8.3
 ````
