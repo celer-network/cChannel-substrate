@@ -1,0 +1,17 @@
+version: "3.2"
+
+services:
+  dev:
+    container_name: celer-network
+    image: parity/rust-builder:latest
+    working_dir: /var/www/celer
+    ports:
+      - "9944:9944"
+    environment:
+      - CARGO_HOME=/var/www/celer/.cargo
+    volumes:
+      - .:/var/www/celer
+      - type: bind
+        source: ./.local
+        target: /root/.local
+    command: bash -c "cargo test -p celer-pay-module"
