@@ -2,7 +2,7 @@
 
 set -e
 
-echo "*** Start Substrate celer node template ***"
+echo "*** Test Celer network ***"
 
 cd $(dirname ${BASH_SOURCE[0]})/..
 

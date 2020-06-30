@@ -1,18 +1,21 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 use codec::{Decode, Encode};
 use frame_support::{
     decl_module, decl_storage, decl_event, decl_error, ensure,
     storage::StorageMap,
-    dispatch::{DispatchResult, DispatchError},
-    weights::{Weight},
 };
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::traits::{
     Hash, IdentifyAccount, 
     Member, Verify, Zero, AccountIdConversion, 
 };
-use sp_runtime::{ModuleId, RuntimeDebug};
+use sp_runtime::{ModuleId, RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec::Vec};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -80,7 +83,7 @@ pub type AppInfoOf<T> = AppInfo<
 pub const SINGLE_SESSION_APP_ID: ModuleId = ModuleId(*b"_single_");
 
 pub trait Trait: system::Trait {
-    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+    type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
     type Public: IdentifyAccount<AccountId = Self::AccountId>;
     type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode; 
 }
@@ -104,8 +107,7 @@ decl_module!  {
             origin,
             initiate_request: AppInitiateRequestOf<T>
         ) -> DispatchResult {
-            let app_hash = Self::hashing_initiate_request(initiate_request.clone());
-            let app_id = Self::calculate_app_id(app_hash);
+            let app_id = Self::calculate_app_id(initiate_request.clone());
             ensure!(
                 AppInfoMap::<T>::contains_key(&app_id) == false,
                 "AppId alreads exists"
@@ -161,7 +163,7 @@ decl_module!  {
             AppInfoMap::<T>::mutate(&app_id, |app_info| *app_info = Some(new_app_info.clone()));
 
             // Emit IntendSettle event
-            Self::deposit_event(Event::<T>::IntendSettle(app_id, new_app_info.seq_num));
+            Self::deposit_event(RawEvent::IntendSettle(app_id, new_app_info.seq_num));
 
             Ok(())
         }
@@ -272,7 +274,7 @@ decl_module!  {
             // If app is not finlized, return Error::<T>::NotFianlized
             ensure!(
                 app_info.status == AppStatus::Finalized,
-                Error::<T>::NotFianlized
+                Error::<T>::NotFinalized
             );
 
             // If app is finalized, return Ok(())
@@ -282,7 +284,9 @@ decl_module!  {
 }
 
 decl_event! (
-    pub enum Event<T> where <T as system::Trait>::Hash{
+    pub enum Event<T> where 
+        <T as system::Trait>::Hash
+    {
         /// IntendSettle(app_id, seq_num)
         IntendSettle(Hash, u128),
     }
@@ -295,7 +299,7 @@ decl_error! {
         // App outcome is false
         OutcomeFalse,
         // App status is not Finalized
-        NotFianlized,
+        NotFinalized,
     }
 }
 
@@ -352,7 +356,7 @@ impl<T: Trait> Module<T> {
 
         let block_number =  frame_system::Module::<T>::block_number();
         let new_app_info: AppInfoOf<T>;
-        if app_info.status == AppStatus::Action && block_number > app_info.deadline {
+        if app_info.status == AppStatus::Settle && block_number > app_info.deadline {
             new_app_info = AppInfoOf::<T> {
                 state:  app_info.state,
                 nonce: app_info.nonce,
@@ -382,10 +386,15 @@ impl<T: Trait> Module<T> {
     }
     
     /// get app id
-    pub fn calculate_app_id(app_hash: T::Hash) -> T::Hash {
-        let single_session_app_account = Self::app_account();
-        let mut encoded = app_hash.encode();
-        encoded.extend(single_session_app_account.encode());
+    pub fn calculate_app_id(
+        initiate_request: AppInitiateRequestOf<T>
+    ) -> T::Hash {
+        let app_account = Self::app_account();
+        let mut encoded = app_account.encode();
+        encoded.extend(initiate_request.nonce.encode());
+        encoded.extend(initiate_request.players[0].encode());
+        encoded.extend(initiate_request.players[1].encode());
+        encoded.extend(initiate_request.timeout.encode());
         let app_id = T::Hashing::hash(&encoded);
         return app_id;
     }
@@ -469,19 +478,6 @@ impl<T: Trait> Module<T> {
         );
 
         Ok(())
-    }
-
-    pub fn hashing_initiate_request(
-        initiate_request: AppInitiateRequestOf<T>
-    ) -> T::Hash {
-        let app_account = Self::app_account();
-        let mut encoded = app_account.encode();
-        encoded.extend(initiate_request.nonce.encode());
-        encoded.extend(initiate_request.players[0].encode());
-        encoded.extend(initiate_request.players[1].encode());
-        encoded.extend(initiate_request.timeout.encode());
-        let app_hash: T::Hash = T::Hashing::hash(&encoded);
-        return app_hash;
     }
 
     pub fn encode_app_state(

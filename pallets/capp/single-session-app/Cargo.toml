@@ -33,12 +33,6 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc3'
 version = '2.0.0-rc3'
 
-[dev-dependencies.sp-runtime]
-default-features = false
-git = 'https://github.com/paritytech/substrate.git'
-tag = 'v2.0.0-rc3'
-version = '2.0.0-rc3'
-
 [dependencies.sp-runtime]
 git = 'https://github.com/paritytech/substrate.git'
 default-features = false
@@ -51,6 +45,12 @@ default-features = false
 tag = 'v2.0.0-rc3'
 version = '2.0.0-rc3'
 
+[dependencies.pallet-balances]
+git = 'https://github.com/paritytech/substrate.git'
+default_features = false
+package = 'pallet-balances'
+tag = 'v2.0.0-rc3'
+version = '2.0.0-rc3'
 
 [package]
 authors = ['Celer']
@@ -71,4 +71,5 @@ std = [
     'sp-runtime/std',
     'sp-std/std',
     'celer-pay/std',
+    'pallet-balances/std',
 ]
