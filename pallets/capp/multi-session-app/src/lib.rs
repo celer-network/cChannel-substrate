@@ -8,10 +8,9 @@ use codec::{Decode, Encode};
 use frame_support::{
     decl_module, decl_storage, decl_event, decl_error, ensure,
     storage::StorageMap,
-    dispatch::{DispatchResult, DispatchError},
-    weights::{Weight},
 };
 use frame_system::{self as system, ensure_signed};
+use sp_runtime::{DispatchResult, DispatchError};
 use sp_runtime::traits::{
     Hash, IdentifyAccount, AccountIdConversion, 
     Member, Verify, Zero, 
@@ -83,7 +82,7 @@ pub type SessionInfoOf<T> = SessionInfo<
 
 pub const MULTI_SESSION_APP_ID: ModuleId = ModuleId(*b"_multi__");
 
-pub trait Trait: system::Trait + celer_pay::Trait {
+pub trait Trait: system::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type Public: IdentifyAccount<AccountId = Self::AccountId>;
     type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode; 
@@ -108,8 +107,7 @@ decl_module!  {
             origin,
             initiate_request: SessionInitiateRequestOf<T>
         ) -> DispatchResult {
-            let session_hash = Self::hashing_initiate_request(initiate_request.clone());
-            let session_id = Self::calculate_session_id(session_hash);
+            let session_id = Self::calculate_session_id(initiate_request.clone());
             ensure!(
                 SessionInfoMap::<T>::contains_key(&session_id) == false,
                 "session_id is used"
@@ -359,7 +357,7 @@ impl<T: Trait> Module<T> {
 
         let block_number =  frame_system::Module::<T>::block_number();
         let new_session_info: SessionInfoOf<T>;
-        if session_info.status == SessionStatus::Action && block_number > session_info.deadline {
+        if session_info.status == SessionStatus::Settle && block_number > session_info.deadline {
             new_session_info = SessionInfoOf::<T> {
                 state: session_info.state,
                 players: session_info.players,
@@ -389,10 +387,15 @@ impl<T: Trait> Module<T> {
     }
 
     /// get session id
-    pub fn calculate_session_id(session_hash: T::Hash) -> T::Hash {
+    pub fn calculate_session_id(
+        initiate_request: SessionInitiateRequestOf<T>
+    ) -> T::Hash {
         let multi_session_app_account = Self::app_account();
-        let mut encoded = session_hash.encode();
-        encoded.extend(multi_session_app_account.encode());
+        let mut encoded = multi_session_app_account.encode();
+        encoded.extend(initiate_request.nonce.encode());
+        encoded.extend(initiate_request.timeout.encode());
+        initiate_request.players.into_iter()
+            .for_each(|players| { encoded.extend(players.encode()); });
         let session_id = T::Hashing::hash(&encoded);
         return session_id;
     }
@@ -471,7 +474,7 @@ impl<T: Trait> Module<T> {
             let signature = &signatures[i];
             ensure!(
                 signature.verify(encoded, &signers[i]),
-                "Checl sigs failed"
+                "Check co-sigs failed"
             );
         }
 
@@ -492,19 +495,6 @@ impl<T: Trait> Module<T> {
         }
 
         Ok(())
-    }
-
-    pub fn hashing_initiate_request(
-        initiate_request: SessionInitiateRequestOf<T>
-    ) -> T::Hash {
-        let app_account = Self::app_account();
-        let mut encoded = app_account.encode();
-        encoded.extend(initiate_request.nonce.encode());
-        encoded.extend(initiate_request.timeout.encode());
-        initiate_request.players.into_iter()
-            .for_each(|players| { encoded.extend(players.encode()); });
-        let session_hash: T::Hash = T::Hashing::hash(&encoded);
-        return session_hash;
     }
 
     pub fn encode_app_state(

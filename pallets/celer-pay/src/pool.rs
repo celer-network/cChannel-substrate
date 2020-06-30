@@ -332,9 +332,9 @@ fn ledger_account<T: Trait>() -> T::AccountId {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
-    use crate::ledger_operation::tests::*;
+    use crate::tests::ledger_operation::test_ledger_operation::*;
     use crate::ledger_operation::LedgerOperation;
     use crate::mock::*;
     use sp_runtime::DispatchError;
@@ -491,14 +491,14 @@ mod tests {
         })
     }
 
-    fn deposit_pool(receiver: AccountId, value: Balance) {
+    pub fn deposit_pool(receiver: AccountId, value: Balance) {
         let (_receiver, _value) =
             Pool::<TestRuntime>::deposit_pool(Origin::signed(receiver), receiver, value).unwrap();
         assert_eq!(_receiver, receiver);
         assert_eq!(_value, value);
     }
 
-    fn approve(owner: AccountId, spender: AccountId, value: Balance) {
+    pub fn approve(owner: AccountId, spender: AccountId, value: Balance) {
         let (_owner, _spender, _value) =
             Pool::<TestRuntime>::approve(Origin::signed(owner), spender, value).unwrap();
         assert_eq!(_owner, owner);

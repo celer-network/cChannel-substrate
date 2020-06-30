@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use crate as single_app;
+use crate as multi_app;
 use frame_support::{
     impl_outer_event, impl_outer_origin, impl_outer_dispatch, 
     parameter_types, weights::Weight
@@ -24,7 +24,7 @@ impl_outer_event! {
     pub enum TestEvent for TestRuntime {
         system<T>,
         pallet_balances<T>,
-        single_app<T>,
+        multi_app<T>,
     }
 }
 
@@ -32,7 +32,7 @@ impl_outer_dispatch! {
     pub enum Call for TestRuntime where origin: Origin {
         frame_system::System,
         pallet_balances::Balances,
-        single_app::SingleApp,
+        multi_app::MultiApp,
     }
 }
 
@@ -92,7 +92,7 @@ impl Trait for TestRuntime {
     type Signature = sr25519::Signature;
 }
 
-pub type SingleApp = Module<TestRuntime>;
+pub type MultiApp = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
 type Balances = pallet_balances::Module<TestRuntime>;
 
