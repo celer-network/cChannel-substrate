@@ -2,6 +2,7 @@
 members = [
     'node',
     'pallets/celer-pay',
+    'pallets/mock-boolean-condition',
     'runtime',
 ]
 [profile.release]

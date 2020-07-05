@@ -3,6 +3,7 @@ pub mod tests_celer {
     use crate::tests::ledger_operation::test_ledger_operation::*;
     use crate::ledger_operation::{LedgerOperation, SignedSimplexStateArray, PayIdList};
     use crate::mock::*;
+    use crate::mock::Call as MockCall;
     use crate::tests::pay_resolver::test_pay_resolver::*;
     use crate::pay_resolver::{
         CondPayResult, ConditionalPay, PayResolver, ResolvePaymentConditionsRequest,
@@ -11,7 +12,7 @@ pub mod tests_celer {
     use crate::pool::Pool;
     use crate::pool::tests::{deposit_pool};
     use frame_support::assert_ok;
-    use sp_core::{hashing, Pair, H256};
+    use sp_core::{Pair, H256};
 
     #[test]
     fn test_pass_open_channel() {
@@ -475,7 +476,7 @@ pub mod tests_celer {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -550,7 +551,7 @@ pub mod tests_celer {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(

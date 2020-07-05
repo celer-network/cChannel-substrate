@@ -1,12 +1,12 @@
 use super::{BalanceOf, Error, Module, Trait};
-use crate::mock_condition::MockCondition;
+use crate::mock_numeric_condition::MockNumericCondition;
 use crate::pay_registry::PayRegistry;
 use codec::{Decode, Encode};
-use frame_support::{ensure, dispatch::DispatchError};
+use frame_support::{ensure};
 use frame_system::{self as system};
 use pallet_timestamp;
-use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero};
-use sp_runtime::{ModuleId, RuntimeDebug};
+use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero, Dispatchable};
+use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::vec::Vec;
 
 pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
@@ -14,16 +14,17 @@ pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ConditionType {
     HashLock,
-    DeployedContract,
-    VirtualContract,
+    BooleanRuntimeModule,
+    NumericModule, 
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct Condition<AccountId, Hash> {
+pub struct Condition<Hash, Call> {
     pub condition_type: ConditionType,
     pub hash_lock: Option<Hash>,
-    pub deployed_contract_address: Option<AccountId>,
-    pub virtual_contract_address: Option<Hash>,
+    pub call_is_finalized: Option<Box<Call>>, // overarching call is_finalized of runtime module
+    pub call_get_outcome: Option<Box<Call>>, // overarching call get_outcome of runtime module
+    pub numeric_condition_id: Option<Hash>,
     pub args_query_finalzation: Option<u8>,
     pub args_query_outcome: Option<u8>,
 }
@@ -69,11 +70,11 @@ pub struct TransferFunction<AccountId, Balance> {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance> {
+pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
     pub pay_timestamp: Moment,
     pub src: AccountId,
     pub dest: AccountId,
-    pub conditions: Vec<Condition<AccountId, Hash>>,
+    pub conditions: Vec<Condition<Hash, Call>>,
     pub transfer_func: TransferFunction<AccountId, Balance>,
     pub resolve_deadline: BlockNumber,
     pub resolve_timeout: BlockNumber,
@@ -84,12 +85,13 @@ pub type ConditionalPayOf<T> = ConditionalPay<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
+    <T as Trait>::Call,
     BalanceOf<T>,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Balance> {
-    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance>,
+pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
+    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
     pub hash_preimages: Vec<Hash>,
 }
 
@@ -98,18 +100,19 @@ pub type ResolvePaymentConditionsRequestOf<T> = ResolvePaymentConditionsRequest<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
+    <T as Trait>::Call,
     BalanceOf<T>,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance> {
-    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance>,
+pub struct CondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
+    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
     pub amount: Balance,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Balance, Signature> {
-    pub cond_pay_result: CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance>,
+pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance, Signature> {
+    pub cond_pay_result: CondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
     pub sig_of_src: Signature,
     pub sig_of_dest: Signature,
 }
@@ -119,6 +122,7 @@ pub type VouchedCondPayResultOf<T> = VouchedCondPayResult<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
+    <T as Trait>::Call,
     BalanceOf<T>,
     <T as Trait>::Signature,
 >;
@@ -224,7 +228,6 @@ fn resolve_payment<T: Trait>(
         }
     } else {
         let new_deadline: T::BlockNumber;
-
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             new_deadline = block_number.clone();
         } else {
@@ -262,18 +265,21 @@ fn calculate_boolean_and_payment<T: Trait>(
 
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::DeployedContract
-            || cond.condition_type == ConditionType::VirtualContract
-        {
-            let addr: T::AccountId = match get_cond_address::<T>(cond.clone()) {
-                Some(_addr) => _addr,
-                None => Err(Error::<T>::ConditionAddressNotExist)?,
-            };
-            let is_finalized = MockCondition::<T>::is_finalized(&addr, cond.args_query_finalzation);
-            ensure!(is_finalized == true, "Condition is not finalized");
+        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
+            let resolver_account = account_id::<T>();
+            
+            // call is_finalized of boolean condition
+            let call_is_finalized = cond.call_is_finalized.unwrap();
+            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(resolver_account.clone()).into());
+            ensure!(
+                is_finalized.is_ok(),
+                "Condition is not finalized"
+            );
 
-            let outcome = MockCondition::<T>::get_outcome(&addr, cond.args_query_outcome);
-            if outcome == false {
+            // call get_outcome of boolean condition
+            let call_get_outcome = cond.call_get_outcome.unwrap();
+            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(resolver_account).into());
+            if (!outcome.is_ok()) && (outcome.unwrap_err().error == DispatchError::Other("FalseOutcome")) {
                 has_false_contract_cond = true;
             }
         } else {
@@ -309,19 +315,22 @@ fn calculate_boolean_or_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j += 1;
-        } else if cond.condition_type == ConditionType::DeployedContract
-            || cond.condition_type == ConditionType::VirtualContract
-        {
-            let addr: T::AccountId = match get_cond_address::<T>(cond.clone()) {
-                Some(_addr) => _addr,
-                None => Err(Error::<T>::ConditionAddressNotExist)?,
-            };
-            let is_finalized = MockCondition::<T>::is_finalized(&addr, cond.args_query_finalzation);
-            ensure!(is_finalized == true, "Condition is not finalized");
-
+        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
+            let resolver_account = account_id::<T>();
+            
+            // call is_finalized of boolean_condition
+            let call_is_finalized = cond.call_is_finalized.unwrap();
+            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(resolver_account.clone()).into());
+            ensure!(
+                is_finalized.is_ok(),
+                "Condition is not finalized"
+            );
             has_contract_cond = true;
-            let outcome = MockCondition::<T>::get_outcome(&addr, cond.args_query_outcome);
-            if outcome == true {
+
+            // call get_outcome of boolean_condition
+            let call_get_outcome = cond.call_get_outcome.unwrap();
+            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(resolver_account).into());
+            if outcome.is_ok() {
                 has_true_contract_cond = true;
             }
         } else {
@@ -357,19 +366,16 @@ fn calculate_numeric_logic_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::DeployedContract
-            || cond.condition_type == ConditionType::VirtualContract
-        {
-            let addr = match get_cond_address::<T>(cond.clone()) {
-                Some(_addr) => _addr,
+        } else if cond.condition_type == ConditionType::NumericModule {
+            let cond_id = match get_numeric_cond_id::<T>(cond.clone()) {
+                Some(_cond_id) => _cond_id,
                 None => Err(Error::<T>::Error)?,
             };
 
-            let is_finalized: bool =
-                MockCondition::<T>::get_outcome(&addr, cond.args_query_finalzation);
+            let is_finalized: bool = MockNumericCondition::<T>::is_finalized(&cond_id, cond.args_query_finalzation);
             ensure!(is_finalized == true, "Condition is not finalized");
 
-            let outcome = MockCondition::<T>::get_numeric_outcome(&addr, cond.args_query_outcome);
+            let outcome = MockNumericCondition::<T>::get_numeric_outcome(&cond_id, cond.args_query_outcome);
             if func_type == TransferFunctionType::NumericAdd {
                 amount = amount + outcome;
             } else if func_type == TransferFunctionType::NumericMax {
@@ -405,10 +411,10 @@ fn calculate_numeric_logic_payment<T: Trait>(
     }
 }
 
-// Get the contract address of the condition
-fn get_cond_address<T: Trait>(cond: Condition<T::AccountId, T::Hash>) -> Option<T::AccountId> {
-    if cond.condition_type == ConditionType::DeployedContract {
-        return cond.deployed_contract_address;
+// Get the numeric contract id of the condition
+fn get_numeric_cond_id<T: Trait>(cond: Condition<T::Hash, <T as Trait>::Call>) -> Option<T::Hash> {
+    if cond.condition_type == ConditionType::NumericModule {
+        return cond.numeric_condition_id;
     } else {
         return None;
     }
@@ -449,8 +455,9 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
     for i in 0..condition_len {
         encoded.extend(pay.conditions[i].clone().condition_type.encode());
         encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-        encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-        encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
+        encoded.extend(pay.conditions[i].clone().call_is_finalized.encode());
+        encoded.extend(pay.conditions[i].clone().call_get_outcome.encode());
+        encoded.extend(pay.conditions[i].clone().numeric_condition_id.encode());
         encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
         encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
     }
