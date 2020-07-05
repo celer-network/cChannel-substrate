@@ -467,6 +467,7 @@ version = "0.8.3"
 dependencies = [
  "frame-support",
  "frame-system",
+ "mock-boolean-condition",
  "node-primitives",
  "pallet-balances",
  "pallet-timestamp",
@@ -2498,6 +2499,19 @@ dependencies = [
  "net2",
  "winapi 0.2.8",
  "ws2_32-sys",
+]
+
+[[package]]
+name = "mock-boolean-condition"
+version = "0.8.3"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

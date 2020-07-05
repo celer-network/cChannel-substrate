@@ -2,7 +2,10 @@
 
 use super::*;
 use crate::{Module, Trait};
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{
+    impl_outer_event, impl_outer_origin, impl_outer_dispatch,
+    parameter_types, weights::Weight
+};
 use frame_system as system;
 use pallet_balances;
 use sp_core::{sr25519, Pair, H256};
@@ -19,6 +22,7 @@ pub(crate) type Balance = u64;
 pub(crate) type BlockNumber = u64;
 pub(crate) type Signature = sr25519::Signature;
 
+
 pub mod celer {
     pub use super::super::*;
 }
@@ -28,6 +32,14 @@ impl_outer_event! {
         celer<T>,
         pallet_balances<T>,
         system<T>,
+    }
+}
+
+impl_outer_dispatch! {
+    pub enum Call for TestRuntime where origin: Origin {
+        frame_system::System,
+        celer_pay::CelerModule,
+        mock_boolean_condition::MockBooleanCondition,
     }
 }
 
@@ -45,7 +57,7 @@ parameter_types! {
 
 impl frame_system::Trait for TestRuntime {
     type Origin = Origin;
-    type Call = ();
+    type Call = Call;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -87,16 +99,20 @@ impl pallet_timestamp::Trait for TestRuntime {
     type MinimumPeriod = MinimumPeriod;
 }
 
+impl mock_boolean_condition::Trait for TestRuntime {}
+
 impl Trait for TestRuntime {
     type Currency = pallet_balances::Module<Self>;
     type Event = TestEvent;
     type Public = sr25519::Public;
     type Signature = sr25519::Signature;
+    type Call = Call;
 }
 
 pub type CelerModule = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
 pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
+type MockBooleanCondition = mock_boolean_condition::Module<TestRuntime>;
 
 pub struct ExtBuilder;
 impl ExtBuilder {

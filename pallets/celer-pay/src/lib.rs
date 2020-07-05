@@ -4,7 +4,7 @@
 mod celer_wallet;
 mod ledger_operation;
 mod mock;
-mod mock_condition;
+mod mock_numeric_condition;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
@@ -15,13 +15,11 @@ pub mod tests;
 
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, ensure, 
+    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
     storage::StorageMap,
     traits::{Currency, Get},
-    dispatch::{
-        DispatchResult, DispatchResultWithPostInfo, DispatchError,
-    },
-    weights::{Weight, DispatchClass},
+    dispatch::{DispatchResultWithPostInfo, PostDispatchInfo, IsSubType},
+    weights::{Weight, DispatchClass, GetDispatchInfo},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -33,8 +31,11 @@ use pallet_timestamp;
 use pay_registry::{PayInfoOf, PayRegistry};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf};
 use pool::Pool;
-use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, IdentifyAccount, Member, Verify, Zero};
-use sp_runtime::RuntimeDebug;
+use sp_runtime::traits::{
+    CheckedAdd, CheckedSub, Hash, IdentifyAccount, 
+    Member, Verify, Zero, Dispatchable,
+};
+use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
 
 pub type BalanceOf<T> =
@@ -45,6 +46,9 @@ pub trait Trait: system::Trait + pallet_timestamp::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type Public: IdentifyAccount<AccountId = Self::AccountId>;
     type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode;
+    /// The overarching call type
+    type Call: Parameter + Dispatchable<Origin=Self::Origin, PostInfo=PostDispatchInfo>
+		+ GetDispatchInfo + From<frame_system::Call<Self>> + IsSubType<Module<Self>, Self>;
 }
 
 // A value placed in storage that represents the current version of the Celer Ledger storage.

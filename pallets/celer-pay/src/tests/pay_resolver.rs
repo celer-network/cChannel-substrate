@@ -1,10 +1,12 @@
 #[cfg(test)]
 pub mod test_pay_resolver {
     use crate::mock::*;
+    use crate::mock::Call as MockCall;
     use sp_core::{hashing, Pair, H256};
     use sp_runtime::DispatchError;
     use crate::pay_resolver::*;
-    use codec::{Decode, Encode};
+    use codec::{Encode};
+    use mock_boolean_condition::Call as MockBooleanCall;
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
@@ -481,7 +483,7 @@ pub mod test_pay_resolver {
     ) {
         ExtBuilder::build().execute_with(|| {
             let mut transfer_func: TransferFunction<AccountId, BlockNumber>;
-            let mut cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>;
+            let mut cond_pay: ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>;
             let mut encoded_cond_pay: Vec<u8>;
             let mut pay_hash: H256;
             let mut pay_request: ResolvePaymentConditionsRequest<
@@ -489,6 +491,7 @@ pub mod test_pay_resolver {
                 BlockNumber,
                 AccountId,
                 H256,
+                MockCall,
                 Balance,
             >;
             let mut result: (H256, Balance, BlockNumber);
@@ -605,7 +608,7 @@ pub mod test_pay_resolver {
     }
 
     pub fn encode_conditional_pay(
-        r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>,
+        r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>,
     ) -> std::vec::Vec<u8> {
         let pay = r#cond_pay;
         let mut encoded = pay.pay_timestamp.encode();
@@ -622,61 +625,95 @@ pub mod test_pay_resolver {
         for i in 0..condition_len {
             encoded.extend(pay.conditions[i].clone().condition_type.encode());
             encoded.extend(pay.conditions[i].clone().hash_lock.encode());
-            encoded.extend(pay.conditions[i].clone().deployed_contract_address.encode());
-            encoded.extend(pay.conditions[i].clone().virtual_contract_address.encode());
+            encoded.extend(pay.conditions[i].clone().call_is_finalized.encode());
+            encoded.extend(pay.conditions[i].clone().call_get_outcome.encode());
+            encoded.extend(pay.conditions[i].clone().numeric_condition_id.encode());
             encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
             encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
         }
         return encoded;
     }
 
-    pub fn get_condition(r#type: u8) -> Condition<AccountId, H256> {
+    pub fn get_condition(r#type: u8) -> Condition<H256, MockCall> {
         if r#type == 0 {
             let condition_hash_lock = Condition {
                 condition_type: ConditionType::HashLock,
                 hash_lock: Some(H256::from_low_u64_be(1)),
-                deployed_contract_address: None,
-                virtual_contract_address: None,
+                call_is_finalized: None,
+                call_get_outcome: None,
+                numeric_condition_id: None, 
                 args_query_finalzation: None,
                 args_query_outcome: None,
             };
             return condition_hash_lock;
         } else if r#type == 1 {
+            // this call return Ok(())
+            let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
+                MockBooleanCall::is_finalized(
+                    H256::from_low_u64_be(1),
+                    1)
+                )
+            );
+            // this call return Ok(())
+            let call_get_outcome_true = Box::new(MockCall::MockBooleanCondition(
+                MockBooleanCall::get_outcome(
+                    H256::from_low_u64_be(1),
+                    1)
+                )
+            );
             let condition_deployed_true = Condition {
-                condition_type: ConditionType::DeployedContract,
+                condition_type: ConditionType::BooleanRuntimeModule,
                 hash_lock: None,
-                deployed_contract_address: Some(account_key("deployed")),
-                virtual_contract_address: None,
-                args_query_finalzation: Some(1),
-                args_query_outcome: Some(1),
+                call_is_finalized: Some(call_is_finalized_true),
+                call_get_outcome: Some(call_get_outcome_true), 
+                numeric_condition_id: None,
+                args_query_finalzation: None,
+                args_query_outcome: None,
             };
             return condition_deployed_true;
         } else if r#type == 2 {
+            // this call return Ok(())
+            let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
+                MockBooleanCall::is_finalized(
+                    H256::from_low_u64_be(1),
+                    1)
+                )
+            );
+            // this call returns DispatchError::Other("FalseOutcome")
+            let call_get_outcome_false = Box::new(MockCall::MockBooleanCondition(
+                MockBooleanCall::get_outcome(
+                    H256::from_low_u64_be(1),
+                    0)
+                )
+            );
             let condition_deployed_false = Condition {
-                condition_type: ConditionType::DeployedContract,
+                condition_type: ConditionType::BooleanRuntimeModule,
                 hash_lock: None,
-                deployed_contract_address: Some(account_key("deployed")),
-                virtual_contract_address: None,
-                args_query_finalzation: Some(1),
-                args_query_outcome: Some(0),
+                call_is_finalized: Some(call_is_finalized_true),
+                call_get_outcome: Some(call_get_outcome_false),
+                numeric_condition_id: None,
+                args_query_finalzation: None,
+                args_query_outcome: None,
             };
             return condition_deployed_false;
         } else if r#type == 3 {
             let condition_deployed_numeric_10 = Condition {
-                condition_type: ConditionType::DeployedContract,
+                condition_type: ConditionType::NumericModule,
                 hash_lock: None,
-                deployed_contract_address: Some(account_key("deployed")),
-                virtual_contract_address: None,
+                call_is_finalized: None,
+                call_get_outcome: None,
+                numeric_condition_id: Some(H256::from_low_u64_be(1)),
                 args_query_finalzation: Some(1),
                 args_query_outcome: Some(10),
             };
             return condition_deployed_numeric_10;
         } else {
             let condition_deployed_numeric_25 = Condition {
-                condition_type: ConditionType::DeployedContract,
+                condition_type: ConditionType::NumericModule,
                 hash_lock: None,
-                deployed_contract_address: Some(account_key("deployed")),
-                virtual_contract_address: None,
+                call_is_finalized: None,
+                call_get_outcome: None,
+                numeric_condition_id: Some(H256::from_low_u64_be(1)),
                 args_query_finalzation: Some(1),
                 args_query_outcome: Some(25),
             };
