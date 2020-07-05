@@ -2,6 +2,7 @@
 pub mod test_ledger_operation {
     use crate::Error;
     use crate::mock::*;
+    use crate::mock::Call as MockCall;
     use crate::pay_resolver::{
         Condition, ConditionalPay, PayResolver, ResolvePaymentConditionsRequest, TokenTransfer,
         TransferFunction, TransferFunctionType, TokenType, AccountAmtPair, TokenInfo,
@@ -1082,7 +1083,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1152,7 +1153,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1258,7 +1259,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1349,7 +1350,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1449,7 +1450,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1523,7 +1524,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1622,7 +1623,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1726,7 +1727,7 @@ pub mod test_ledger_operation {
             let global_result_1: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -1821,7 +1822,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -2065,7 +2066,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -2161,7 +2162,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -2575,7 +2576,7 @@ pub mod test_ledger_operation {
             let mut pay_id_infos: Vec<(
                 Vec<PayIdList<H256>>,
                 Vec<H256>,
-                Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+                Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>,
                 Balance,
                 Vec<PayIdList<H256>>,
             )> = vec![
@@ -2747,7 +2748,7 @@ pub mod test_ledger_operation {
             let mut pay_id_infos: Vec<(
                 Vec<PayIdList<H256>>,
                 Vec<H256>,
-                Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+                Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>,
                 Balance,
                 Vec<PayIdList<H256>>,
             )> = vec![
@@ -3263,7 +3264,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -3351,7 +3352,7 @@ pub mod test_ledger_operation {
             let global_result: (
                 SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
                 Vec<BlockNumber>,
-                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+                Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
                 Vec<Vec<H256>>,
                 Vec<Vec<PayIdList<H256>>>,
             ) = get_cosigned_intend_settle(
@@ -3983,7 +3984,7 @@ pub mod test_ledger_operation {
         to_order: Vec<(
             Vec<PayIdList<H256>>,
             Vec<H256>,
-            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>,
             Balance,
             Vec<PayIdList<H256>>,
         )>,
@@ -3991,14 +3992,14 @@ pub mod test_ledger_operation {
     ) -> Vec<(
         Vec<PayIdList<H256>>,
         Vec<H256>,
-        Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+        Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>,
         Balance,
         Vec<PayIdList<H256>>,
     )> {
         let mut result: Vec<(
             Vec<PayIdList<H256>>,
             Vec<H256>,
-            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>,
             Balance,
             Vec<PayIdList<H256>>,
         )> = vec![];
@@ -4258,7 +4259,7 @@ pub mod test_ledger_operation {
     ) -> (
         SignedSimplexStateArray<H256, AccountId, BlockNumber, Balance, Signature>,
         Vec<BlockNumber>,
-        Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>>,
+        Vec<Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>>,
         Vec<Vec<H256>>,
         Vec<Vec<PayIdList<H256>>>,
     ) {
@@ -4281,7 +4282,7 @@ pub mod test_ledger_operation {
             resolve_timeout: 0,
         };
         let mut cond_pays: Vec<
-            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+            Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>,
         > = vec![
             vec![
                 vec![init_cond_pay.clone(), init_cond_pay.clone()],
@@ -4300,7 +4301,7 @@ pub mod test_ledger_operation {
         let mut pay_info: (
             Vec<PayIdList<H256>>,
             Vec<H256>,
-            Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+            Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>>,
             Balance,
             Vec<PayIdList<H256>>,
         );
@@ -4316,9 +4317,7 @@ pub mod test_ledger_operation {
             vec![init_pay_id_list.clone(), init_pay_id_list.clone()];
         let mut _pay_id_list_hash_array: Vec<H256> =
             vec![H256::from_low_u64_be(0).clone(), H256::from_low_u64_be(0)];
-        let mut _cond_pay_array: Vec<
-            Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>,
-        > = vec![vec![]];
+        let mut _cond_pay_array: Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>> = vec![vec![]];
         let mut pay_id_list_array: Vec<Vec<PayIdList<H256>>> = vec![
             vec![init_pay_id_list.clone(), init_pay_id_list.clone()],
             vec![init_pay_id_list.clone(), init_pay_id_list.clone()],
@@ -4392,7 +4391,7 @@ pub mod test_ledger_operation {
     ) -> (
         Vec<PayIdList<H256>>,
         Vec<H256>,
-        Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>>,
+        Vec<Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>>>,
         Balance,
         Vec<PayIdList<H256>>,
     ) {
@@ -4427,9 +4426,8 @@ pub mod test_ledger_operation {
         // 2-d array list of PayIdList of a simplex channel,
         // for resolving pays with PayRegistry
         // Index is consistent with PayAmounts.
-        let mut cond_pay_array: Vec<
-            Vec<ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>>,
-        > = vec![
+        let mut cond_pay_array: Vec<Vec<ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>>> 
+        = vec![
             vec![init_cond_pay.clone(), init_cond_pay.clone()],
             vec![init_cond_pay.clone(), init_cond_pay.clone()],
         ];
@@ -4445,7 +4443,7 @@ pub mod test_ledger_operation {
             let mut pay_ids: Vec<H256> = vec![H256::from_low_u64_be(0), H256::from_low_u64_be(0)];
             for j in 0..pay_amounts_len_2 {
                 total_pending_amount += pay_amounts[i][j];
-                let conditions: Condition<AccountId, H256>;
+                let conditions: Condition<H256, MockCall>;
                 if pay_conditions == 1 {
                     conditions = get_condition(1);
                 } else {
