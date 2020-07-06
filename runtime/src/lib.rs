@@ -259,6 +259,7 @@ impl celer_pay::Trait for Runtime {
 	type Event = Event;
 	type Public = MultiSigner;
 	type Signature = Signature;
+	type Call = Call;
 }
 
 construct_runtime!(

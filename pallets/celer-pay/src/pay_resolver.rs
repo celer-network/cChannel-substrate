@@ -8,6 +8,7 @@ use pallet_timestamp;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero, Dispatchable};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::vec::Vec;
+use sp_std::boxed::Box;
 
 pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 
