@@ -54,11 +54,11 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 ## Run Celer local testnet in Docker
 1. pull docker image
 ```
-docker pull thashimoto19980924/celer-network:0.8.3
+docker pull thashimoto19980924/celer-network:0.8.4
 ```
 2. run celer local testnet 
 ```
-docker run thashimoto19980924/celer-network:0.8.3
+docker run thashimoto19980924/celer-network:0.8.4
 ````
 
 ## Test celer-pay runtime module in Docker
