@@ -151,7 +151,7 @@ decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         type Error = Error<T>;
         
-        fn deposit_event() = default;
+        pub fn deposit_event() = default;
 
         /// Celer Ledger
         /// Set the balance limits
@@ -174,10 +174,12 @@ decl_module! {
             #[compact] limits: BalanceOf<T>
         ) -> DispatchResult {
             LedgerOperation::<T>::set_balance_limits(origin, channel_id, limits)?;
+            
             Self::deposit_event(RawEvent::SetBalanceLimits(
                 channel_id,
                 limits
             ));
+            
             Ok(())
         }
         
@@ -199,7 +201,7 @@ decl_module! {
             channel_id: T::Hash
         ) -> DispatchResult {
             LedgerOperation::<T>::disable_balance_limits(origin, channel_id)?;
-            Self::deposit_event(Event::<T>::DisableBalanceLimits(channel_id));
+            Self::deposit_event(RawEvent::DisableBalanceLimits(channel_id));
             Ok(())
         }
 
@@ -221,7 +223,7 @@ decl_module! {
             channel_id: T::Hash
         ) -> DispatchResult {
             LedgerOperation::<T>::enable_balance_limits(origin, channel_id)?;
-            Self::deposit_event(Event::<T>::EnableBalanceLimits(channel_id));
+            Self::deposit_event(RawEvent::EnableBalanceLimits(channel_id));
             Ok(())
         }
 
@@ -1452,112 +1454,6 @@ impl<T: Trait> Module<T> {
     }
 
     /// Helper
-    // Emit DisableBalanceLimits event
-    pub fn emit_disable_balance_limits(channel_id: T::Hash) -> DispatchResult {
-        Self::deposit_event(RawEvent::DisableBalanceLimits(channel_id));
-        Ok(())
-    }
-
-    // Emit Deposit event
-    pub fn emit_deposit_event(channel_id: T::Hash) -> DispatchResult {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return Err(Error::<T>::ChannelNotExist)?,
-        };
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        Self::deposit_event(RawEvent::Deposit(
-            channel_id,
-            vec![
-                c.peer_profiles[0].peer_addr.clone(),
-                c.peer_profiles[1].peer_addr.clone(),
-            ],
-            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-            vec![
-                c.peer_profiles[0]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
-                c.peer_profiles[1]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
-            ],
-        ));
-        Ok(())
-    }
-
-    // Emit SnapshotStates event
-    pub fn emit_snapshot_states(
-        channel_id: T::Hash,
-        seq_num_1: u128,
-        seq_num_2: u128,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::SnapshotStates(
-            channel_id,
-            vec![seq_num_1, seq_num_2],
-        ));
-        Ok(())
-    }
-
-    // Emit IntendSettle event
-    pub fn emit_intend_settle(
-        channel_id: T::Hash,
-        seq_nums: Vec<u128>,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::IntendSettle(
-            channel_id,
-            vec![seq_nums[0], seq_nums[1]],
-        ));
-        Ok(())
-    }
-
-    // Emit ConfirmSettleFail event
-    pub fn emit_confirm_settle_fail(channel_id: T::Hash) -> DispatchResult {
-        Self::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
-        Ok(())
-    }
-
-    // Emit ClearOnePay event
-    pub fn emit_clear_one_pay(
-        channel_id: T::Hash,
-        pay_id: T::Hash,
-        peer_from: T::AccountId,
-        amount: BalanceOf<T>,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::ClearOnePay(channel_id, pay_id, peer_from, amount));
-        Ok(())
-    }
-
-    // Emit WithdrawFromWallet event
-    pub fn emit_withdraw_from_wallet(
-        wallet_id: T::Hash,
-        receiver: T::AccountId,
-        amount: BalanceOf<T>,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::WithdrawFromWallet(wallet_id, receiver, amount));
-        Ok(())
-    }
-
-    // Emit Approval event
-    pub fn emit_approval_event(
-        from: T::AccountId,
-        spender: T::AccountId,
-        value: BalanceOf<T>,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::Approval(from, spender, value));
-        Ok(())
-    }
-
-    // Emit PayInfoUpdate event
-    pub fn emit_pay_info_update(
-        pay_id: T::Hash,
-        amount: BalanceOf<T>,
-        deadline: T::BlockNumber,
-    ) -> DispatchResult {
-        Self::deposit_event(RawEvent::PayInfoUpdate(pay_id, amount, deadline));
-        Ok(())
-    }
-
     pub fn valid_signers(
         signatures: Vec<<T as Trait>::Signature>,
         encoded: &[u8],

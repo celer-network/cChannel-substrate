@@ -434,7 +434,7 @@ dependencies = [
 
 [[package]]
 name = "celer-network"
-version = "2.0.0-rc3"
+version = "0.8.4"
 dependencies = [
  "celer-runtime",
  "futures 0.3.5",
@@ -463,7 +463,7 @@ dependencies = [
 
 [[package]]
 name = "celer-pay-module"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -481,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "celer-runtime"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "celer-pay-module",
  "frame-executive",
@@ -2503,7 +2503,7 @@ dependencies = [
 
 [[package]]
 name = "mock-boolean-condition"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "frame-support",
  "frame-system",

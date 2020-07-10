@@ -624,7 +624,8 @@ pub mod test_pay_resolver {
         let condition_len = pay.conditions.len();
         for i in 0..condition_len {
             encoded.extend(pay.conditions[i].clone().condition_type.encode());
-            encoded.extend(pay.conditions[i].clone().hash_lock.encode());
+            pay.conditions[i].clone().hash_lock.iter()
+                .for_each(|hash| { encoded.extend(hash.encode()); });
             encoded.extend(pay.conditions[i].clone().call_is_finalized.encode());
             encoded.extend(pay.conditions[i].clone().call_get_outcome.encode());
             encoded.extend(pay.conditions[i].clone().numeric_condition_id.encode());

@@ -1,4 +1,4 @@
-use super::{Allowed, BalanceOf, Balances, Error, Module, Trait, Wallets};
+use super::{Allowed, BalanceOf, Balances, Error, Module, Trait, Wallets, RawEvent};
 use crate::celer_wallet::{WalletOf, WALLET_ID};
 use crate::ledger_operation::CELER_LEDGER_ID;
 use frame_support::traits::{Currency, ExistenceRequirement};
@@ -125,7 +125,13 @@ impl<T: Trait> Pool<T> {
 
         // Decrease Allowed balances of spender
         Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
-        Module::<T>::emit_approval_event(from.clone(), caller.clone(), new_allowed_balances)?;
+        
+        // Emit Approval event
+        Module::<T>::deposit_event(RawEvent::Approval(
+            from.clone(),
+            caller.clone(),
+            new_allowed_balances,
+        ));
 
         _transfer::<T>(from.clone(), to.clone(), value)?;
 
