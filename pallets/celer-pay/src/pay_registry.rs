@@ -1,4 +1,4 @@
-use super::{BalanceOf, PayInfoMap, Trait, Module};
+use super::{BalanceOf, PayInfoMap, Trait, Module, RawEvent};
 use crate::pay_resolver::RESOLVER_ID;
 use codec::{Decode, Encode};
 use frame_support::{ensure, storage::StorageMap,
@@ -38,7 +38,7 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             // Emit PayInfoUpdate event
-            Module::<T>::emit_pay_info_update(pay_id, amt, pay_info.resolve_deadline.unwrap())?;
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(pay_id, amt, pay_info.resolve_deadline.unwrap()));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
@@ -48,7 +48,11 @@ impl<T: Trait> PayRegistry<T> {
             
             let zero_blocknumber: T::BlockNumber = Zero::zero();
             // Emit PayInfoUpdate event
-            Module::<T>::emit_pay_info_update(pay_id, amt, zero_blocknumber)?;
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                pay_id,
+                amt,
+                zero_blocknumber,
+            ));
         }
 
         Ok(())
@@ -67,7 +71,11 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             // Emit PayInfoUpdate event
-            Module::<T>::emit_pay_info_update(pay_id, pay_info.amount.unwrap(), deadline)?;
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                pay_id,
+                pay_info.amount.unwrap(),
+                deadline,
+            ));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: None,
@@ -77,7 +85,11 @@ impl<T: Trait> PayRegistry<T> {
             
             let zero_amount: BalanceOf<T> = Zero::zero();
             // Emit PayInfoUpdate event
-            Module::<T>::emit_pay_info_update(pay_id, zero_amount, deadline)?;
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                pay_id,
+                zero_amount,
+                deadline
+            ));
         }
 
         Ok(())
@@ -95,7 +107,11 @@ impl<T: Trait> PayRegistry<T> {
         };
         <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         // Emit PayInfoUpdate event
-        Module::<T>::emit_pay_info_update(pay_id, amt, deadline)?;
+        Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            pay_id,
+            amt,
+            deadline,
+        ));
 
         Ok(())
     }
@@ -119,7 +135,11 @@ impl<T: Trait> PayRegistry<T> {
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 // Emit PayInfoUpdate event
-                Module::<T>::emit_pay_info_update(pay_id, amts[i], pay_info.resolve_deadline.unwrap())?;
+                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    amts[i],
+                    pay_info.resolve_deadline.unwrap()
+                ));
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: Some(amts[i]),
@@ -129,7 +149,11 @@ impl<T: Trait> PayRegistry<T> {
 
                 let zero_blocknumber: T::BlockNumber = Zero::zero();
                 // Emit PayInfoUpdate event
-                Module::<T>::emit_pay_info_update(pay_id, amts[i], zero_blocknumber)?;
+                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    amts[i],
+                    zero_blocknumber,
+                ));
             }
         }
 
@@ -155,7 +179,11 @@ impl<T: Trait> PayRegistry<T> {
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 // Emit PayInfoUpdate event
-                Module::<T>::emit_pay_info_update(pay_id, pay_info.amount.unwrap(), deadlines[i])?;
+                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    pay_info.amount.unwrap(),
+                    deadlines[i],
+                ));
             } else {
                 let new_pay_info = PayInfoOf::<T> {
                     amount: None,
@@ -165,7 +193,11 @@ impl<T: Trait> PayRegistry<T> {
                 
                 let zero_balance: BalanceOf<T> = Zero::zero();
                 // Emit PayInfoUpdate event
-                Module::<T>::emit_pay_info_update(pay_id, zero_balance, deadlines[i])?;
+                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    zero_balance,
+                    deadlines[i],
+                ));
             }
         }
 
@@ -190,7 +222,11 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             // Emit PayInfoUpdate event
-            Module::<T>::emit_pay_info_update(pay_id, amts[i], deadlines[i])?;
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                pay_id,
+                amts[i],
+                deadlines[i]
+            ));
         }
 
         Ok(())
