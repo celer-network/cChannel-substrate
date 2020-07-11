@@ -1,5 +1,4 @@
 use super::{BalanceOf, Error, Module, Trait};
-use crate::mock_numeric_condition::MockNumericCondition;
 use crate::pay_registry::PayRegistry;
 use codec::{Decode, Encode};
 use frame_support::{ensure};
@@ -9,6 +8,7 @@ use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero, Dispatchab
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::vec::Vec;
 use sp_std::boxed::Box;
+use mock_numeric_condition;
 
 pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 
@@ -16,18 +16,18 @@ pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 pub enum ConditionType {
     HashLock,
     BooleanRuntimeModule,
-    NumericModule, 
+    NumericRuntimeModule, 
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Condition<Hash, Call> {
     pub condition_type: ConditionType,
     pub hash_lock: Option<Hash>,
-    pub call_is_finalized: Option<Box<Call>>, // overarching call is_finalized of runtime module
-    pub call_get_outcome: Option<Box<Call>>, // overarching call get_outcome of runtime module
-    pub numeric_condition_id: Option<Hash>,
-    pub args_query_finalzation: Option<u8>,
-    pub args_query_outcome: Option<u8>,
+    pub call_is_finalized: Option<Box<Call>>, // overarching call is_finalized of boolean runtime module
+    pub call_get_outcome: Option<Box<Call>>, // overarching call get_outcome of boolean runtime module
+    pub numeric_condition_id: Option<Hash>, 
+    pub args_query_finalzation: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
+    pub args_query_outcome: Option<Vec<u8>>, // the encoded query outcome of numeric runtime module
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -367,16 +367,16 @@ fn calculate_numeric_logic_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::NumericModule {
+        } else if cond.condition_type == ConditionType::NumericRuntimeModule {
             let cond_id = match get_numeric_cond_id::<T>(cond.clone()) {
                 Some(_cond_id) => _cond_id,
                 None => Err(Error::<T>::Error)?,
             };
 
-            let is_finalized: bool = MockNumericCondition::<T>::is_finalized(&cond_id, cond.args_query_finalzation);
+            let is_finalized: bool = mock_numeric_condition::Module::<T>::is_finalized(&cond_id, cond.args_query_finalzation)?;
             ensure!(is_finalized == true, "Condition is not finalized");
 
-            let outcome = MockNumericCondition::<T>::get_numeric_outcome(&cond_id, cond.args_query_outcome);
+            let outcome: BalanceOf<T> = mock_numeric_condition::Module::<T>::get_numeric_outcome(&cond_id, cond.args_query_outcome).unwrap().into();
             if func_type == TransferFunctionType::NumericAdd {
                 amount = amount + outcome;
             } else if func_type == TransferFunctionType::NumericMax {
@@ -414,7 +414,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
 
 // Get the numeric contract id of the condition
 fn get_numeric_cond_id<T: Trait>(cond: Condition<T::Hash, <T as Trait>::Call>) -> Option<T::Hash> {
-    if cond.condition_type == ConditionType::NumericModule {
+    if cond.condition_type == ConditionType::NumericRuntimeModule {
         return cond.numeric_condition_id;
     } else {
         return None;

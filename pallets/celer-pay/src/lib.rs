@@ -4,7 +4,6 @@
 mod celer_wallet;
 mod ledger_operation;
 mod mock;
-mod mock_numeric_condition;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
@@ -37,11 +36,12 @@ use sp_runtime::traits::{
 };
 use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
+use mock_numeric_condition;
 
 pub type BalanceOf<T> =
     <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
-pub trait Trait: system::Trait + pallet_timestamp::Trait {
+pub trait Trait: system::Trait + pallet_timestamp::Trait + mock_numeric_condition::Trait {
     type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type Public: IdentifyAccount<AccountId = Self::AccountId>;

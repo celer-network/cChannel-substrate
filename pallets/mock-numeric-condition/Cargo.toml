@@ -43,7 +43,7 @@ version = '2.0.0-rc3'
 authors = ['Celer']
 edition = '2018'
 license = 'MIT license'
-name = 'mock-boolean-condition'
+name = 'mock-numeric-condition'
 version = '0.8.5'
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']

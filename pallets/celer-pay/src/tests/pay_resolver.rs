@@ -677,15 +677,15 @@ pub mod test_pay_resolver {
             let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
                 MockBooleanCall::is_finalized(
                     H256::from_low_u64_be(1),
-                    1)
-                )
+                    1
+                ))
             );
             // this call returns DispatchError::Other("FalseOutcome")
             let call_get_outcome_false = Box::new(MockCall::MockBooleanCondition(
                 MockBooleanCall::get_outcome(
                     H256::from_low_u64_be(1),
-                    0)
-                )
+                    0
+                ))
             );
             let condition_deployed_false = Condition {
                 condition_type: ConditionType::BooleanRuntimeModule,
@@ -699,24 +699,24 @@ pub mod test_pay_resolver {
             return condition_deployed_false;
         } else if r#type == 3 {
             let condition_deployed_numeric_10 = Condition {
-                condition_type: ConditionType::NumericModule,
+                condition_type: ConditionType::NumericRuntimeModule,
                 hash_lock: None,
                 call_is_finalized: None,
                 call_get_outcome: None,
                 numeric_condition_id: Some(H256::from_low_u64_be(1)),
-                args_query_finalzation: Some(1),
-                args_query_outcome: Some(10),
+                args_query_finalzation: Some(1.encode()),
+                args_query_outcome: Some(10.encode()),
             };
             return condition_deployed_numeric_10;
         } else {
             let condition_deployed_numeric_25 = Condition {
-                condition_type: ConditionType::NumericModule,
+                condition_type: ConditionType::NumericRuntimeModule,
                 hash_lock: None,
                 call_is_finalized: None,
                 call_get_outcome: None,
                 numeric_condition_id: Some(H256::from_low_u64_be(1)),
-                args_query_finalzation: Some(1),
-                args_query_outcome: Some(25),
+                args_query_finalzation: Some(1.encode()),
+                args_query_outcome: Some(25.encode()),
             };
             return condition_deployed_numeric_25;
         }

@@ -101,6 +101,8 @@ impl pallet_timestamp::Trait for TestRuntime {
 
 impl mock_boolean_condition::Trait for TestRuntime {}
 
+impl mock_numeric_condition::Trait for TestRuntime {}
+
 impl Trait for TestRuntime {
     type Currency = pallet_balances::Module<Self>;
     type Event = TestEvent;
