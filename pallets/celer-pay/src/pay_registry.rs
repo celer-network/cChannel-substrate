@@ -1,12 +1,10 @@
 use super::{BalanceOf, PayInfoMap, Trait, Module, RawEvent};
 use crate::pay_resolver::RESOLVER_ID;
 use codec::{Decode, Encode};
-use frame_support::{ensure, storage::StorageMap,
-    dispatch::DispatchError,
-};
+use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system};
 use sp_runtime::traits::{AccountIdConversion, Hash, Zero};
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{RuntimeDebug, DispatchError};
 use sp_std::{vec, vec::Vec};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]

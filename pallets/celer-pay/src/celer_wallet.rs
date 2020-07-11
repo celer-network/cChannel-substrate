@@ -1,13 +1,11 @@
 use super::{BalanceOf, Error, Trait, Wallets};
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
-use frame_support::{ensure, storage::StorageMap,
-    dispatch::DispatchError
-};
+use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system, ensure_signed};
 use sp_std::vec::Vec;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd};
-use sp_runtime::{ModuleId, RuntimeDebug};
+use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Wallet<AccountId, Balance> {
