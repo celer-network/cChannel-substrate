@@ -4,7 +4,7 @@ edition = '2018'
 license = 'Unlicense'
 name = 'celer-runtime'
 repository = 'https://github.com/celer-network/cChannel-substrate'
-version = '0.8.4'
+version = '0.8.5'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -150,7 +150,13 @@ version = '2.0.0-rc3'
 default-features = false
 package = 'celer-pay-module'
 path = '../pallets/celer-pay'
-version = '0.8.4'
+version = '0.8.5'
+
+[dependencies.mock-numeric-condition]
+default-features = false
+package = 'mock-numeric-condition'
+path = '../pallets/mock-numeric-condition'
+version = '0.8.5'
 
 [dependencies.timestamp]
 default-features = false
@@ -194,6 +200,7 @@ std = [
     'timestamp/std',
     'transaction-payment/std',
     'celer-pay/std',
+    'mock-numeric-condition/std',
 ]
 
 [build-dependencies.wasm-builder-runner]
