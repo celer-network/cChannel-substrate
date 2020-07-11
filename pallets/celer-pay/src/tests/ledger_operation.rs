@@ -76,7 +76,7 @@ pub mod test_ledger_operation {
                 open_channel_request.clone(),
                 0,
             ).unwrap();
-            let cal_channel_id = calculate_channel_id(open_channel_request, channel_peers);
+            let cal_channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
             assert_eq!(channel_id, cal_channel_id);
         })
     }

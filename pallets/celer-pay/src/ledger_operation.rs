@@ -1,4 +1,4 @@
-use super::{BalanceOf, ChannelMap, ChannelStatusNums, Error, Module, Trait, Wallets};
+use super::{BalanceOf, ChannelMap, ChannelStatusNums, Error, Module, Trait, Wallets, RawEvent};
 use crate::celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{AccountAmtPair, TokenInfo, TokenTransfer, TokenType};
@@ -252,8 +252,8 @@ impl<T: Trait> LedgerOperation<T> {
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: c.withdraw_intent,
         };
-
         <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+
         Ok(())
     }
 
@@ -455,9 +455,8 @@ impl<T: Trait> LedgerOperation<T> {
         } else {
             Err(Error::<T>::Error)?
         }
-
-        ChannelMap::<T>::insert(channel_id, channel);
-
+        
+        ChannelMap::<T>::insert(channel_id, channel.clone());
         return Ok(channel_id);
     }
 
@@ -599,7 +598,10 @@ impl<T: Trait> LedgerOperation<T> {
 
             if i == state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 let seq_nums = get_state_seq_nums::<T>(current_channel_id);
-                Module::<T>::emit_snapshot_states(current_channel_id, seq_nums[0], seq_nums[1])?;
+                Module::<T>::deposit_event(RawEvent::SnapshotStates(
+                    current_channel_id,
+                    vec![seq_nums[0], seq_nums[1]],
+                ));
             } else if i < state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 simplex_state = signed_simplex_state_array.signed_simplex_states[i + 1].simplex_state.clone();
                 // enforce channel_ids of simplex states are ascending
@@ -609,7 +611,10 @@ impl<T: Trait> LedgerOperation<T> {
                 );
                 if current_channel_id < simplex_state.channel_id {
                     let seq_nums = get_state_seq_nums::<T>(current_channel_id);
-                    Module::<T>::emit_snapshot_states(current_channel_id,seq_nums[0],seq_nums[1])?;
+                    Module::<T>::deposit_event(RawEvent::SnapshotStates(
+                        current_channel_id,
+                        vec![seq_nums[0], seq_nums[1]],
+                    ));
                 }
             } else {
                 Err(Error::<T>::Error)?
@@ -1306,7 +1311,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         if valid_balance == false {
             reset_duplex_state::<T>(c.clone(), channel_id);
-            Module::<T>::emit_confirm_settle_fail(channel_id)?;
+            Module::<T>::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
             Err(Error::<T>::ConfirmSettleFail)?
         }
 
@@ -1473,7 +1478,24 @@ fn add_deposit<T: Trait>(
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: c.withdraw_intent,
         };
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+    
+        // emit Deposit event
+        Module::<T>::deposit_event(RawEvent::Deposit(
+            channel_id,
+            vec![
+                new_channel.peer_profiles[0].peer_addr.clone(),
+                new_channel.peer_profiles[1].peer_addr.clone(),
+            ],
+            vec![
+                new_channel.peer_profiles[0].deposit,
+                new_channel.peer_profiles[1].deposit,
+            ],
+            vec![
+                new_channel.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
+                new_channel.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
+            ],
+        ));
     } else if receiver == c.peer_profiles[1].peer_addr {
         new_deposit_balance = c.peer_profiles[1].deposit.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
         let new_peer_profiles_2 = PeerProfileOf::<T> {
@@ -1493,13 +1515,27 @@ fn add_deposit<T: Trait>(
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: c.withdraw_intent,
         };
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
+
+        // emit Deposit event
+        Module::<T>::deposit_event(RawEvent::Deposit(
+            channel_id,
+            vec![
+                new_channel.peer_profiles[0].peer_addr.clone(),
+                new_channel.peer_profiles[1].peer_addr.clone(),
+            ],
+            vec![
+                new_channel.peer_profiles[0].deposit,
+                new_channel.peer_profiles[1].deposit,
+            ],
+            vec![
+                new_channel.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
+                new_channel.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
+            ],
+        ));
     } else {
         Err(Error::<T>::NotChannelPeer)?
     }
-
-    // emit Deposit event
-    Module::<T>::emit_deposit_event(channel_id)?;
 
     Ok(())
 }
@@ -1592,12 +1628,12 @@ fn _clear_pays<T: Trait>(
                 .checked_add(&out_amts[i])
                 .ok_or(Error::<T>::OverFlow)?;
             // emit ClearOnePay event
-            Module::<T>::emit_clear_one_pay(
+            Module::<T>::deposit_event(RawEvent::ClearOnePay(
                 channel_id,
                 pay_id_list.pay_ids[i].clone(),
                 c.peer_profiles[peer_id as usize].clone().peer_addr,
                 out_amts[i],
-            )?;
+            ));
         }
 
         // updating pending_pay_out is only needed when migrating ledger during settling phrase,
@@ -1675,12 +1711,12 @@ fn _clear_pays<T: Trait>(
         for i in 0..out_amts_len {
             total_amt_out = total_amt_out.checked_add(&out_amts[i]).ok_or(Error::<T>::OverFlow)?;
             // emit ClearOnePay event
-            Module::<T>::emit_clear_one_pay(
+            Module::<T>::deposit_event(RawEvent::ClearOnePay(
                 channel_id,
                 pay_id_list.pay_ids[i].clone(),
                 c.peer_profiles[peer_id as usize].clone().peer_addr,
                 out_amts[i],
-            )?;
+            ));
         }
 
         // updating pending_pay_out is only needed when migrating ledger during settling phrase,
@@ -1778,7 +1814,7 @@ fn update_overall_states_by_intend_state<T: Trait>(
 
     let seq_nums = get_state_seq_nums::<T>(channel_id);
     // emit IntendSettle event
-    Module::<T>::emit_intend_settle(channel_id, seq_nums)?;
+    Module::<T>::deposit_event(RawEvent::IntendSettle(channel_id, seq_nums));
 
     Ok(())
 }
@@ -1878,7 +1914,11 @@ fn withdraw<T: Trait>(
 ) -> Result<(), DispatchError> {
     update_balance::<T>(receiver.clone(), wallet_id, MathOperation::Sub, amount)?;
     // Emit WithdrawFromWallet Event
-    Module::<T>::emit_withdraw_from_wallet(wallet_id, receiver, amount)?;
+    Module::<T>::deposit_event(RawEvent::WithdrawFromWallet(
+        wallet_id, 
+        receiver, 
+        amount
+    ));
     Ok(())
 }
 
