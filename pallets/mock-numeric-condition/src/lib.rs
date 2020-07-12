@@ -35,7 +35,7 @@ impl<T: Trait> Module<T> {
         }
     }
 
-    pub fn get_numeric_outcome(
+    pub fn get_outcome(
         _app_id: &T::Hash, 
         query: Option<Vec<u8>>
     ) -> Result<u32, DispatchError> {
