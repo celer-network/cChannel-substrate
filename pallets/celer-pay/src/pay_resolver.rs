@@ -376,7 +376,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
             let is_finalized: bool = mock_numeric_condition::Module::<T>::is_finalized(&cond_id, cond.args_query_finalzation)?;
             ensure!(is_finalized == true, "Condition is not finalized");
 
-            let outcome: BalanceOf<T> = mock_numeric_condition::Module::<T>::get_numeric_outcome(&cond_id, cond.args_query_outcome).unwrap().into();
+            let outcome: BalanceOf<T> = mock_numeric_condition::Module::<T>::get_outcome(&cond_id, cond.args_query_outcome).unwrap().into();
             if func_type == TransferFunctionType::NumericAdd {
                 amount = amount + outcome;
             } else if func_type == TransferFunctionType::NumericMax {
