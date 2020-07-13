@@ -1,4 +1,5 @@
 use super::*;
+use crate::traits::Trait;
 use frame_support::storage::migration::{
     StorageIterator, 
     get_storage_value, 

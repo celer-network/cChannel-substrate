@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use super::*;
-use crate::{Module, Trait};
+use crate::{Module};
+use crate::traits::Trait;
 use frame_support::{
     impl_outer_event, impl_outer_origin, impl_outer_dispatch,
     parameter_types, weights::Weight
