@@ -628,7 +628,8 @@ pub mod test_pay_resolver {
                 .for_each(|hash| { encoded.extend(hash.encode()); });
             encoded.extend(pay.conditions[i].clone().call_is_finalized.encode());
             encoded.extend(pay.conditions[i].clone().call_get_outcome.encode());
-            encoded.extend(pay.conditions[i].clone().numeric_condition_id.encode());
+            encoded.extend(pay.conditions[i].clone().numeric_app_num.encode());
+            encoded.extend(pay.conditions[i].clone().numeric_session_id.encode());
             encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
             encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
         }
@@ -642,7 +643,8 @@ pub mod test_pay_resolver {
                 hash_lock: Some(H256::from_low_u64_be(1)),
                 call_is_finalized: None,
                 call_get_outcome: None,
-                numeric_condition_id: None, 
+                numeric_app_num: None,
+                numeric_session_id: None,
                 args_query_finalzation: None,
                 args_query_outcome: None,
             };
@@ -652,22 +654,23 @@ pub mod test_pay_resolver {
             let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
                 MockBooleanCall::is_finalized(
                     H256::from_low_u64_be(1),
-                    1)
-                )
+                    1
+                ))
             );
             // this call return Ok(())
             let call_get_outcome_true = Box::new(MockCall::MockBooleanCondition(
                 MockBooleanCall::get_outcome(
                     H256::from_low_u64_be(1),
-                    1)
-                )
+                    1
+                ))
             );
             let condition_deployed_true = Condition {
                 condition_type: ConditionType::BooleanRuntimeModule,
                 hash_lock: None,
                 call_is_finalized: Some(call_is_finalized_true),
-                call_get_outcome: Some(call_get_outcome_true), 
-                numeric_condition_id: None,
+                call_get_outcome: Some(call_get_outcome_true),
+                numeric_app_num: None,
+                numeric_session_id: None,
                 args_query_finalzation: None,
                 args_query_outcome: None,
             };
@@ -692,7 +695,8 @@ pub mod test_pay_resolver {
                 hash_lock: None,
                 call_is_finalized: Some(call_is_finalized_true),
                 call_get_outcome: Some(call_get_outcome_false),
-                numeric_condition_id: None,
+                numeric_app_num: None,
+                numeric_session_id: None,
                 args_query_finalzation: None,
                 args_query_outcome: None,
             };
@@ -703,7 +707,8 @@ pub mod test_pay_resolver {
                 hash_lock: None,
                 call_is_finalized: None,
                 call_get_outcome: None,
-                numeric_condition_id: Some(H256::from_low_u64_be(1)),
+                numeric_app_num: Some(0),
+                numeric_session_id: Some(H256::from_low_u64_be(1)),
                 args_query_finalzation: Some(1.encode()),
                 args_query_outcome: Some(10.encode()),
             };
@@ -714,7 +719,8 @@ pub mod test_pay_resolver {
                 hash_lock: None,
                 call_is_finalized: None,
                 call_get_outcome: None,
-                numeric_condition_id: Some(H256::from_low_u64_be(1)),
+                numeric_app_num: Some(0),
+                numeric_session_id: Some(H256::from_low_u64_be(1)),
                 args_query_finalzation: Some(1.encode()),
                 args_query_outcome: Some(25.encode()),
             };

@@ -1,4 +1,5 @@
-use super::{BalanceOf, ChannelMap, ChannelStatusNums, Error, Module, Trait, Wallets, RawEvent};
+use super::{BalanceOf, ChannelMap, ChannelStatusNums, Error, Module, Wallets, RawEvent};
+use crate::traits::Trait;
 use crate::celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{AccountAmtPair, TokenInfo, TokenTransfer, TokenType};

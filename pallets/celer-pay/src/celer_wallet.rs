@@ -1,4 +1,5 @@
-use super::{BalanceOf, Error, Trait, Wallets};
+use super::{BalanceOf, Error, Wallets};
+use crate::traits::Trait;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{ensure, storage::StorageMap};
