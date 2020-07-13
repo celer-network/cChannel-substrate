@@ -8,17 +8,19 @@ mod pay_registry;
 mod pay_resolver;
 mod pool;
 mod migration;
+mod numeric_condition_caller;
+pub mod traits;
 
 #[cfg(test)]
 pub mod tests;
 
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
+    decl_error, decl_event, decl_module, decl_storage, ensure,
     storage::StorageMap,
     traits::{Currency, Get},
-    dispatch::{DispatchResultWithPostInfo, PostDispatchInfo, IsSubType},
-    weights::{Weight, DispatchClass, GetDispatchInfo},
+    dispatch::DispatchResultWithPostInfo,
+    weights::{Weight, DispatchClass},
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
@@ -26,30 +28,16 @@ use ledger_operation::{
     LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf,
 };
 use celer_wallet::{CelerWallet, WalletOf};
-use pallet_timestamp;
 use pay_registry::{PayInfoOf, PayRegistry};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf};
 use pool::Pool;
-use sp_runtime::traits::{
-    CheckedAdd, CheckedSub, Hash, IdentifyAccount, 
-    Member, Verify, Zero, Dispatchable,
-};
+pub use traits::Trait;
+use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero, Verify};
 use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
-use mock_numeric_condition;
 
 pub type BalanceOf<T> =
     <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
-
-pub trait Trait: system::Trait + pallet_timestamp::Trait + mock_numeric_condition::Trait {
-    type Currency: Currency<Self::AccountId>;
-    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-    type Public: IdentifyAccount<AccountId = Self::AccountId>;
-    type Signature: Verify<Signer = <Self as Trait>::Public> + Member + Decode + Encode;
-    /// The overarching call type
-    type Call: Parameter + Dispatchable<Origin=Self::Origin, PostInfo=PostDispatchInfo>
-		+ GetDispatchInfo + From<frame_system::Call<Self>> + IsSubType<Module<Self>, Self>;
-}
 
 // A value placed in storage that represents the current version of the Celer Ledger storage.
 // This value is used by the `on_runtime_upgrade` logic to determine whether we run
@@ -1061,6 +1049,8 @@ decl_error! {
         HashLockNotExist,
         // condition_address is not exit
         ConditionAddressNotExist,
+        // numeric app is not exist
+        NumericAppNotExit
     }
 }
 
@@ -1110,24 +1100,11 @@ impl<T: Trait> Module<T> {
         let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
         let zero_balance: BalanceOf<T> = Zero::zero();
         let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
-        balance = balance
-            .checked_add(&c.peer_profiles[1].deposit)
+        balance = balance.checked_add(&c.peer_profiles[1].deposit)
             .ok_or(Error::<T>::OverFlow)?;
-        balance = balance
-            .checked_sub(
-                &c.peer_profiles[0]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
-            )
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance))
             .ok_or(Error::<T>::UnderFlow)?;
-        balance = balance
-            .checked_sub(
-                &c.peer_profiles[1]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
-            )
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance))
             .ok_or(Error::<T>::UnderFlow)?;
         return Ok(balance);
     }
@@ -1148,14 +1125,8 @@ impl<T: Trait> Module<T> {
             ],
             vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
             vec![
-                c.peer_profiles[0]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
-                c.peer_profiles[1]
-                    .clone()
-                    .withdrawal
-                    .unwrap_or(zero_balance),
+                c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance),
+                c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance),
             ],
         );
     }

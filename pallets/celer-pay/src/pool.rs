@@ -1,4 +1,5 @@
-use super::{Allowed, BalanceOf, Balances, Error, Module, Trait, Wallets, RawEvent};
+use super::{Allowed, BalanceOf, Balances, Error, Module, Wallets, RawEvent};
+use crate::traits::Trait;
 use crate::celer_wallet::{WalletOf, WALLET_ID};
 use crate::ledger_operation::CELER_LEDGER_ID;
 use frame_support::traits::{Currency, ExistenceRequirement};

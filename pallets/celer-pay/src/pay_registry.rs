@@ -1,4 +1,5 @@
-use super::{BalanceOf, PayInfoMap, Trait, Module, RawEvent};
+use super::{BalanceOf, PayInfoMap, Module, RawEvent};
+use crate::traits::Trait;
 use crate::pay_resolver::RESOLVER_ID;
 use codec::{Decode, Encode};
 use frame_support::{ensure, storage::StorageMap};
