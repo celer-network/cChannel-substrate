@@ -1,7 +1,7 @@
 use super::{BalanceOf, Error, Module};
 use crate::traits::Trait;
 use crate::pay_registry::PayRegistry;
-use crate::numeric_condition_operation::NumericConditionCaller;
+use crate::numeric_condition_caller::NumericConditionCaller;
 use codec::{Decode, Encode};
 use frame_support::{ensure};
 use frame_system::{self as system};

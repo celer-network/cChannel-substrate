@@ -8,7 +8,7 @@ mod pay_registry;
 mod pay_resolver;
 mod pool;
 mod migration;
-mod numeric_condition_operation;
+mod numeric_condition_caller;
 pub mod traits;
 
 #[cfg(test)]
