@@ -1,4 +1,5 @@
 # Based from https://github.com/paritytech/substrate/blob/master/.maintain/Dockerfile
+# ===== FIRST STAGE =====
 FROM phusion/baseimage:0.10.2 as builder
 LABEL maintainer="hashimoto19980924@gmail.com"
 LABEL description="This is the build stage for Celer Node. Here we create the binary."
@@ -19,10 +20,9 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	rustup toolchain install nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly && \
 	rustup default stable && \
-	cargo build "--$PROFILE"
-
+	cargo build "--$PROFILE" 
+	
 # ===== SECOND STAGE ======
-
 FROM phusion/baseimage:0.10.2
 LABEL maintainer="hashimoto19980924@gmail.com"
 LABEL description="This is the 2nd stage: a very small image where we copy the Celer Node binary."
@@ -44,10 +44,11 @@ RUN rm -rf /usr/lib/python* && \
 	rm -rf /usr/bin /usr/sbin /usr/share/man
 
 USER celer
-EXPOSE 30333 9933 9944
+EXPOSE 30333 9933 9944 9615
 
 RUN mkdir /celer/data
 
 VOLUME ["/celer/data"]
 
 ENTRYPOINT ["/usr/local/bin/celer-network"]
+CMD ["--base-path", "/tmp/alice", "--chain=dev", "--port", "30333", "--validator", "--alice", "--unsafe-ws-external", "--unsafe-rpc-external", "--no-telemetry", "--rpc-cors", "all"]
