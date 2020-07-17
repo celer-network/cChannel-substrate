@@ -735,7 +735,7 @@ pub mod test_pay_resolver {
     ) -> TransferFunction<AccountId, Balance> {
         if r#type == 0 {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
@@ -752,7 +752,7 @@ pub mod test_pay_resolver {
             return transfer_func;
         } else if r#type == 1 {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
@@ -769,7 +769,7 @@ pub mod test_pay_resolver {
             return transfer_func;
         } else if r#type == 2 {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
@@ -786,7 +786,7 @@ pub mod test_pay_resolver {
             return transfer_func;
         } else if r#type == 3 {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
@@ -803,7 +803,7 @@ pub mod test_pay_resolver {
             return transfer_func;
         } else if r#type == 4 {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
@@ -820,7 +820,7 @@ pub mod test_pay_resolver {
             return transfer_func;
         } else {
             let token_info = TokenInfo {
-                token_type: TokenType::CELER,
+                token_type: TokenType::Celer,
             };
             let account_amt_pair = AccountAmtPair {
                 account: Some(r#account),
