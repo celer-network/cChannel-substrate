@@ -4,7 +4,6 @@
 * [Core Concepts](#core-concepts)
 * [Release Features](#release-features)
 * [Run Celer local testnet in Docker](#run-celer-local-testnet-in-docker)
-* [Test celer-pay runtime module in Docker](#test-celer-pay-runtime-module-in-docker) 
 * [Buidling and Testing celer-pay runtime module from source](#building-and-testing-from-source)
 
 ## Overview
@@ -52,19 +51,10 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 * **Cooperative Settle**: skips challenge period and settles a channel when both peers reach an agreement.
 
 ## Run Celer local testnet in Docker
-1. pull docker image
-```
-docker pull thashimoto19980924/celer-network:latest
-```
-2. run celer local testnet 
-```
-docker run thashimoto19980924/celer-network:latest
-````
 
-## Test celer-pay runtime module in Docker
 ```
-./scripts/docker_test.sh
-```
+docker run -p 9944:9944 -p 9615:9615 thashimoto19980924/celer-network:latest
+````
 
 ## Building and Testing celer-pay runtime module from source
 1. Fast Installation
