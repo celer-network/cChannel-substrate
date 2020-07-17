@@ -143,8 +143,7 @@ pub struct SignedSimplexState<Hash, AccountId, BlockNumber, Balance, Signature> 
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct SignedSimplexStateArray<Hash, AccountId, BlockNumber, Balance, Signature> {
-    pub signed_simplex_states:
-        Vec<SignedSimplexState<Hash, AccountId, BlockNumber, Balance, Signature>>,
+    pub signed_simplex_states: Vec<SignedSimplexState<Hash, AccountId, BlockNumber, Balance, Signature>>,
 }
 
 pub type SignedSimplexStateArrayOf<T> = SignedSimplexStateArray<
@@ -433,7 +432,7 @@ impl<T: Trait> LedgerOperation<T> {
             ensure!(amt_sum <= balance_limits, "Balance exceeds limit");
         }
 
-        if token.token_type == TokenType::CELER {
+        if token.token_type == TokenType::Celer {
             let msg_value_receiver = channel_initializer.msg_value_receiver as usize;
             ensure!(amount == amounts[msg_value_receiver], "amount mismatch");
             if amounts[msg_value_receiver] > zero_balance {
@@ -480,7 +479,7 @@ impl<T: Trait> LedgerOperation<T> {
         add_deposit::<T>(channel_id, receiver.clone(), deposit_amount)?;
 
         let zero_balance: BalanceOf<T> = Zero::zero();
-        if c.token.token_type == TokenType::CELER {
+        if c.token.token_type == TokenType::Celer {
             if amount > zero_balance {
                 CelerWallet::<T>::deposit_native_token(origin, channel_id, amount)?;
             }
