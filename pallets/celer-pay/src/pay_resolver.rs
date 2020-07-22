@@ -45,8 +45,8 @@ pub enum TransferFunctionType {
 // Currently native token is only supoorted.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum TokenType {
-    INVALID,
-    CELER, // native token. If Kusama network,change from CELER to KSM.
+    Invalid,
+    Celer, // native token. If Kusama network,change from Celer to Ksm.
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]

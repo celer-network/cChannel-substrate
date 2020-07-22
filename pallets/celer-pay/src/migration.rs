@@ -43,7 +43,7 @@ fn upgrade_v1_to_v2<T: Trait>() {
 
             // Set default token field
             let token = TokenInfo {
-                token_type: TokenType::CELER
+                token_type: TokenType::Celer
             };
             channel.token = token;
 

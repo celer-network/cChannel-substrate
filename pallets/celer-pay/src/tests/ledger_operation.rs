@@ -4108,7 +4108,7 @@ pub mod test_ledger_operation {
         let account_amt_pair_2: AccountAmtPair<AccountId, Balance>;
         let token_distribution: TokenDistribution<AccountId, Balance>;
         let token_info = TokenInfo {
-            token_type: TokenType::CELER,
+            token_type: TokenType::Celer,
         };
 
         if zero_total_deposit == true {
@@ -4691,7 +4691,7 @@ pub mod test_ledger_operation {
         };
 
         let token_info = TokenInfo {
-            token_type: TokenType::CELER,
+            token_type: TokenType::Celer,
         };
 
         let token_transfer = TokenTransfer {
@@ -4709,7 +4709,7 @@ pub mod test_ledger_operation {
         };
 
         let token_info = TokenInfo {
-            token_type: TokenType::CELER,
+            token_type: TokenType::Celer,
         };
 
         let token_transfer = TokenTransfer {
