@@ -141,7 +141,7 @@ decl_module! {
         
         pub fn deposit_event() = default;
 
-        /// Celer Ledger
+ /// ============================ Celer Ledger Operation =========================================
         /// Set the balance limits
         ///
         /// Parameters:
@@ -533,7 +533,7 @@ decl_module! {
             Ok(())
         }
 
-        /// Intent to settle channel with an array of signed simplex states
+        /// Intend to settle channel with an array of signed simplex states
         ///
         /// Dev: simplex states in this array are not necessarily in the same channel,
         ///      which means intendSettle natively supports multi-channel batch processing.
@@ -665,7 +665,7 @@ decl_module! {
             Ok(())
         }
 
-        /// Celer Wallet
+ /// ============================= Celer Wallet =======================================
         /// Deposit native token to a wallet.
         ///
         /// Parameter:
@@ -690,7 +690,7 @@ decl_module! {
             Ok(())
         }
 
-        /// Pool
+ /// ========================= Pool ===================================================
         /// Deposit native token into Pool
         ///
         /// Parameters:
@@ -872,7 +872,7 @@ decl_module! {
             Ok(())
         }
 
-        /// PayResolver
+ /// ==================================== PayResolver =============================================
         /// Resolve a payment by onchain getting its conditons outcomes
         ///
         /// Dev: HASH_LOCK should only be used for establishing multi-hop paymetns,
