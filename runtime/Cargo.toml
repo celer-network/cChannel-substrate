@@ -152,6 +152,12 @@ package = 'celer-pay-module'
 path = '../pallets/celer-pay'
 version = '0.8.5'
 
+[dependencies.mock-boolean-condition]
+default-features = false
+package = 'mock-boolean-condition'
+path = '../pallets/mock-boolean-condition'
+version = '0.8.5'
+
 [dependencies.mock-numeric-condition]
 default-features = false
 package = 'mock-numeric-condition'
@@ -200,6 +206,7 @@ std = [
     'timestamp/std',
     'transaction-payment/std',
     'celer-pay/std',
+    'mock-boolean-condition/std',
     'mock-numeric-condition/std',
 ]
 

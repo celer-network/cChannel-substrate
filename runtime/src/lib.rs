@@ -44,6 +44,12 @@ pub use frame_support::{
 /// Importing a celer-pay module
 pub use celer_pay;
 
+/// Importing a mock boolean condition module
+pub use mock_boolean_condition;
+
+/// Importing a mock numeric condition module
+pub use mock_numeric_condition;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -253,9 +259,6 @@ impl sudo::Trait for Runtime {
 	type Call = Call;
 }
 
-/// Used for the mock-numeric-condtion module
-impl mock_numeric_condition::Trait for Runtime {}
-
 /// Used for the celer-pay module
 impl celer_pay::Trait for Runtime {
 	type Currency = balances::Module<Runtime>;
@@ -264,6 +267,12 @@ impl celer_pay::Trait for Runtime {
 	type Signature = Signature;
 	type Call = Call;
 }
+
+/// Used for the mock-boolean-condition module
+impl mock_boolean_condition::Trait for Runtime {}
+
+/// Used for the mock-numeric-condtion module
+impl mock_numeric_condition::Trait for Runtime {}
 
 construct_runtime!(
 	pub enum Runtime where
@@ -279,9 +288,12 @@ construct_runtime!(
 		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		MockNumericCondtion: mock_numeric_condition::{Module, Call},
 		// Used for the celer-pay module
 		CelerPayModule: celer_pay::{Module, Call, Storage, Event<T>},
+		// Used fot he mock-boolean condition module
+		MockBooleanCondition: mock_boolean_condition::{Module, Call},
+		// Used for the mock-numeric condition module
+		MockNumericCondtion: mock_numeric_condition::{Module, Call},
 	}
 );
 
