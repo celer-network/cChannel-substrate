@@ -488,6 +488,7 @@ dependencies = [
  "frame-executive",
  "frame-support",
  "frame-system",
+ "mock-boolean-condition",
  "mock-numeric-condition",
  "pallet-aura",
  "pallet-balances",
