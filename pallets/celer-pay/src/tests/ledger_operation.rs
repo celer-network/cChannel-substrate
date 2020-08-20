@@ -4624,12 +4624,13 @@ pub mod test_ledger_operation {
         encoded.extend(simplex_payment_channel.clone().transfer_to_peer.unwrap().token.token_type.encode());
         encoded.extend(simplex_payment_channel.clone().transfer_to_peer.unwrap().receiver.account.encode());
         encoded.extend(simplex_payment_channel.clone().transfer_to_peer.unwrap().receiver.amt.encode());
+        simplex_payment_channel.clone().pending_pay_ids.unwrap().pay_ids.into_iter().for_each(|pay_id| {
+            encoded.extend(pay_id.encode());
+        });
         encoded.extend(simplex_payment_channel.clone().pending_pay_ids.unwrap().next_list_hash.encode());
         encoded.extend(simplex_payment_channel.last_pay_resolve_deadline.encode());
         encoded.extend(simplex_payment_channel.total_pending_amount.encode());
-        for i in 0..pay_id_len {
-            encoded.extend(simplex_payment_channel.clone().pending_pay_ids.unwrap().pay_ids[i].encode());
-        }
+    
         let sig_1 = peers_pair[0].sign(&encoded);
         let sig_2 = peers_pair[1].sign(&encoded);
         let signed_simplex_state = SignedSimplexState {
