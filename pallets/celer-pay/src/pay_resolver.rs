@@ -441,25 +441,21 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
     let mut encoded = pay.pay_timestamp.encode();
     encoded.extend(pay.src.encode());
     encoded.extend(pay.dest.encode());
-    encoded.extend(pay.conditions.encode());
+    pay.conditions.into_iter().for_each(|condition| {
+        encoded.extend(condition.condition_type.encode());
+        encoded.extend(condition.hash_lock.encode());
+        encoded.extend(condition.call_is_finalized.encode());
+        encoded.extend(condition.call_get_outcome.encode());
+        encoded.extend(condition.numeric_app_num.encode());
+        encoded.extend(condition.args_query_finalzation.encode());
+        encoded.extend(condition.args_query_outcome.encode());
+    });
     encoded.extend(pay.transfer_func.logic_type.encode());
     encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
     encoded.extend(pay.transfer_func.max_transfer.receiver.account.encode());
     encoded.extend(pay.transfer_func.max_transfer.receiver.amt.encode());
     encoded.extend(pay.resolve_deadline.encode());
     encoded.extend(pay.resolve_timeout.encode());
-    let condition_len = pay.conditions.len();
-    for i in 0..condition_len {
-        encoded.extend(pay.conditions[i].clone().condition_type.encode());
-        pay.conditions[i].clone().hash_lock.iter()
-            .for_each(|hash| { encoded.extend(hash.encode()); });
-        encoded.extend(pay.conditions[i].clone().call_is_finalized.encode());
-        encoded.extend(pay.conditions[i].clone().call_get_outcome.encode());
-        encoded.extend(pay.conditions[i].clone().numeric_app_num.encode());
-        encoded.extend(pay.conditions[i].clone().numeric_session_id.encode());
-        encoded.extend(pay.conditions[i].clone().args_query_finalzation.encode());
-        encoded.extend(pay.conditions[i].clone().args_query_outcome.encode());
-    }
 
     return encoded;
 }
