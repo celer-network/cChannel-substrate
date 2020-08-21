@@ -25,14 +25,14 @@ use frame_support::{
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
     ChannelOf, ChannelStatus, CooperativeSettleRequestOf, CooperativeWithdrawRequestOf,
-    LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf,
+    LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf, CELER_LEDGER_ID,
 };
-use celer_wallet::{CelerWallet, WalletOf};
+use celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
 use pay_registry::{PayInfoOf, PayRegistry};
-use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf};
-use pool::Pool;
+use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, RESOLVER_ID};
+use pool::{Pool, POOL_ID};
 pub use traits::Trait;
-use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero, Verify};
+use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, Hash, Zero, Verify};
 use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
 
@@ -1055,8 +1055,13 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
-    /// CelerLedger
-    /// Get channel settle open time
+/// ============================== Celer Ledger Operation =======================================
+    /// Return AccountId of Ledger Operation module
+    pub fn get_celer_ledger_id() -> T::AccountId {
+        return CELER_LEDGER_ID.into_account();
+    }
+
+    /// Return channel settle open time
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1068,7 +1073,7 @@ impl<T: Trait> Module<T> {
         return c.settle_finalized_time;
     }
 
-    /// Get channel status
+    /// Return channel status
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1080,7 +1085,7 @@ impl<T: Trait> Module<T> {
         return c.status;
     }
 
-    /// Get cooperative withdraw seq_num
+    /// Return cooperative withdraw seq_num
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1290,7 +1295,7 @@ impl<T: Trait> Module<T> {
         ));
     }
 
-    /// Get the seq_num of two simplex channel states
+    /// Return the seq_num of two simplex channel states
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1367,7 +1372,12 @@ impl<T: Trait> Module<T> {
         ));
     }
 
-    /// Celer Wallet
+/// ================================= Celer Wallet =================================
+    /// Return AccountId of Celer Wallet module
+    pub fn get_celer_wallet_id() -> T::AccountId {
+        return WALLET_ID.into_account();
+    }
+
     /// Return wallet owner conrresponding tp wallet_id
     ///
     /// Parameter:
@@ -1396,7 +1406,12 @@ impl<T: Trait> Module<T> {
         return Some(balance);
     }
 
-    /// Pool
+/// =================================== Pool ===================================================
+    /// Return AccountId of Pool
+    pub fn get_pool_id() -> T::AccountId {
+        return POOL_ID.into_account();
+    }
+
     /// Return balnce in pooled Pool
     ///
     /// Prameter:
@@ -1414,7 +1429,13 @@ impl<T: Trait> Module<T> {
         return Self::allowed(owner, spender);
     }
 
-    /// PayRegistry
+/// ================================ PayResolver =============================================
+    /// Retun AccountId of PayResolver module
+    pub fn get_pay_resolver_id() -> T::AccountId {
+        return RESOLVER_ID.into_account();
+    }
+
+/// ================================= PayRegistry ============================================
     /// Calculate pay id
     ///
     /// Parameter:
