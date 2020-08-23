@@ -20,12 +20,12 @@ impl<T: Trait> Pool<T> {
     pub fn deposit_pool(
         origin: T::Origin,
         receiver: T::AccountId,
-        amount: BalanceOf<T>,
+        msg_value: BalanceOf<T>,
     ) -> Result<(T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
 
         ensure!(
-            T::Currency::free_balance(&caller) >= amount,
+            T::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances"
         );
 
@@ -33,21 +33,21 @@ impl<T: Trait> Pool<T> {
         ensure!(receiver != pool_account, "receiver address is pool account");
 
         if Balances::<T>::contains_key(&receiver) == false {
-            Balances::<T>::insert(&receiver, &amount);
+            Balances::<T>::insert(&receiver, &msg_value);
         } else {
             let balances = Balances::<T>::get(&receiver).unwrap();
-            let new_balances = balances.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+            let new_balances = balances.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
             Balances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
         }
 
         T::Currency::transfer(
             &caller,
             &pool_account,
-            amount,
+            msg_value,
             ExistenceRequirement::AllowDeath,
         )?;
 
-        return Ok((receiver, amount));
+        return Ok((receiver, msg_value));
     }
 
     // Withdraw celer from Pool
