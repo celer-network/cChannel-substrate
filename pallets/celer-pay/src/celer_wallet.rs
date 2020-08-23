@@ -24,18 +24,18 @@ impl<T: Trait> CelerWallet<T> {
     pub fn deposit_native_token(
         origin: T::Origin,
         wallet_id: T::Hash,
-        amount: BalanceOf<T>,
+        msg_value: BalanceOf<T>,
     ) -> Result<(T::Hash, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
 
         ensure!(
-            T::Currency::free_balance(&caller) >= amount,
+            T::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances"
         );
 
-        update_balance::<T>(caller, wallet_id.clone(), amount.clone())?;
+        update_balance::<T>(caller, wallet_id.clone(), msg_value.clone())?;
 
-        return Ok((wallet_id, amount));
+        return Ok((wallet_id, msg_value));
     }
 }
 
@@ -43,7 +43,7 @@ impl<T: Trait> CelerWallet<T> {
 fn update_balance<T: Trait>(
     caller: T::AccountId,
     wallet_id: T::Hash,
-    amount: BalanceOf<T>,
+    msg_value: BalanceOf<T>,
 ) -> Result<(), DispatchError> {
     let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
         Some(_w) => _w,
@@ -52,7 +52,7 @@ fn update_balance<T: Trait>(
 
     let wallet_account = celer_wallet_account::<T>();
 
-    let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+    let new_amount = w.balance.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
 
     let new_wallet: WalletOf<T> = WalletOf::<T> {
         owners: w.owners,
@@ -64,7 +64,7 @@ fn update_balance<T: Trait>(
     T::Currency::transfer(
         &caller,
         &wallet_account,
-        amount,
+        msg_value,
         ExistenceRequirement::AllowDeath,
     )?;
 
