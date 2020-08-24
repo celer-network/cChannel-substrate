@@ -219,7 +219,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `open_request`: open channel request message
-        /// `amount`: caller's deposit amount
+        /// `msg_value`: caller's deposit amount
         /// 
         /// # <weight>
         /// ## Weight
@@ -237,9 +237,9 @@ decl_module! {
         fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
-            amount: BalanceOf<T>
+            msg_value: BalanceOf<T>
         ) -> DispatchResult {
-            let channel_id: T::Hash = LedgerOperation::<T>::open_channel(origin, open_request, amount)?;
+            let channel_id: T::Hash = LedgerOperation::<T>::open_channel(origin, open_request, msg_value)?;
             let c = Self::channel_map(channel_id).unwrap();
             Self::deposit_event(RawEvent::OpenChannel(
                 channel_id,
@@ -258,7 +258,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of the channel
         /// `receiver`: address of the receiver
-        /// `amount`: caller's deposit amount
+        /// `msg_value`: caller's deposit amount
         /// `transfer_from_amount`: amount of funds to be transfered from Pool
         /// 
         /// # <weight>
@@ -279,10 +279,10 @@ decl_module! {
             origin,
             channel_id: T::Hash,
             receiver: T::AccountId,
-            amount: BalanceOf<T>,
+            msg_value: BalanceOf<T>,
             transfer_from_amount: BalanceOf<T>
         ) -> DispatchResult {
-            LedgerOperation::<T>::deposit(origin, channel_id, receiver, amount, transfer_from_amount)?;
+            LedgerOperation::<T>::deposit(origin, channel_id, receiver, msg_value, transfer_from_amount)?;
             let c = Self::channel_map(channel_id).unwrap();
             let zero_balance: BalanceOf<T> = Zero::zero();
             Self::deposit_event(RawEvent::Deposit(
@@ -300,7 +300,7 @@ decl_module! {
         /// Parameters:
         /// `channel_ids`: Ids of channel
         /// `receivers`: addresses of receiver
-        /// `amounts`: caller's deposit amounts
+        /// `msg_values`: caller's deposit amounts
         /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
         /// 
         /// # <weight>
@@ -328,20 +328,20 @@ decl_module! {
             origin,
             channel_ids: Vec<T::Hash>,
             receivers: Vec<T::AccountId>,
-            amounts: Vec<BalanceOf<T>>,
+            msg_values: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin.clone())?;
 
             ensure!(
                 channel_ids.len() == receivers.len() &&
-                receivers.len() == amounts.len() &&
-                amounts.len() == transfer_from_amounts.len(),
+                receivers.len() == msg_values.len() &&
+                msg_values.len() == transfer_from_amounts.len(),
                 "Length do not match"
             );
 
             for i in 0..channel_ids.len() {
-                LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), amounts[i], transfer_from_amounts[i])?;
+                LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), msg_values[i], transfer_from_amounts[i])?;
                 let c = match Self::channel_map(channel_ids[i]) {
                     Some(channel) => channel,
                     None => return Err(Error::<T>::ChannelNotExist)?
@@ -670,7 +670,7 @@ decl_module! {
         ///
         /// Parameter:
         /// `wallet_id`: Id of the wallet to deposit into
-        /// `amount`: depoist amount
+        /// `msg_value`: depoist amount
         /// 
         /// # <weight>
         /// ## Weight
@@ -683,10 +683,10 @@ decl_module! {
         fn deposit_native_token(
             origin,
             wallet_id: T::Hash,
-            amount: BalanceOf<T>
+            msg_value: BalanceOf<T>
         ) -> DispatchResult {
-            let (_wallet_id, _amount): (T::Hash, BalanceOf<T>) = CelerWallet::<T>::deposit_native_token(origin, wallet_id, amount)?;
-            Self::deposit_event(RawEvent::DepositToWallet(_wallet_id, _amount));
+            let (_wallet_id, _msg_value): (T::Hash, BalanceOf<T>) = CelerWallet::<T>::deposit_native_token(origin, wallet_id, msg_value)?;
+            Self::deposit_event(RawEvent::DepositToWallet(_wallet_id, _msg_value));
             Ok(())
         }
 
@@ -694,8 +694,8 @@ decl_module! {
         /// Deposit native token into Pool
         ///
         /// Parameters:
-        /// `receiver`: the address native token is deposited to
-        /// `amount`: amount of deposit
+        /// `receiver`: the address native token is deposited to pool
+        /// `msg_value`: amount of deposit to pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -708,11 +708,11 @@ decl_module! {
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
-            amount: BalanceOf<T>
+            msg_value: BalanceOf<T>
         ) -> DispatchResult {
-            let (_receiver, _amount): (T::AccountId, BalanceOf<T>)
-                = Pool::<T>::deposit_pool(origin, receiver, amount)?;
-            Self::deposit_event(RawEvent::PoolDeposit(_receiver, _amount));
+            let (_receiver, _msg_value): (T::AccountId, BalanceOf<T>)
+                = Pool::<T>::deposit_pool(origin, receiver, msg_value)?;
+            Self::deposit_event(RawEvent::PoolDeposit(_receiver, _msg_value));
             Ok(())
         }
 

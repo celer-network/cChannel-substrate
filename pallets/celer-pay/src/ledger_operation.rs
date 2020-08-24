@@ -319,11 +319,11 @@ impl<T: Trait> LedgerOperation<T> {
     pub fn open_channel(
         origin: T::Origin,
         open_request: OpenChannelRequestOf<T>,
-        amount: BalanceOf<T>,
+        msg_value: BalanceOf<T>,
     ) -> Result<T::Hash, DispatchError> {
         let caller = ensure_signed(origin.clone())?;
         ensure!(
-            T::Currency::free_balance(&caller) >= amount,
+            T::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances."
         );
 
@@ -415,7 +415,7 @@ impl<T: Trait> LedgerOperation<T> {
         let zero_balance: BalanceOf<T> = Zero::zero();
         // if total deposit is 0
         if amt_sum == zero_balance {
-            ensure!(amount == zero_balance, "amount is not 0");
+            ensure!(msg_value == zero_balance, "msg_value is not 0");
 
             ChannelMap::<T>::insert(channel_id, channel);
             return Ok(channel_id);
@@ -434,9 +434,9 @@ impl<T: Trait> LedgerOperation<T> {
 
         if token.token_type == TokenType::Celer {
             let msg_value_receiver = channel_initializer.msg_value_receiver as usize;
-            ensure!(amount == amounts[msg_value_receiver], "amount mismatch");
+            ensure!(msg_value == amounts[msg_value_receiver], "amount mismatch");
             if amounts[msg_value_receiver] > zero_balance {
-                CelerWallet::<T>::deposit_native_token(origin, channel_id, amount)?;
+                CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
             }
 
             // peer ID of non-msg_value_receiver
@@ -463,7 +463,7 @@ impl<T: Trait> LedgerOperation<T> {
         origin: T::Origin,
         channel_id: T::Hash,
         receiver: T::AccountId,
-        amount: BalanceOf<T>,
+        msg_value: BalanceOf<T>,
         transfer_from_amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
         let caller = ensure_signed(origin.clone())?;
@@ -472,16 +472,16 @@ impl<T: Trait> LedgerOperation<T> {
             None => Err(Error::<T>::ChannelNotExist)?,
         };
         ensure!(
-            T::Currency::free_balance(&caller) >= amount,
+            T::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances."
         );
-        let deposit_amount: BalanceOf<T> = amount.checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
+        let deposit_amount: BalanceOf<T> = msg_value.checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
         add_deposit::<T>(channel_id, receiver.clone(), deposit_amount)?;
 
         let zero_balance: BalanceOf<T> = Zero::zero();
         if c.token.token_type == TokenType::Celer {
-            if amount > zero_balance {
-                CelerWallet::<T>::deposit_native_token(origin, channel_id, amount)?;
+            if msg_value > zero_balance {
+                CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
             }
             let ledger_account = Self::ledger_account();
             if transfer_from_amount > zero_balance {
