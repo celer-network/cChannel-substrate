@@ -1864,10 +1864,11 @@ pub mod test_ledger_operation {
 
             let pay_id_list_array = global_result.4;
 
+
             let next_list_hash = pay_id_list_array[0][0].next_list_hash;
-            let mut encoded = pay_id_list_array[0][1].next_list_hash.encode();
-            encoded.extend(pay_id_list_array[0][1].pay_ids[0].encode());
+            let mut encoded = pay_id_list_array[0][1].pay_ids[0].encode();
             encoded.extend(pay_id_list_array[0][1].pay_ids[1].encode());
+            encoded.extend(pay_id_list_array[0][1].next_list_hash.encode());
 
             let hash = hashing::blake2_256(&encoded).into();
             assert_eq!(next_list_hash.unwrap(), hash);
@@ -4477,12 +4478,12 @@ pub mod test_ledger_operation {
                     next_list_hash: Some(pay_id_list_hash_array[k]),
                 };
             }
-
-            let pay_ids_len = pay_id_lists[i].pay_ids.len();
-            let mut encoded = pay_id_lists[i].next_list_hash.encode();
-            for q in 0..pay_ids_len {
-                encoded.extend(pay_id_lists[i].pay_ids[q].encode());
-            }
+           
+            let mut encoded: Vec<u8> = vec![];
+            pay_id_lists[i].pay_ids.clone().into_iter().for_each(|pay_id| {
+                encoded.extend(pay_id.encode());
+            });
+            encoded.extend(pay_id_lists[i].next_list_hash.encode());
             pay_id_list_hash_array[i] = hashing::blake2_256(&encoded).into();
 
             pay_id_list_array[i] = pay_id_lists[i].clone();

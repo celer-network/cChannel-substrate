@@ -1160,11 +1160,12 @@ impl<T: Trait> LedgerOperation<T> {
         let c = ChannelMap::<T>::get(channel_id).unwrap();
         ensure!(c.status == ChannelStatus::Settling, "Channel status error");
 
-        let pay_ids_len = pay_id_list.pay_ids.len();
-        let mut encoded = pay_id_list.next_list_hash.encode();
-        for i in 0..pay_ids_len {
-            encoded.extend(pay_id_list.pay_ids[i].encode());
-        }
+        let mut encoded: Vec<u8> = vec![];
+        pay_id_list.pay_ids.clone().into_iter().for_each(|pay_id| {
+            encoded.extend(pay_id.encode());
+        });
+        encoded.extend(pay_id_list.next_list_hash.encode());
+      
         let list_hash = T::Hashing::hash(&encoded);
 
         if peer_from == c.peer_profiles[0].peer_addr {
