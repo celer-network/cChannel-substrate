@@ -447,6 +447,7 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
         encoded.extend(condition.call_is_finalized.encode());
         encoded.extend(condition.call_get_outcome.encode());
         encoded.extend(condition.numeric_app_num.encode());
+        encoded.extend(condition.numeric_session_id.encode());
         encoded.extend(condition.args_query_finalzation.encode());
         encoded.extend(condition.args_query_outcome.encode());
     });
