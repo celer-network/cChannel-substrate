@@ -1864,10 +1864,11 @@ pub mod test_ledger_operation {
 
             let pay_id_list_array = global_result.4;
 
+
             let next_list_hash = pay_id_list_array[0][0].next_list_hash;
-            let mut encoded = pay_id_list_array[0][1].next_list_hash.encode();
-            encoded.extend(pay_id_list_array[0][1].pay_ids[0].encode());
+            let mut encoded = pay_id_list_array[0][1].pay_ids[0].encode();
             encoded.extend(pay_id_list_array[0][1].pay_ids[1].encode());
+            encoded.extend(pay_id_list_array[0][1].next_list_hash.encode());
 
             let hash = hashing::blake2_256(&encoded).into();
             assert_eq!(next_list_hash.unwrap(), hash);
@@ -2382,7 +2383,6 @@ pub mod test_ledger_operation {
                 pay_id_list_info.0[0].clone(),
                 99999,
                 pay_id_list_info.3,
-                channel_peers[0],
                 peers_pair.clone(),
             );
             signed_simplex_state_array = SignedSimplexStateArray {
@@ -2481,7 +2481,6 @@ pub mod test_ledger_operation {
                 pay_id_list_info.0[0].clone(),
                 99999,
                 pay_id_list_info.3,
-                channel_peers[0],
                 peers_pair.clone(),
             );
             signed_simplex_state_array = SignedSimplexStateArray {
@@ -4353,7 +4352,6 @@ pub mod test_ledger_operation {
                     head_pay_id_lists[i].clone(),
                     last_pay_resolve_deadlines[i],
                     total_pending_amounts[i],
-                    receiver_account,
                     peers_pair.clone(),
                 );
             } else if seq_nums[i] == 0 {
@@ -4477,12 +4475,12 @@ pub mod test_ledger_operation {
                     next_list_hash: Some(pay_id_list_hash_array[k]),
                 };
             }
-
-            let pay_ids_len = pay_id_lists[i].pay_ids.len();
-            let mut encoded = pay_id_lists[i].next_list_hash.encode();
-            for q in 0..pay_ids_len {
-                encoded.extend(pay_id_lists[i].pay_ids[q].encode());
-            }
+           
+            let mut encoded: Vec<u8> = vec![];
+            pay_id_lists[i].pay_ids.clone().into_iter().for_each(|pay_id| {
+                encoded.extend(pay_id.encode());
+            });
+            encoded.extend(pay_id_lists[i].next_list_hash.encode());
             pay_id_list_hash_array[i] = hashing::blake2_256(&encoded).into();
 
             pay_id_list_array[i] = pay_id_lists[i].clone();
@@ -4529,7 +4527,6 @@ pub mod test_ledger_operation {
                     pay_id_lists[i].clone(),
                     last_pay_resolve_deadlines[i],
                     total_pending_amounts[i],
-                    receiver_account,
                     peers_pair.clone(),
                 ));
             } else if seq_nums[i] == 0 {
@@ -4603,10 +4600,21 @@ pub mod test_ledger_operation {
         pending_pay_ids: PayIdList<H256>,
         last_pay_resolve_deadline: BlockNumber,
         total_pending_amount: Balance,
-        receiver_account: AccountId,
         peers_pair: Vec<sr25519::Pair>,
     ) -> SignedSimplexState<H256, AccountId, BlockNumber, Balance, Signature> {
-        let transfer_to_peer = get_token_transfer(receiver_account, transfer_amount);
+        let account_amt_pair = AccountAmtPair {
+            account: None,
+            amt: transfer_amount,
+        };
+
+        let token_info = TokenInfo {
+            token_type: TokenType::Celer,
+        };
+
+        let transfer_to_peer = TokenTransfer {
+            token: token_info,
+            receiver: account_amt_pair,
+        };
 
         let simplex_payment_channel = SimplexPaymentChannel {
             channel_id: channel_id,

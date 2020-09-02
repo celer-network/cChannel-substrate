@@ -7,6 +7,7 @@ pub mod test_pay_resolver {
     use crate::pay_resolver::*;
     use codec::{Encode};
     use mock_boolean_condition::Call as MockBooleanCall;
+    use crate::pay_registry::*;
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
