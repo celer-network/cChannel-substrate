@@ -2383,7 +2383,6 @@ pub mod test_ledger_operation {
                 pay_id_list_info.0[0].clone(),
                 99999,
                 pay_id_list_info.3,
-                channel_peers[0],
                 peers_pair.clone(),
             );
             signed_simplex_state_array = SignedSimplexStateArray {
@@ -2482,7 +2481,6 @@ pub mod test_ledger_operation {
                 pay_id_list_info.0[0].clone(),
                 99999,
                 pay_id_list_info.3,
-                channel_peers[0],
                 peers_pair.clone(),
             );
             signed_simplex_state_array = SignedSimplexStateArray {
@@ -4354,7 +4352,6 @@ pub mod test_ledger_operation {
                     head_pay_id_lists[i].clone(),
                     last_pay_resolve_deadlines[i],
                     total_pending_amounts[i],
-                    receiver_account,
                     peers_pair.clone(),
                 );
             } else if seq_nums[i] == 0 {
@@ -4530,7 +4527,6 @@ pub mod test_ledger_operation {
                     pay_id_lists[i].clone(),
                     last_pay_resolve_deadlines[i],
                     total_pending_amounts[i],
-                    receiver_account,
                     peers_pair.clone(),
                 ));
             } else if seq_nums[i] == 0 {
@@ -4604,10 +4600,21 @@ pub mod test_ledger_operation {
         pending_pay_ids: PayIdList<H256>,
         last_pay_resolve_deadline: BlockNumber,
         total_pending_amount: Balance,
-        receiver_account: AccountId,
         peers_pair: Vec<sr25519::Pair>,
     ) -> SignedSimplexState<H256, AccountId, BlockNumber, Balance, Signature> {
-        let transfer_to_peer = get_token_transfer(receiver_account, transfer_amount);
+        let account_amt_pair = AccountAmtPair {
+            account: None,
+            amt: transfer_amount,
+        };
+
+        let token_info = TokenInfo {
+            token_type: TokenType::Celer,
+        };
+
+        let transfer_to_peer = TokenTransfer {
+            token: token_info,
+            receiver: account_amt_pair,
+        };
 
         let simplex_payment_channel = SimplexPaymentChannel {
             channel_id: channel_id,

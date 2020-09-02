@@ -516,8 +516,7 @@ impl<T: Trait> LedgerOperation<T> {
             ensure!(c.status == ChannelStatus::Operable, "Channel status error");
 
             // Check Co-Signatures.
-            let pay_id_len = signed_simplex_state_array.signed_simplex_states[i].simplex_state.pending_pay_ids.clone().unwrap().pay_ids.len();
-            let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize, pay_id_len as usize);
+            let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize);
             let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
             let channel_peer = vec![
                 c.peer_profiles[0].peer_addr.clone(),
@@ -981,8 +980,7 @@ impl<T: Trait> LedgerOperation<T> {
 
             if simplex_state.seq_num > 0 {
                 // Check signatures
-                let pay_id_len = simplex_state.pending_pay_ids.clone().unwrap().pay_ids.len();
-                let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(),i as usize,pay_id_len as usize);
+                let encoded = encode_signed_simplex_state_array::<T>(signed_simplex_state_array.clone(), i as usize);
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
                 let channel_peer = vec![
                     c.peer_profiles[0].peer_addr.clone(),
@@ -2051,8 +2049,7 @@ pub fn encode_channel_initializer<T: Trait>(
 
 pub fn encode_signed_simplex_state_array<T: Trait>(
     signed_simplex_state_array: SignedSimplexStateArrayOf<T>,
-    state_index: usize,
-    pay_id_len: usize,
+    state_index: usize
 ) -> Vec<u8> {
     let mut encoded = signed_simplex_state_array.signed_simplex_states[state_index].simplex_state.channel_id.encode();
     encoded.extend(signed_simplex_state_array.signed_simplex_states[state_index].simplex_state.peer_from.encode());
