@@ -29,15 +29,14 @@ use ledger_operation::{
 };
 use celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
 use pay_registry::{PayInfoOf, PayRegistry};
-use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, RESOLVER_ID};
+use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, PAY_RESOLVER_ID};
 use pool::{Pool, POOL_ID};
 pub use traits::Trait;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, Hash, Zero, Verify};
 use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
 
-pub type BalanceOf<T> =
-    <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
+pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 // A value placed in storage that represents the current version of the Celer Ledger storage.
 // This value is used by the `on_runtime_upgrade` logic to determine whether we run
@@ -1415,7 +1414,7 @@ impl<T: Trait> Module<T> {
 /// ================================ PayResolver =============================================
     /// Retun AccountId of PayResolver module
     pub fn get_pay_resolver_id() -> T::AccountId {
-        return RESOLVER_ID.into_account();
+        return PAY_RESOLVER_ID.into_account();
     }
 
 /// ================================= PayRegistry ============================================

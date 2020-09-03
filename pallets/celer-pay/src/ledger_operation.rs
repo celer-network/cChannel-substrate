@@ -1,6 +1,6 @@
 use super::{BalanceOf, ChannelMap, ChannelStatusNums, Error, Module, Wallets, RawEvent};
 use crate::traits::Trait;
-use crate::celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
+use crate::celer_wallet::{CelerWallet, WalletOf};
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{AccountAmtPair, TokenInfo, TokenTransfer, TokenType};
 use crate::pool::Pool;
@@ -8,7 +8,7 @@ use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system, ensure_signed};
-use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, Hash, Zero};
+use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::{vec, vec::Vec};
 
@@ -390,9 +390,9 @@ impl<T: Trait> LedgerOperation<T> {
             state: peer_state,
         };
 
-        let ledger_addr = Self::ledger_account();
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
         let withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: ledger_addr,
+            receiver: celer_ledger_account,
             amount: None,
             request_time: None,
             recipient_channel_id: None,
@@ -439,9 +439,9 @@ impl<T: Trait> LedgerOperation<T> {
             // peer ID of non-msg_value_receiver
             let pid: usize = 1 - msg_value_receiver;
             if amounts[pid] > Zero::zero() {
-                let ledger_addr = Self::ledger_account();
+                let celer_ledger_account = Module::<T>::get_celer_ledger_id();
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
-                    ledger_addr,
+                    celer_ledger_account,
                     peer_addrs[pid].clone(),
                     channel_id,
                     amounts[pid],
@@ -479,10 +479,10 @@ impl<T: Trait> LedgerOperation<T> {
             if msg_value > Zero::zero() {
                 CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
             }
-            let ledger_account = Self::ledger_account();
+            let celer_ledger_account = Module::<T>::get_celer_ledger_id();
             if transfer_from_amount > Zero::zero() {
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
-                    ledger_account,
+                    celer_ledger_account,
                     caller,
                     channel_id,
                     transfer_from_amount,
@@ -635,9 +635,9 @@ impl<T: Trait> LedgerOperation<T> {
 
         // withdraw_intent.receiver is ledger address if and  only if there is no pending withdraw_intent.
         // because withdraw_intent.receiver may only be set as caller address which can't be ledger address.
-        let ledger_addr = Self::ledger_account();
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
         ensure!(
-            withdraw_intent.receiver == ledger_addr,
+            withdraw_intent.receiver == celer_ledger_account,
             "Pending withdraw intent exists"
         );
 
@@ -679,10 +679,10 @@ impl<T: Trait> LedgerOperation<T> {
             None => Err(Error::<T>::ChannelNotExist)?,
         };
         ensure!(c.status == ChannelStatus::Operable, "Channel status error");
-        let ledger_addr = Self::ledger_account();
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
         let withdraw_intent = c.withdraw_intent;
         ensure!(
-            withdraw_intent.receiver != ledger_addr,
+            withdraw_intent.receiver != celer_ledger_account,
             "No pending withdraw intent"
         );
 
@@ -697,9 +697,9 @@ impl<T: Trait> LedgerOperation<T> {
         let recipient_channel_id = withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id);
 
         // Initialize c.wihdraw_intent
-        let ledger_addr = Self::ledger_account();
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
         let initialize_withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: ledger_addr,
+            receiver: celer_ledger_account,
             amount: None,
             request_time: None,
             recipient_channel_id: None,
@@ -801,13 +801,13 @@ impl<T: Trait> LedgerOperation<T> {
         let c = ChannelMap::<T>::get(channel_id).unwrap();
         ensure!(c.status == ChannelStatus::Operable, "Channel status error");
         let intent = c.withdraw_intent.clone();
-        let ledger_addr = Self::ledger_account();
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
 
-        ensure!(intent.receiver != ledger_addr, "No pending withdraw intent");
+        ensure!(intent.receiver != celer_ledger_account, "No pending withdraw intent");
         ensure!(Self::is_peer(c.clone(), caller), "caller is not peer");
 
         let initialize_withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: ledger_addr,
+            receiver: celer_ledger_account,
             amount: None,
             request_time: None,
             recipient_channel_id: None,
@@ -1362,8 +1362,7 @@ impl<T: Trait> LedgerOperation<T> {
             settle_info.settle_balance[1].amt,
         ];
         let total_settle_balance = settle_balance[0]
-            .checked_add(&settle_balance[1])
-            .ok_or(Error::<T>::OverFlow)?;
+            .checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
         let total_balance = Module::<T>::get_total_balance(channel_id)?;
         ensure!(
             total_settle_balance == total_balance,
@@ -1380,11 +1379,6 @@ impl<T: Trait> LedgerOperation<T> {
     // Check if addr is one of the peers in channel c
     pub fn is_peer(c: ChannelOf<T>, addr: T::AccountId) -> bool {
         return addr == c.peer_profiles[0].peer_addr || addr == c.peer_profiles[1].peer_addr;
-    }
-
-    // Get address of ledger module
-    pub fn ledger_account() -> T::AccountId {
-        CELER_LEDGER_ID.into_account()
     }
 }
 
@@ -1927,7 +1921,7 @@ fn update_balance<T: Trait>(
         None => Err(Error::<T>::WalletNotExist)?,
     };
 
-    let wallet_account = celer_wallet_account::<T>();
+    let celer_wallet_account = Module::<T>::get_celer_wallet_id();
 
     let mut new_amount: BalanceOf<T> = Zero::zero();
     if op == MathOperation::Sub {
@@ -1941,7 +1935,7 @@ fn update_balance<T: Trait>(
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
         T::Currency::transfer(
-            &wallet_account,
+            &celer_wallet_account,
             &caller,
             amount,
             ExistenceRequirement::AllowDeath,
@@ -1961,7 +1955,7 @@ fn update_balance<T: Trait>(
 
         T::Currency::transfer(
             &caller,
-            &wallet_account,
+            &celer_wallet_account,
             amount,
             ExistenceRequirement::AllowDeath,
         )?;
@@ -1970,10 +1964,6 @@ fn update_balance<T: Trait>(
     }
 
     Ok(())
-}
-
-fn celer_wallet_account<T: Trait>() -> T::AccountId {
-    WALLET_ID.into_account()
 }
 
 // Transfer funds from one wallet to another wallet with a same owner (as the receriver)

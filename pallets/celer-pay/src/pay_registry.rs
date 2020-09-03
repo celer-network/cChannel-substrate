@@ -1,10 +1,9 @@
 use super::{BalanceOf, PayInfoMap, Module, RawEvent};
 use crate::traits::Trait;
-use crate::pay_resolver::RESOLVER_ID;
 use codec::{Decode, Encode};
 use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system};
-use sp_runtime::traits::{AccountIdConversion, Hash, Zero};
+use sp_runtime::traits::{Hash, Zero};
 use sp_runtime::{RuntimeDebug, DispatchError};
 use sp_std::{vec, vec::Vec};
 
@@ -269,8 +268,4 @@ impl<T: Trait> PayRegistry<T> {
             return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));
         }
     }
-}
-
-fn resolver_account_id<T: Trait>() -> T::AccountId {
-    RESOLVER_ID.into_account()
 }

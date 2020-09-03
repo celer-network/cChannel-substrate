@@ -17,7 +17,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_open_channel() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -28,7 +28,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(
                 true,
@@ -51,7 +51,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_set_balnce_limits() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -61,7 +61,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(
                 true,
@@ -91,7 +91,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_disable_balance_limits() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -101,7 +101,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(
                 true,
@@ -130,7 +130,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_enable_balance_limits() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -140,7 +140,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(
                 false,
@@ -169,7 +169,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_deposit() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -179,7 +179,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(
                 true,
@@ -211,7 +211,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_snapshot_states() {
         ExtBuilder::build().execute_with(|| {
-                        let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+                        let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -221,7 +221,7 @@ pub mod tests_celer {
                 channel_peers[0],
                 100,
             ));
-            approve(channel_peers[0], ledger_addr, 100);
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(

@@ -1,11 +1,11 @@
-use super::{BalanceOf, Error, Wallets};
+use super::{Module, BalanceOf, Error, Wallets};
 use crate::traits::Trait;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system, ensure_signed};
 use sp_std::vec::Vec;
-use sp_runtime::traits::{AccountIdConversion, CheckedAdd};
+use sp_runtime::traits::CheckedAdd;
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -50,7 +50,7 @@ fn update_balance<T: Trait>(
         None => Err(Error::<T>::WalletNotExist)?,
     };
 
-    let wallet_account = celer_wallet_account::<T>();
+    let celer_wallet_account = Module::<T>::get_celer_wallet_id();
 
     let new_amount = w.balance.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
 
@@ -63,16 +63,12 @@ fn update_balance<T: Trait>(
 
     T::Currency::transfer(
         &caller,
-        &wallet_account,
+        &celer_wallet_account,
         msg_value,
         ExistenceRequirement::AllowDeath,
     )?;
 
     Ok(())
-}
-
-fn celer_wallet_account<T: Trait>() -> T::AccountId {
-    WALLET_ID.into_account()
 }
 
 #[cfg(test)]
