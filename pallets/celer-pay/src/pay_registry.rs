@@ -20,9 +20,9 @@ pub struct PayRegistry<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: Trait> PayRegistry<T> {
     pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
-        let resolver_account = resolver_account_id::<T>();
+        let pay_resolver_account = Module::<T>::get_pay_resolver_id();
         let mut encoded = pay_hash.encode();
-        encoded.extend(resolver_account.encode());
+        encoded.extend(pay_resolver_account.encode());
         let pay_id = T::Hashing::hash(&encoded);
         return pay_id;
     }
@@ -37,7 +37,7 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(pay_id, amt, pay_info.resolve_deadline.unwrap()));
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(pay_id, amt, pay_info.resolve_deadline.unwrap_or(Zero::zero())));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
@@ -45,12 +45,11 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::insert(pay_id, new_pay_info);
             
-            let zero_blocknumber: T::BlockNumber = Zero::zero();
             // Emit PayInfoUpdate event
             Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
                 amt,
-                zero_blocknumber,
+                Zero::zero(),
             ));
         }
 
@@ -72,7 +71,7 @@ impl<T: Trait> PayRegistry<T> {
             // Emit PayInfoUpdate event
             Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
-                pay_info.amount.unwrap(),
+                pay_info.amount.unwrap_or(Zero::zero()),
                 deadline,
             ));
         } else {
@@ -82,11 +81,10 @@ impl<T: Trait> PayRegistry<T> {
             };
             PayInfoMap::<T>::insert(pay_id, new_pay_info);
             
-            let zero_amount: BalanceOf<T> = Zero::zero();
             // Emit PayInfoUpdate event
             Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
-                zero_amount,
+                Zero::zero(),
                 deadline
             ));
         }
@@ -146,12 +144,11 @@ impl<T: Trait> PayRegistry<T> {
                 };
                 PayInfoMap::<T>::insert(pay_id, new_pay_info);
 
-                let zero_blocknumber: T::BlockNumber = Zero::zero();
                 // Emit PayInfoUpdate event
                 Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
                     amts[i],
-                    zero_blocknumber,
+                    Zero::zero(),
                 ));
             }
         }
@@ -190,11 +187,10 @@ impl<T: Trait> PayRegistry<T> {
                 };
                 PayInfoMap::<T>::insert(pay_id, new_pay_info);
                 
-                let zero_balance: BalanceOf<T> = Zero::zero();
                 // Emit PayInfoUpdate event
                 Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
-                    zero_balance,
+                    Zero::zero(),
                     deadlines[i],
                 ));
             }
@@ -236,7 +232,6 @@ impl<T: Trait> PayRegistry<T> {
         last_pay_resolve_deadline: T::BlockNumber,
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
         let mut amounts: Vec<BalanceOf<T>> = vec![];
-        let zero_blocknumber: T::BlockNumber = Zero::zero();
         let pay_id_len = pay_ids.len();
 
         let mut pay_info: PayInfoOf<T>;
@@ -254,8 +249,7 @@ impl<T: Trait> PayRegistry<T> {
                     frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
                     "Payment is not finalized"
                 );
-                let zero_balance: BalanceOf<T> = Zero::zero();
-                amounts.push(zero_balance);
+                amounts.push(Zero::zero());
             }
         }
 
@@ -265,13 +259,11 @@ impl<T: Trait> PayRegistry<T> {
     pub fn get_pay_info(pay_id: T::Hash) -> Result<(BalanceOf<T>, T::BlockNumber), DispatchError> {
         if PayInfoMap::<T>::contains_key(&pay_id) {
             let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-            return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));
+            return Ok((pay_info.amount.unwrap_or(Zero::zero()), pay_info.resolve_deadline.unwrap_or(Zero::zero())));
         } else {
-            let zero_amount: BalanceOf<T> = Zero::zero();
-            let zero_blocknumber: T::BlockNumber = Zero::zero();
             let pay_info = PayInfoOf::<T> {
-                amount: Some(zero_amount),
-                resolve_deadline: Some(zero_blocknumber),
+                amount: Some(Zero::zero()),
+                resolve_deadline: Some(Zero::zero()),
             };
             PayInfoMap::<T>::insert(&pay_id, &pay_info);
             return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));

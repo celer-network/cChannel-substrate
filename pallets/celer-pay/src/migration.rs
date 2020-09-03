@@ -145,7 +145,7 @@ pub mod test {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -173,7 +173,7 @@ pub mod test {
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request
@@ -274,7 +274,6 @@ pub mod test {
             vec![1, 1],
             vec![10, 20],
             vec![99999, 99999],
-            vec![channel_peers[0], channel_peers[1]],
             vec![channel_peers[0], channel_peers[1]],
             channel_peers[0],
             vec![peers_pair[0].clone(), peers_pair[1].clone()],

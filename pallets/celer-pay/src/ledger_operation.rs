@@ -370,14 +370,12 @@ impl<T: Trait> LedgerOperation<T> {
         let channel_id = create_wallet::<T>(owners, h)?;
 
         // Insert new Channel to ChannelMap.
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        let zero_blocknumber: T::BlockNumber = Zero::zero();
         let peer_state = PeerStateOf::<T> {
             seq_num: 0,
-            transfer_out: zero_balance,
+            transfer_out: Zero::zero(),
             next_pay_id_list_hash: None,
-            last_pay_resolve_deadline: zero_blocknumber,
-            pending_pay_out: zero_balance,
+            last_pay_resolve_deadline: Zero::zero(),
+            pending_pay_out: Zero::zero(),
         };
         let peer_profiles_1 = PeerProfileOf::<T> {
             peer_addr: peer_addrs[0].clone(),
@@ -412,10 +410,9 @@ impl<T: Trait> LedgerOperation<T> {
         };
 
         let amt_sum: BalanceOf<T> = amounts[0].checked_add(&amounts[1]).ok_or(Error::<T>::OverFlow)?;
-        let zero_balance: BalanceOf<T> = Zero::zero();
         // if total deposit is 0
-        if amt_sum == zero_balance {
-            ensure!(msg_value == zero_balance, "msg_value is not 0");
+        if amt_sum == Zero::zero() {
+            ensure!(msg_value == Zero::zero(), "msg_value is not 0");
 
             ChannelMap::<T>::insert(channel_id, channel);
             return Ok(channel_id);
@@ -435,13 +432,13 @@ impl<T: Trait> LedgerOperation<T> {
         if token.token_type == TokenType::Celer {
             let msg_value_receiver = channel_initializer.msg_value_receiver as usize;
             ensure!(msg_value == amounts[msg_value_receiver], "amount mismatch");
-            if amounts[msg_value_receiver] > zero_balance {
+            if amounts[msg_value_receiver] > Zero::zero() {
                 CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
             }
 
             // peer ID of non-msg_value_receiver
             let pid: usize = 1 - msg_value_receiver;
-            if amounts[pid] > zero_balance {
+            if amounts[pid] > Zero::zero() {
                 let ledger_addr = Self::ledger_account();
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
                     ledger_addr,
@@ -478,13 +475,12 @@ impl<T: Trait> LedgerOperation<T> {
         let deposit_amount: BalanceOf<T> = msg_value.checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
         add_deposit::<T>(channel_id, receiver.clone(), deposit_amount)?;
 
-        let zero_balance: BalanceOf<T> = Zero::zero();
         if c.token.token_type == TokenType::Celer {
-            if msg_value > zero_balance {
+            if msg_value > Zero::zero() {
                 CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
             }
             let ledger_account = Self::ledger_account();
-            if transfer_from_amount > zero_balance {
+            if transfer_from_amount > Zero::zero() {
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
                     ledger_account,
                     caller,
@@ -690,16 +686,14 @@ impl<T: Trait> LedgerOperation<T> {
             "No pending withdraw intent"
         );
 
-        let zero_blocknumber: T::BlockNumber = Zero::zero();
-        let dispute_timeout = withdraw_intent.request_time.unwrap_or(zero_blocknumber)
+        let dispute_timeout = withdraw_intent.request_time.unwrap_or(Zero::zero())
                 .checked_add(&c.dispute_timeout).ok_or(Error::<T>::OverFlow)?;
         let block_number = frame_system::Module::<T>::block_number();
         ensure!(block_number >= dispute_timeout, "Dispute not timeout");
 
-        let zero_balance: BalanceOf<T> = Zero::zero();
         let zero_channel_id: T::Hash = Module::<T>::zero_hash();
         let receiver = withdraw_intent.receiver;
-        let amount = withdraw_intent.amount.unwrap_or(zero_balance);
+        let amount = withdraw_intent.amount.unwrap_or(Zero::zero());
         let recipient_channel_id = withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id);
 
         // Initialize c.wihdraw_intent
@@ -721,17 +715,16 @@ impl<T: Trait> LedgerOperation<T> {
         let state_1 = c.peer_profiles[0].state.clone();
         let state_2 = c.peer_profiles[1].state.clone();
         let mut withdraw_limit: BalanceOf<T> = Zero::zero();
-        let zero_balance: BalanceOf<T> = Zero::zero();
         if rid == 0 {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[0].deposit).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_add(&state_2.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())).ok_or(Error::<T>::UnderFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&state_1.transfer_out).ok_or(Error::<T>::UnderFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&state_1.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         } else {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_add(&state_1.transfer_out).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())).ok_or(Error::<T>::UnderFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&state_2.transfer_out).ok_or(Error::<T>::UnderFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&state_2.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         }
@@ -739,7 +732,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         // Update record of one peer's withdrawal amount
         if rid == 0 {
-            let new_amount: BalanceOf<T> = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)
+            let new_amount: BalanceOf<T> = c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())
                 .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
@@ -870,10 +863,9 @@ impl<T: Trait> LedgerOperation<T> {
 
         let receiver = withdraw_info.withdraw.account.unwrap();
         let amount = withdraw_info.withdraw.amt;
-        let zero_balance: BalanceOf<T> = Zero::zero();
 
         if receiver.clone() == c.peer_profiles[0].peer_addr {
-            let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance)
+            let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())
                 .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
@@ -902,8 +894,8 @@ impl<T: Trait> LedgerOperation<T> {
                 recipient_channel_id,
             )?;
         } else if receiver.clone() == c.peer_profiles[1].peer_addr {
-            let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)
-                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+            let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())
+                .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
                 deposit: c.peer_profiles[1].deposit,
@@ -951,8 +943,6 @@ impl<T: Trait> LedgerOperation<T> {
         let caller = ensure_signed(origin)?;
 
         let state_len = signed_simplex_state_array.signed_simplex_states.len();
-        let zero_blocknumber: T::BlockNumber = Zero::zero();
-
         let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
         for i in 0..state_len {
             let current_channel_id = simplex_state.channel_id;
@@ -1120,6 +1110,8 @@ impl<T: Trait> LedgerOperation<T> {
                 );
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
                 Module::<T>::check_single_signature(sigs[0].clone(),&encoded,c.peer_profiles[0].peer_addr.clone())?;
+                
+                let zero_blocknumber = Zero::zero();
                 // This implies both stored seq_nums are 0
                 ensure!(
                     c.settle_finalized_time.unwrap_or(zero_blocknumber) == zero_blocknumber,
@@ -1409,8 +1401,7 @@ fn create_wallet<T: Trait>(
         "Occupied wallet id"
     );
 
-    let zero_balance: BalanceOf<T> = Zero::zero();
-    let new_balance = zero_balance;
+    let new_balance = Zero::zero();
     let wallet = WalletOf::<T> {
         owners: peers,
         balance: new_balance,
@@ -1543,9 +1534,8 @@ fn batch_transfer_out<T: Trait>(
     receivers: Vec<T::AccountId>,
     amounts: Vec<BalanceOf<T>>,
 ) -> Result<(), DispatchError> {
-    let zero_balance: BalanceOf<T> = Zero::zero();
     for i in 0..2 {
-        if amounts[i] == zero_balance {
+        if amounts[i] == Zero::zero() {
             continue;
         }
         withdraw::<T>(channel_id, receivers[i].clone(), amounts[i])?;
@@ -1562,8 +1552,7 @@ fn withdraw_funds<T: Trait>(
     amount: BalanceOf<T>,
     recipient_channel_id: T::Hash,
 ) -> Result<(), DispatchError> {
-    let zero_balance: BalanceOf<T> = Zero::zero();
-    if amount == zero_balance {
+    if amount == Zero::zero() {
         return Ok(());
     }
 
@@ -1608,8 +1597,7 @@ fn _clear_pays<T: Trait>(
     channel_id: T::Hash,
     peer_id: u8,
     pay_id_list: PayIdList<T::Hash>,
-) -> Result<(), DispatchError> {
-    let zero_balance: BalanceOf<T> = Zero::zero();
+) -> Result<(), DispatchError> { 
     let out_amts: Vec<BalanceOf<T>>;
 
     if peer_id == 0 {
@@ -1644,7 +1632,7 @@ fn _clear_pays<T: Trait>(
                 transfer_out: new_transfer_out_1,
                 next_pay_id_list_hash: None,
                 last_pay_resolve_deadline: state_1.last_pay_resolve_deadline,
-                pending_pay_out: zero_balance,
+                pending_pay_out: Zero::zero(),
             };
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
@@ -1727,7 +1715,7 @@ fn _clear_pays<T: Trait>(
                 transfer_out: new_transfer_out_2,
                 next_pay_id_list_hash: None,
                 last_pay_resolve_deadline: state_2.last_pay_resolve_deadline,
-                pending_pay_out: zero_balance,
+                pending_pay_out: Zero::zero(),
             };
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
@@ -1878,13 +1866,11 @@ fn validate_settle_balance<T: Trait>(
         c.peer_profiles[1].deposit.checked_add(&c.peer_profiles[0].clone().state.transfer_out).ok_or(Error::<T>::OverFlow)?,
     ];
 
-    let zero_balance: BalanceOf<T> = Zero::zero();
-
     for i in 0..2 {
         let sub_amt = c.peer_profiles[i as usize].clone().state.transfer_out
-                .checked_add(&c.peer_profiles[i as usize].withdrawal.unwrap_or(zero_balance)).ok_or(Error::<T>::OverFlow)?;
+                .checked_add(&c.peer_profiles[i as usize].withdrawal.unwrap_or(Zero::zero())).ok_or(Error::<T>::OverFlow)?;
         if settle_balance[i as usize] < sub_amt {
-            return Ok((false, vec![zero_balance, zero_balance]));
+            return Ok((false, vec![Zero::zero(), Zero::zero()]));
         }
 
         settle_balance[i as usize] = settle_balance[i as usize]

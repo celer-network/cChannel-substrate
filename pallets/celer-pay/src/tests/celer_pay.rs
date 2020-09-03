@@ -22,11 +22,12 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(
@@ -55,11 +56,11 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(
@@ -95,11 +96,11 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(
@@ -134,11 +135,11 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(
@@ -173,11 +174,11 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(
@@ -215,11 +216,11 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
+            ));
             approve(channel_peers[0], ledger_addr, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
@@ -240,7 +241,6 @@ pub mod tests_celer {
                 vec![99999],
                 vec![pay_id_list],
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -275,8 +275,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -316,8 +315,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -333,8 +331,7 @@ pub mod tests_celer {
                 channel_id,
                 200,
                 zero_channel_id,
-            )
-            .unwrap();
+            ).unwrap();
 
             System::set_block_number(System::block_number() + 11);
 
@@ -366,8 +363,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -383,8 +379,7 @@ pub mod tests_celer {
                 channel_id,
                 200,
                 zero_channel_id,
-            )
-            .unwrap();
+            ).unwrap();
 
             assert_ok!(CelerModule::veto_withdraw(
                 Origin::signed(channel_peers[1]),
@@ -414,8 +409,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -486,7 +480,6 @@ pub mod tests_celer {
                 vec![10, 20], // transfer amounts
                 vec![2, 2],   // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -527,8 +520,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[0]),
                 open_channel_request,
                 0,
-            )
-            .unwrap();
+            ).unwrap();
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -561,7 +553,6 @@ pub mod tests_celer {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -574,14 +565,10 @@ pub mod tests_celer {
                 for list_index in 0..cond_pays[peer_index as usize].len() {
                     for pay_index in 0..cond_pays[peer_index as usize][list_index as usize].len() {
                         let pay_request = ResolvePaymentConditionsRequest {
-                            cond_pay: cond_pays[peer_index as usize][list_index as usize]
-                                [pay_index as usize]
-                                .clone(),
+                            cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ =
-                            PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request)
-                                .unwrap();
+                        assert_ok!(PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request));
                     }
                 }
             }
@@ -593,8 +580,7 @@ pub mod tests_celer {
             let _ = LedgerOperation::<TestRuntime>::intend_settle(
                 Origin::signed(channel_peers[0]),
                 signed_simplex_state_array,
-            )
-            .unwrap();
+            ).unwrap();
 
             let pay_id_list_array = global_result.4;
 
@@ -636,8 +622,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[0]),
                 open_channel_request,
                 0,
-            )
-            .unwrap();
+            ).unwrap();
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -682,8 +667,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
 
             assert_ok!(CelerModule::deposit_native_token(
                 Origin::signed(channel_peers[0]),
@@ -762,8 +746,7 @@ pub mod tests_celer {
                 Origin::signed(channel_peers[1]),
                 open_channel_request.clone(),
                 0,
-            )
-            .unwrap();
+            ).unwrap();
             assert_ok!(CelerModule::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
@@ -827,7 +810,6 @@ pub mod tests_celer {
                 resolve_deadline: 99999,
                 resolve_timeout: 10,
             };
-            let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
             let pay_request = ResolvePaymentConditionsRequest {
                 cond_pay: cond_pay,
                 hash_preimages: vec![H256::from_low_u64_be(1)],

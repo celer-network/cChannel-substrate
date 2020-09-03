@@ -209,14 +209,13 @@ fn resolve_payment<T: Trait>(
     let current_amt = pay_info.0;
     let current_deadline = pay_info.1;
 
-    let zero_blocknumber: T::BlockNumber = Zero::zero();
     // Should never resolve a pay before or not rearching on-chain resolve deadline.
     ensure!(
-        current_deadline == zero_blocknumber || block_number <= current_deadline,
+        current_deadline == Zero::zero() || block_number <= current_deadline,
         "Passed onchain resolve pay deadline"
     );
 
-    if current_deadline > zero_blocknumber {
+    if current_deadline > Zero::zero() {
         // current_deadline > 0 implies that this pay ha been updated
         // payment amount must be monotone increasing
         ensure!(amount > current_amt, "New amount is not larger");
@@ -242,7 +241,7 @@ fn resolve_payment<T: Trait>(
                 new_deadline = pay.resolve_deadline;
             }
             // 0 is reserved for unresolved status of a payment
-            ensure!(new_deadline > zero_blocknumber, "New resolve deadline is 0");
+            ensure!(new_deadline > Zero::zero(), "New resolve deadline is 0");
         }
 
         PayRegistry::<T>::set_pay_info(pay_hash, amount, new_deadline)?;
@@ -292,8 +291,7 @@ fn calculate_boolean_and_payment<T: Trait>(
     }
 
     if has_false_contract_cond == true {
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        return Ok(zero_balance);
+        return Ok(Zero::zero());
     } else {
         return Ok(pay.transfer_func.max_transfer.receiver.amt);
     }
@@ -345,8 +343,7 @@ fn calculate_boolean_or_payment<T: Trait>(
     if has_contract_cond == false || has_true_contract_cond == true {
         return Ok(pay.transfer_func.max_transfer.receiver.amt);
     } else {
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        return Ok(zero_balance);
+        return Ok(Zero::zero());
     }
 }
 

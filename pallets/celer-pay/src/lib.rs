@@ -284,12 +284,11 @@ decl_module! {
         ) -> DispatchResult {
             LedgerOperation::<T>::deposit(origin, channel_id, receiver, msg_value, transfer_from_amount)?;
             let c = Self::channel_map(channel_id).unwrap();
-            let zero_balance: BalanceOf<T> = Zero::zero();
             Self::deposit_event(RawEvent::Deposit(
                 channel_id,
                 vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
                 vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-                vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
+                vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()), c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())]
             ));
 
             Ok(())
@@ -331,8 +330,6 @@ decl_module! {
             msg_values: Vec<BalanceOf<T>>,
             transfer_from_amounts: Vec<BalanceOf<T>>
         ) -> DispatchResultWithPostInfo {
-            let _ = ensure_signed(origin.clone())?;
-
             ensure!(
                 channel_ids.len() == receivers.len() &&
                 receivers.len() == msg_values.len() &&
@@ -346,13 +343,12 @@ decl_module! {
                     Some(channel) => channel,
                     None => return Err(Error::<T>::ChannelNotExist)?
                 };
-                let zero_balance: BalanceOf<T> = Zero::zero();
 
                 Self::deposit_event(RawEvent::Deposit(
                     channel_ids[i],
                     vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
                     vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-                    vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance), c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance)]
+                    vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()), c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())]
                 ));
             }
 
@@ -1103,13 +1099,12 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_total_balance(channel_id: T::Hash) -> Result<BalanceOf<T>, DispatchError> {
         let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
-        let zero_balance: BalanceOf<T> = Zero::zero();
         let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
         balance = balance.checked_add(&c.peer_profiles[1].deposit)
             .ok_or(Error::<T>::OverFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance))
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()))
             .ok_or(Error::<T>::UnderFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance))
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()))
             .ok_or(Error::<T>::UnderFlow)?;
         return Ok(balance);
     }
@@ -1122,7 +1117,6 @@ impl<T: Trait> Module<T> {
         channel_id: T::Hash,
     ) -> (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>) {
         let c = Self::channel_map(channel_id).unwrap();
-        let zero_balance: BalanceOf<T> = Zero::zero();
         return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
@@ -1130,8 +1124,8 @@ impl<T: Trait> Module<T> {
             ],
             vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
             vec![
-                c.peer_profiles[0].clone().withdrawal.unwrap_or(zero_balance),
-                c.peer_profiles[1].clone().withdrawal.unwrap_or(zero_balance),
+                c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
+                c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
             ],
         );
     }
@@ -1211,14 +1205,8 @@ impl<T: Trait> Module<T> {
                 c.peer_profiles[1].peer_addr.clone(),
             ],
             vec![
-                c.peer_profiles[0]
-                    .state
-                    .next_pay_id_list_hash
-                    .unwrap_or(hash_zero),
-                c.peer_profiles[1]
-                    .state
-                    .next_pay_id_list_hash
-                    .unwrap_or(hash_zero),
+                c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(hash_zero),
+                c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(hash_zero),
             ],
         ));
     }
@@ -1281,17 +1269,13 @@ impl<T: Trait> Module<T> {
             None => return None,
         };
 
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        let zero_block_number: T::BlockNumber = Zero::zero();
         let zero_channel_id: T::Hash = Self::zero_hash();
         let withdraw_intent = c.withdraw_intent;
         return Some((
             withdraw_intent.receiver,
-            withdraw_intent.amount.unwrap_or(zero_balance),
-            withdraw_intent.request_time.unwrap_or(zero_block_number),
-            withdraw_intent
-                .recipient_channel_id
-                .unwrap_or(zero_channel_id),
+            withdraw_intent.amount.unwrap_or(Zero::zero()),
+            withdraw_intent.request_time.unwrap_or(Zero::zero()),
+            withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id),
         ));
     }
 
@@ -1345,7 +1329,6 @@ impl<T: Trait> Module<T> {
             Some(channel) => channel,
             None => return None,
         };
-        let zero_balance: BalanceOf<T> = Zero::zero();
 
         return Some((
             vec![
@@ -1354,8 +1337,8 @@ impl<T: Trait> Module<T> {
             ],
             vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
             vec![
-                c.peer_profiles[0].withdrawal.unwrap_or(zero_balance),
-                c.peer_profiles[1].withdrawal.unwrap_or(zero_balance),
+                c.peer_profiles[0].withdrawal.unwrap_or(Zero::zero()),
+                c.peer_profiles[1].withdrawal.unwrap_or(Zero::zero()),
             ],
             vec![
                 c.peer_profiles[0].state.seq_num,
