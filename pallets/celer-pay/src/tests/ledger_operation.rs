@@ -46,12 +46,12 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_open_channel_with_deposits_with_deposits_before_setting_deposit_limits() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            approve(channel_peers[1], ledger_addr, 200);
+            approve(channel_peers[1], celer_ledger_account, 200);
 
             let open_channel_request = get_open_channel_request(true, 100, 5000000, 10, false, channel_peers.clone(), 1, peers_pair);
             let err = LedgerOperation::<TestRuntime>::open_channel(
@@ -245,8 +245,8 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
             // approve ledger to spend
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
-            approve(channel_peers[1], ledger_addr, 200);
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            approve(channel_peers[1], celer_ledger_account, 200);
             let open_channel_request = get_open_channel_request(true, 10000, 500000, 10, false, channel_peers.clone(), 0, peers_pair);
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
                 Origin::signed(channel_peers[0]),
@@ -448,8 +448,8 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
             // approve ledger to spend
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
-            approve(channel_peers[0], ledger_addr, 200);
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            approve(channel_peers[0], celer_ledger_account, 200);
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -1093,7 +1093,6 @@ pub mod test_ledger_operation {
                 vec![100, 200],     // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -1162,7 +1161,6 @@ pub mod test_ledger_operation {
                 vec![1, 1],         // seq_nums
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
-                vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
@@ -1269,7 +1267,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -1359,7 +1356,6 @@ pub mod test_ledger_operation {
                 vec![1, 1],         // seq_nums
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
-                vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
@@ -1460,7 +1456,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -1533,7 +1528,6 @@ pub mod test_ledger_operation {
                 vec![1, 1],         // seq_nums
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
-                vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
@@ -1632,7 +1626,6 @@ pub mod test_ledger_operation {
                 vec![1, 1],         // seq_nums
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
-                vec![channel_peers[0], channel_peers[1]],
                 vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
@@ -1737,7 +1730,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -1832,7 +1824,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -1904,17 +1895,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_open_channel_when_total_deposit_is_larger_than_zero() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(false, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -1933,18 +1924,18 @@ pub mod test_ledger_operation {
     fn test_pass_open_channel_when_total_deposit_is_larger_than_zero_and_msg_value_receiver_is_1_and_caller_is_not_peers(
     ) {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
             let open_channel_request = get_open_channel_request(true, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
                 Origin::signed(risa),
@@ -2077,7 +2068,6 @@ pub mod test_ledger_operation {
                 vec![10, 20], // transfer amounts
                 vec![2, 2],   // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -2173,7 +2163,6 @@ pub mod test_ledger_operation {
                 vec![10, 20], // transfer amounts
                 vec![2, 2],   // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -2206,17 +2195,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_0_payment() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
             let open_channel_request = get_open_channel_request(true, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
 
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2255,17 +2244,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_with_0_payment_again() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2298,17 +2287,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_after_0_payment_intend_settle() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2342,17 +2331,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2440,17 +2429,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2522,13 +2511,13 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
             // 1 pair of simplex states + 1 non-null simplex state + 1 null simplex state
-            approve(channel_peers[1], ledger_addr, 600);
+            approve(channel_peers[1], celer_ledger_account, 600);
 
             let mut unique_channel_ids: Vec<H256> = vec![];
             // open 3 new channel
@@ -2615,7 +2604,6 @@ pub mod test_ledger_operation {
                 vec![99999, 99999, 99999],
                 pay_id_lists,
                 peer_froms.clone(),
-                channel_peers.clone(),
                 vec![
                     pay_amounts[0][0] + pay_amounts[0][1],
                     pay_amounts[1][0] + pay_amounts[1][1],
@@ -2687,13 +2675,13 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_when_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
             // 1 pair of simplex states + 1 non-null simplex state + 1 null simplex state
-            approve(channel_peers[1], ledger_addr, 600);
+            approve(channel_peers[1], celer_ledger_account, 600);
 
             let mut unique_channel_ids: Vec<H256> = vec![];
             // open 3 new channel
@@ -2787,7 +2775,6 @@ pub mod test_ledger_operation {
                 vec![99999, 99999, 99999],
                 pay_id_lists,
                 peer_froms,
-                channel_peers.clone(),
                 vec![
                     pay_amounts[0][0] + pay_amounts[0][1],
                     pay_amounts[1][0] + pay_amounts[1][1],
@@ -2892,17 +2879,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_snapshot_states_and_then_intend_withdraw_and_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -2922,7 +2909,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 vec![pay_id_list],
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3064,17 +3050,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_with_smaller_seq_num_than_snapshot() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -3094,7 +3080,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 pay_id_lists_1,
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount_1],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3115,7 +3100,6 @@ pub mod test_ledger_operation {
                 vec![1],
                 pay_id_lists_2,
                 vec![channel_peers[1]],
-                channel_peers.clone(),
                 vec![total_pending_amount_2],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3132,17 +3116,17 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_when_same_seq_num_as_snapshot() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 100);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request = get_open_channel_request(true, 1000, 500001, 10, false, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -3162,7 +3146,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 pay_id_lists_1,
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount_1],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3183,7 +3166,6 @@ pub mod test_ledger_operation {
                 vec![1],
                 pay_id_lists_2,
                 vec![channel_peers[1]],
-                channel_peers.clone(),
                 vec![total_pending_amount_2],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3273,7 +3255,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -3361,7 +3342,6 @@ pub mod test_ledger_operation {
                 vec![10, 20],       // transfer amounts
                 vec![99999, 99999], // last_pay_resolve_deadlines
                 vec![channel_peers[0], channel_peers[1]],
-                vec![channel_peers[0], channel_peers[1]],
                 channel_peers[0],
                 vec![peers_pair[0].clone(), peers_pair[1].clone()],
                 1,
@@ -3419,13 +3399,13 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_deposit_in_batch() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let deposit_account = account_key("Carl");
 
-            approve(deposit_account, ledger_addr, 10000);
+            approve(deposit_account, celer_ledger_account, 10000);
 
             let mut channel_ids: Vec<H256> = vec![];
             // open 2 new channel
@@ -3449,12 +3429,12 @@ pub mod test_ledger_operation {
             }
 
             // a non peer address approve to ledger address
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(deposit_account),
                 deposit_account,
                 10000,
-            );
-            approve(deposit_account, ledger_addr, 10000);
+            ));
+            approve(deposit_account, celer_ledger_account, 10000);
             let receivers = vec![channel_peers[0].clone(), channel_peers[1].clone()];
             let amounts = vec![100, 200];
 
@@ -3580,7 +3560,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 vec![pay_id_list],
                 vec![channel_peers[0].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3645,7 +3624,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 vec![pay_id_list],
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3715,7 +3693,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 vec![pay_id_list],
                 vec![channel_peers[1].clone()],
-                channel_peers.clone(),
                 vec![total_pending_amount],
                 channel_peers[1].clone(),
                 peers_pair.clone(),
@@ -3733,17 +3710,17 @@ pub mod test_ledger_operation {
     fn test_pass_update_pending_pay_out_to_0_correctly_when_intend_settle_a_state_with_only_one_pay_id_list(
     ) {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 200);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 200);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -3769,7 +3746,6 @@ pub mod test_ledger_operation {
                 vec![99999],
                 pay_id_list,
                 vec![channel_peers[0]],
-                channel_peers.clone(),
                 total_pending_amounts,
                 channel_peers[1],
                 peers_pair,
@@ -3823,18 +3799,18 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_operable_channel_for_a_non_peer() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 200);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 200);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -3866,18 +3842,18 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_a_settling_channel_for_a_nonpeer() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             let risa = account_key("Risa");
 
-            Pool::<TestRuntime>::deposit_pool(
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],
                 100,
-            );
-            approve(channel_peers[0], ledger_addr, 200);
+            ));
+            approve(channel_peers[0], celer_ledger_account, 200);
 
             let open_channel_request = get_open_channel_request(true, 10000, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -3923,7 +3899,6 @@ pub mod test_ledger_operation {
                 vec![10, 20], // transfer_amounts
                 vec![2, 2],   // last_pay_resolve_deadline
                 vec![channel_peers[0].clone(), channel_peers[1].clone()],
-                channel_peers.clone(),
                 channel_peers[1],
                 peers_pair,
                 1,
@@ -4251,7 +4226,6 @@ pub mod test_ledger_operation {
         transfer_amounts: Vec<Balance>,
         last_pay_resolve_deadlines: Vec<BlockNumber>,
         peer_froms: Vec<AccountId>,
-        signers: Vec<AccountId>,
         receiver_account: AccountId,
         peers_pair: Vec<sr25519::Pair>,
         conditions: u8,
@@ -4262,12 +4236,6 @@ pub mod test_ledger_operation {
         Vec<Vec<H256>>,
         Vec<Vec<PayIdList<H256>>>,
     ) {
-        // Initial value of pay id list
-        let init_pay_id_list = PayIdList {
-            pay_ids: vec![H256::from_low_u64_be(0)],
-            next_list_hash: None,
-        };
-
         // Initial value pf cond_pay
         let init_conditions = get_condition(1);
         let init_transfer_func = get_transfer_func_2(10);
@@ -4507,7 +4475,6 @@ pub mod test_ledger_operation {
         last_pay_resolve_deadlines: Vec<BlockNumber>,
         pay_id_lists: Vec<PayIdList<H256>>,
         peer_froms: Vec<AccountId>,
-        signers: Vec<AccountId>,
         total_pending_amounts: Vec<Balance>,
         receiver_account: AccountId,
         peers_pair: Vec<sr25519::Pair>,
@@ -4625,7 +4592,6 @@ pub mod test_ledger_operation {
             last_pay_resolve_deadline: Some(last_pay_resolve_deadline),
             total_pending_amount: Some(total_pending_amount),
         };
-        let pay_id_len = simplex_payment_channel.clone().pending_pay_ids.unwrap().pay_ids.len();
         let mut encoded = simplex_payment_channel.channel_id.encode();
         encoded.extend(simplex_payment_channel.peer_from.encode());
         encoded.extend(simplex_payment_channel.seq_num.encode());

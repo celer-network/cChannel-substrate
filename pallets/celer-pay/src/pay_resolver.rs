@@ -6,11 +6,11 @@ use codec::{Decode, Encode};
 use frame_support::{ensure};
 use frame_system::{self as system};
 use pallet_timestamp;
-use sp_runtime::traits::{AccountIdConversion, CheckedAdd, Hash, Zero, Dispatchable};
+use sp_runtime::traits::{CheckedAdd, Hash, Zero, Dispatchable};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::{vec::Vec, boxed::Box};
 
-pub const RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
+pub const PAY_RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ConditionType {
@@ -209,14 +209,13 @@ fn resolve_payment<T: Trait>(
     let current_amt = pay_info.0;
     let current_deadline = pay_info.1;
 
-    let zero_blocknumber: T::BlockNumber = Zero::zero();
     // Should never resolve a pay before or not rearching on-chain resolve deadline.
     ensure!(
-        current_deadline == zero_blocknumber || block_number <= current_deadline,
+        current_deadline == Zero::zero() || block_number <= current_deadline,
         "Passed onchain resolve pay deadline"
     );
 
-    if current_deadline > zero_blocknumber {
+    if current_deadline > Zero::zero() {
         // current_deadline > 0 implies that this pay ha been updated
         // payment amount must be monotone increasing
         ensure!(amount > current_amt, "New amount is not larger");
@@ -242,7 +241,7 @@ fn resolve_payment<T: Trait>(
                 new_deadline = pay.resolve_deadline;
             }
             // 0 is reserved for unresolved status of a payment
-            ensure!(new_deadline > zero_blocknumber, "New resolve deadline is 0");
+            ensure!(new_deadline > Zero::zero(), "New resolve deadline is 0");
         }
 
         PayRegistry::<T>::set_pay_info(pay_hash, amount, new_deadline)?;
@@ -270,11 +269,11 @@ fn calculate_boolean_and_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let resolver_account = account_id::<T>();
+            let pay_resolver_account = Module::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean condition
             let call_is_finalized = cond.call_is_finalized.unwrap();
-            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(resolver_account.clone()).into());
+            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
                 "Condition is not finalized"
@@ -282,7 +281,7 @@ fn calculate_boolean_and_payment<T: Trait>(
 
             // call get_outcome of boolean condition
             let call_get_outcome = cond.call_get_outcome.unwrap();
-            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(resolver_account).into());
+            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if (!outcome.is_ok()) && (outcome.unwrap_err().error == DispatchError::Other("FalseOutcome")) {
                 has_false_contract_cond = true;
             }
@@ -292,8 +291,7 @@ fn calculate_boolean_and_payment<T: Trait>(
     }
 
     if has_false_contract_cond == true {
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        return Ok(zero_balance);
+        return Ok(Zero::zero());
     } else {
         return Ok(pay.transfer_func.max_transfer.receiver.amt);
     }
@@ -320,11 +318,11 @@ fn calculate_boolean_or_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j += 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let resolver_account = account_id::<T>();
+            let pay_resolver_account = Module::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean_condition
             let call_is_finalized = cond.call_is_finalized.unwrap();
-            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(resolver_account.clone()).into());
+            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
                 "Condition is not finalized"
@@ -333,7 +331,7 @@ fn calculate_boolean_or_payment<T: Trait>(
 
             // call get_outcome of boolean_condition
             let call_get_outcome = cond.call_get_outcome.unwrap();
-            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(resolver_account).into());
+            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if outcome.is_ok() {
                 has_true_contract_cond = true;
             }
@@ -345,8 +343,7 @@ fn calculate_boolean_or_payment<T: Trait>(
     if has_contract_cond == false || has_true_contract_cond == true {
         return Ok(pay.transfer_func.max_transfer.receiver.amt);
     } else {
-        let zero_balance: BalanceOf<T> = Zero::zero();
-        return Ok(zero_balance);
+        return Ok(Zero::zero());
     }
 }
 
@@ -425,16 +422,11 @@ fn is_numeric_logic<T: Trait>(func_type: TransferFunctionType) -> bool {
 
 // Calculate pay id
 pub fn calculate_pay_id<T: Trait>(pay_hash: T::Hash) -> T::Hash {
-    let resolver_account = account_id::<T>();
+    let pay_resolver_account = Module::<T>::get_pay_resolver_id();
     let mut encoded = pay_hash.encode();
-    encoded.extend(resolver_account.encode());
+    encoded.extend(pay_resolver_account.encode());
     let pay_id = T::Hashing::hash(&encoded);
     return pay_id;
-}
-
-// The accountID of the PayResolver.
-fn account_id<T: Trait>() -> T::AccountId {
-    RESOLVER_ID.into_account()
 }
 
 pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {

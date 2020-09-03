@@ -6,7 +6,6 @@ use frame_support::storage::migration::{
     put_storage_value
 };
 use crate::ledger_operation::{
-    LedgerOperation,
     PeerProfileOf,
     WithdrawIntentOf,
     ChannelOf    
@@ -32,9 +31,9 @@ fn upgrade_v1_to_v2<T: Trait>() {
             channel.balance_limits_enabled = balance_limits_enabled;
 
             // Do not migrate WithdrawIntent, in other words, migration will implicitly veto pending WithdrawIntent if any.
-            let ledger_addr: T::AccountId = LedgerOperation::<T>::ledger_account();
+            let celer_ledger_account: T::AccountId = Module::<T>::get_celer_ledger_id();
             let init_withdraw_intent = WithdrawIntentOf::<T> {
-                receiver: ledger_addr,
+                receiver: celer_ledger_account,
                 amount: None,
                 request_time: None,
                 recipient_channel_id: None
@@ -139,14 +138,14 @@ pub mod test {
     #[test]
     fn test_pass_migrate_operable_channel() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
-            approve(channel_peers[0], ledger_addr, 100);
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request
                 = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
@@ -167,14 +166,14 @@ pub mod test {
     #[test]
     fn test_pass_migrate_settling_channel() {
         ExtBuilder::build().execute_with(|| {
-            let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+            let celer_ledger_account = CelerModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair)
                 = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
             
-            Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100);
-            approve(channel_peers[0], ledger_addr, 100);
+            assert_ok!(Pool::<TestRuntime>::deposit_pool(Origin::signed(channel_peers[0]), channel_peers[0], 100));
+            approve(channel_peers[0], celer_ledger_account, 100);
 
             let open_channel_request
                 = get_open_channel_request(true, 10000, 50000, 10, false, channel_peers.clone(), 1, peers_pair.clone());
@@ -211,7 +210,7 @@ pub mod test {
     }
 
     fn migration_test(channel_id: H256, channel_peers: Vec<AccountId>) {
-        let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+        let celer_ledger_account = CelerModule::get_celer_ledger_id();
         let old_balance_limit = CelerModule::get_balance_limit(channel_id).unwrap();
         let old_balance_limits_enabled = CelerModule::get_balance_limits_enabled(channel_id).unwrap();
         let old_settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id);
@@ -221,7 +220,7 @@ pub mod test {
         let old_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
         let old_wallet_balance = CelerModule::get_balance(channel_id).unwrap();
         let old_balances_of_pool = CelerModule::balance_of(channel_peers[0].clone()).unwrap();
-        let old_allowance = CelerModule::allowance(channel_peers[0].clone(), ledger_addr.clone());
+        let old_allowance = CelerModule::allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         // Perform upgrade
         CelerModule::on_runtime_upgrade();
@@ -236,7 +235,7 @@ pub mod test {
         let new_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
         let new_wallet_balance = CelerModule::get_balance(channel_id).unwrap();
         let new_balances_of_pool = CelerModule::balance_of(channel_peers[0].clone()).unwrap();
-        let new_allowance = CelerModule::allowance(channel_peers[0].clone(), ledger_addr.clone());
+        let new_allowance = CelerModule::allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         assert_eq!(old_balance_limit, new_balance_limit);
         assert_eq!(old_balance_limits_enabled, new_balance_limits_enabled);
@@ -250,9 +249,9 @@ pub mod test {
         assert_eq!(old_allowance, new_allowance);
 
         // Check whether withdraw_intent initialized
-        let ledger_addr = LedgerOperation::<TestRuntime>::ledger_account();
+        let celer_ledger_account = CelerModule::get_celer_ledger_id();
         let init_withdraw_intent = WithdrawIntentOf::<TestRuntime> {
-            receiver: ledger_addr,
+            receiver: celer_ledger_account,
             amount: None,
             request_time: None,
             recipient_channel_id: None
@@ -274,7 +273,6 @@ pub mod test {
             vec![1, 1],
             vec![10, 20],
             vec![99999, 99999],
-            vec![channel_peers[0], channel_peers[1]],
             vec![channel_peers[0], channel_peers[1]],
             channel_peers[0],
             vec![peers_pair[0].clone(), peers_pair[1].clone()],

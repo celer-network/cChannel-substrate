@@ -1,6 +1,6 @@
-use super::{Allowed, BalanceOf, Balances, Error, Module, Wallets, RawEvent};
+use super::{Module, Allowed, BalanceOf, Balances, Error, Wallets, RawEvent};
 use crate::traits::Trait;
-use crate::celer_wallet::{WalletOf, WALLET_ID};
+use crate::celer_wallet::WalletOf;
 use crate::ledger_operation::CELER_LEDGER_ID;
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
@@ -29,7 +29,7 @@ impl<T: Trait> Pool<T> {
             "caller does not have enough balances"
         );
 
-        let pool_account = pool_account::<T>();
+        let pool_account = Module::<T>::get_pool_id();
         ensure!(receiver != pool_account, "receiver address is pool account");
 
         if Balances::<T>::contains_key(&receiver) == false {
@@ -68,7 +68,7 @@ impl<T: Trait> Pool<T> {
         let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::UnderFlow)?;
         Balances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
 
-        let pool_account = pool_account::<T>();
+        let pool_account = Module::<T>::get_pool_id();
         T::Currency::transfer(
             &pool_account,
             &caller,
@@ -188,28 +188,28 @@ impl<T: Trait> Pool<T> {
             .ok_or(Error::<T>::UnderFlow)?;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
-        let pool_account = pool_account::<T>();
-        let wallet_account = wallet_account::<T>();
+        let pool_account = Module::<T>::get_pool_id();
+        let celer_wallet_account = Module::<T>::get_celer_wallet_id();
         T::Currency::transfer(
             &pool_account,
-            &wallet_account,
+            &celer_wallet_account,
             amount,
             ExistenceRequirement::AllowDeath,
         )?;
 
-        return Ok((wallet_id, wallet_account, amount));
+        return Ok((wallet_id, celer_wallet_account, amount));
     }
 
     // Transfer native token from one address to a wallet in CelerWallet Module.
     // This function called by Celer Ledger.
     pub fn transfer_to_celer_wallet_by_ledger(
-        ledger_addr: T::AccountId,
+        celer_ledger_account: T::AccountId,
         from: T::AccountId,
         wallet_id: T::Hash,
         amount: BalanceOf<T>,
     ) -> Result<(T::Hash, T::AccountId, BalanceOf<T>), DispatchError> {
         let account = ledger_account::<T>();
-        ensure!(ledger_addr == account, "Ledger Account is not invalid",);
+        ensure!(celer_ledger_account == account, "Ledger Account is not invalid",);
 
         let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
             Some(_w) => _w,
@@ -225,17 +225,17 @@ impl<T: Trait> Pool<T> {
             "Wallet owner does not deposit to pool enough value"
         );
 
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &ledger_addr);
+        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &celer_ledger_account);
         ensure!(exist_allowed == true, "Corresponding Allowed not exist");
 
-        let allowed_balances = Allowed::<T>::get(&from, &ledger_addr).unwrap();
+        let allowed_balances = Allowed::<T>::get(&from, &celer_ledger_account).unwrap();
         ensure!(
             allowed_balances >= amount,
             "spender not have enough allowed balances"
         );
         let new_allowed_balances = allowed_balances
                 .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
-        Allowed::<T>::mutate(&from, &ledger_addr, |balance| {
+        Allowed::<T>::mutate(&from, &celer_ledger_account, |balance| {
             *balance = Some(new_allowed_balances)
         });
 
@@ -251,16 +251,16 @@ impl<T: Trait> Pool<T> {
                 .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
-        let pool_account = pool_account::<T>();
-        let wallet_account = wallet_account::<T>();
+        let pool_account = Module::<T>::get_pool_id();
+        let celer_wallet_account = Module::<T>::get_celer_wallet_id();
         T::Currency::transfer(
             &pool_account,
-            &wallet_account,
+            &celer_wallet_account,
             amount,
             ExistenceRequirement::AllowDeath,
         )?;
 
-        return Ok((wallet_id, wallet_account, amount));
+        return Ok((wallet_id, celer_wallet_account, amount));
     }
 
     // Increase the amount of native token that an owner allowed to a spender.
@@ -319,19 +319,12 @@ fn _transfer<T: Trait>(
     let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::OverFlow)?;
     Balances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 
-    let pool_account = pool_account::<T>();
+    let pool_account = Module::<T>::get_pool_id();
     T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
 
     Ok(())
 }
 
-fn pool_account<T: Trait>() -> T::AccountId {
-    POOL_ID.into_account()
-}
-
-fn wallet_account<T: Trait>() -> T::AccountId {
-    WALLET_ID.into_account()
-}
 
 fn ledger_account<T: Trait>() -> T::AccountId {
     CELER_LEDGER_ID.into_account()
