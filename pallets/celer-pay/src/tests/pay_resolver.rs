@@ -7,7 +7,6 @@ pub mod test_pay_resolver {
     use crate::pay_resolver::*;
     use codec::{Encode};
     use mock_boolean_condition::Call as MockBooleanCall;
-    use crate::pay_registry::*;
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
@@ -371,7 +370,7 @@ pub mod test_pay_resolver {
     }
 
     #[test]
-    fn test_fail_resolve_payment_by_conditions_with_a_false_hashLock_condition() {
+    fn test_fail_resolve_payment_by_conditions_with_a_false_hash_lock_condition() {
         ExtBuilder::build().execute_with(|| {
             let transfer_func = get_transfer_func(account_key("Alice"), 200, 1);
             let cond_pay = ConditionalPay {
@@ -383,7 +382,6 @@ pub mod test_pay_resolver {
                 resolve_deadline: 99999,
                 resolve_timeout: 10,
             };
-            let encoded_cond_pay = encode_conditional_pay(cond_pay.clone());
             let pay_request = ResolvePaymentConditionsRequest {
                 cond_pay: cond_pay,
                 hash_preimages: vec![H256::from_low_u64_be(1), H256::from_low_u64_be(0)],
