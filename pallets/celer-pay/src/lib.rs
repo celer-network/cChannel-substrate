@@ -296,10 +296,10 @@ decl_module! {
         /// Deposit funds into the channel
         ///
         /// Parameters:
-        /// `channel_ids`: Ids of channel
-        /// `receivers`: addresses of receiver
-        /// `msg_values`: amount of funds to deposit from caller
-        /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
+        /// `channel_ids`: Id list of channel
+        /// `receivers`: address list of receiver
+        /// `msg_values`: amounts list of funds to deposit from caller
+        /// `transfer_from_amounts`: amounts list of funds to be transfered from Pool
         /// 
         /// # <weight>
         /// ## Weight
