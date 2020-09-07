@@ -1474,7 +1474,7 @@ fn add_deposit<T: Trait>(
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
     
         // emit Deposit event
-        Module::<T>::deposit_event(RawEvent::Deposit(
+        Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
                 new_channel.peer_profiles[0].peer_addr.clone(),
@@ -1511,7 +1511,7 @@ fn add_deposit<T: Trait>(
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
 
         // emit Deposit event
-        Module::<T>::deposit_event(RawEvent::Deposit(
+        Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
                 new_channel.peer_profiles[0].peer_addr.clone(),
