@@ -248,6 +248,10 @@ decl_module! {
 
             let wallet_num = Self::wallet_num() + 1;
             WalletNum::put(wallet_num);
+            Self::deposit_event(RawEvent::CreateWallet(
+                channel_id, 
+                vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()]
+            ));
 
             Ok(())
         }

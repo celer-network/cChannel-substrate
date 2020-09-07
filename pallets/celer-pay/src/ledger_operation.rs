@@ -427,6 +427,17 @@ impl<T: Trait> LedgerOperation<T> {
             };
 
             ensure!(amt_sum <= balance_limits, "Balance exceeds limit");
+            
+            // emit EnableBalanceLimits event
+            Module::<T>::deposit_event(RawEvent::EnableBalanceLimits(
+                channel_id,
+            ));
+
+            // emit SetBalanceLimits event
+            Module::<T>::deposit_event(RawEvent::SetBalanceLimits(
+                channel_id,
+                balance_limits
+            ));
         }
 
         if token.token_type == TokenType::Celer {
