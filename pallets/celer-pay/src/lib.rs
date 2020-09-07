@@ -711,7 +711,7 @@ decl_module! {
         ) -> DispatchResult {
             let (_receiver, _msg_value): (T::AccountId, BalanceOf<T>)
                 = Pool::<T>::deposit_pool(origin, receiver, msg_value)?;
-            Self::deposit_event(RawEvent::PoolDeposit(_receiver, _msg_value));
+            Self::deposit_event(RawEvent::DepositToPool(_receiver, _msg_value));
             Ok(())
         }
 
@@ -997,8 +997,8 @@ decl_event! (
         WithdrawFromWallet(Hash, AccountId, Balance),
 
         /// Pool
-        /// PoolDeposit(receiver, amount)
-        PoolDeposit(AccountId, Balance),
+        /// DepositToPool(receiver, amount)
+        DepositToPool(AccountId, Balance),
         /// WithdrawFromPool(receiver, amount)
         WithdrawFromPool(AccountId, Balance),
         /// Transfer(sender, receiver, amount)
