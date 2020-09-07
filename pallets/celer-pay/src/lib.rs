@@ -90,7 +90,7 @@ mod weight_for {
         channel_id_len: u64,
         channel_id_len_weight: Weight
     ) -> Weight {
-        T::DbWeight::get().reads_writes(7 * channel_id_len, 5 * channel_id_len)
+        T::DbWeight::get().reads_writes(6 * channel_id_len, 5 * channel_id_len)
             .saturating_add(channel_id_len_weight.saturating_mul(100_000_000))
     }
 
@@ -268,7 +268,7 @@ decl_module! {
         /// ## Weight
         /// - Complexity: `O(1)`
         /// - DB:
-        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
@@ -277,7 +277,7 @@ decl_module! {
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(7, 5)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(6, 5)]
         fn deposit(
             origin,
             channel_id: T::Hash,
@@ -286,13 +286,6 @@ decl_module! {
             transfer_from_amount: BalanceOf<T>
         ) -> DispatchResult {
             LedgerOperation::<T>::deposit(origin, channel_id, receiver, msg_value, transfer_from_amount)?;
-            let c = Self::channel_map(channel_id).unwrap();
-            Self::deposit_event(RawEvent::Deposit(
-                channel_id,
-                vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-                vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-                vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()), c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())]
-            ));
 
             Ok(())
         }
@@ -310,7 +303,7 @@ decl_module! {
         /// - Complexity: `O(N)`
         ///     - `N` channel_ids-len
         /// - DB:
-        ///   - 2*N storage reads  `ChannelMap`
+        ///   - N storage reads  `ChannelMap`
         //    - N storage mutation `ChannelMap`
         ///   - 2*N storage reads `Wallets`
         ///   - 2*N storage mutation `Wallets`
@@ -342,17 +335,6 @@ decl_module! {
 
             for i in 0..channel_ids.len() {
                 LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), msg_values[i], transfer_from_amounts[i])?;
-                let c = match Self::channel_map(channel_ids[i]) {
-                    Some(channel) => channel,
-                    None => return Err(Error::<T>::ChannelNotExist)?
-                };
-
-                Self::deposit_event(RawEvent::Deposit(
-                    channel_ids[i],
-                    vec![c.peer_profiles[0].peer_addr.clone(), c.peer_profiles[1].peer_addr.clone()],
-                    vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
-                    vec![c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()), c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())]
-                ));
             }
 
             Ok(Some(weight_for::deposit_in_batch::<T>(
@@ -965,8 +947,8 @@ decl_event! (
         EnableBalanceLimits(Hash),
         /// OpnChannel(channel_id, channel_peers, deposits)
         OpenChannel(Hash, Vec<AccountId>, Vec<Balance>),
-        /// Deposit(channel_id, chanel_peers, deposits, withdrawals)
-        Deposit(Hash, Vec<AccountId>, Vec<Balance>, Vec<Balance>),
+        /// DepositToChannel(channel_id, chanel_peers, deposits, withdrawals)
+        DepositToChannel(Hash, Vec<AccountId>, Vec<Balance>, Vec<Balance>),
         /// SnapshotStates(channel_id,seq_nums)
         SnapshotStates(Hash, Vec<u128>),
         /// IntendWithdraw(channel_id, receiver, amount)
@@ -1431,7 +1413,7 @@ impl<T: Trait> Module<T> {
         return pay_id;
     }
 
-    /// Helper
+/// =================================== Helper ===============================================
     pub fn valid_signers(
         signatures: Vec<<T as Trait>::Signature>,
         encoded: &[u8],
