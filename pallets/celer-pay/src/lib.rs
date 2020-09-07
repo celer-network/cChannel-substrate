@@ -1001,7 +1001,7 @@ decl_event! (
         Transfer(AccountId, AccountId, Balance),
         /// TransferToCelerWallet(wallet_id, from, amount)
         TransferToCelerWallet(Hash, AccountId, Balance),
-        /// Approval(channel_id, owner, spender)
+        /// Approval(owner, spender, amount)
         Approval(AccountId, AccountId, Balance),
 
         /// PayRegsitry
