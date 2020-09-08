@@ -427,6 +427,17 @@ impl<T: Trait> LedgerOperation<T> {
             };
 
             ensure!(amt_sum <= balance_limits, "Balance exceeds limit");
+            
+            // emit EnableBalanceLimits event
+            Module::<T>::deposit_event(RawEvent::EnableBalanceLimits(
+                channel_id,
+            ));
+
+            // emit SetBalanceLimits event
+            Module::<T>::deposit_event(RawEvent::SetBalanceLimits(
+                channel_id,
+                balance_limits
+            ));
         }
 
         if token.token_type == TokenType::Celer {
@@ -1463,7 +1474,7 @@ fn add_deposit<T: Trait>(
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
     
         // emit Deposit event
-        Module::<T>::deposit_event(RawEvent::Deposit(
+        Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
                 new_channel.peer_profiles[0].peer_addr.clone(),
@@ -1500,7 +1511,7 @@ fn add_deposit<T: Trait>(
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
 
         // emit Deposit event
-        Module::<T>::deposit_event(RawEvent::Deposit(
+        Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
                 new_channel.peer_profiles[0].peer_addr.clone(),
