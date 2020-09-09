@@ -1,4 +1,4 @@
-use super::{Module, BalanceOf, Error, Wallets};
+use super::{Module, BalanceOf, Error, Wallets, RawEvent};
 use crate::traits::Trait;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
@@ -35,6 +35,11 @@ impl<T: Trait> CelerWallet<T> {
 
         update_balance::<T>(caller, wallet_id.clone(), msg_value.clone())?;
 
+        // Emit DepositToWallet event
+        Module::<T>::deposit_event(RawEvent::DepositToWallet(
+            wallet_id, 
+            msg_value
+        ));
         return Ok((wallet_id, msg_value));
     }
 }

@@ -252,6 +252,11 @@ impl<T: Trait> LedgerOperation<T> {
         };
         <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
 
+        // Emit SetBalanceLimits event
+        Module::<T>::deposit_event(RawEvent::SetBalanceLimits(
+            channel_id,
+            limits
+        ));
         Ok(())
     }
 
@@ -282,6 +287,10 @@ impl<T: Trait> LedgerOperation<T> {
         };
         <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
         
+        // Emit DisableBalanceLimits event
+        Module::<T>::deposit_event(RawEvent::DisableBalanceLimits(
+            channel_id
+        ));
         Ok(())
     }
 
@@ -310,8 +319,12 @@ impl<T: Trait> LedgerOperation<T> {
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: c.withdraw_intent,
         };
-
         <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+        
+        // Emit EnableBalanceLimits event
+        Module::<T>::deposit_event(RawEvent::EnableBalanceLimits(
+            channel_id
+        ));
         Ok(())
     }
 
@@ -428,12 +441,12 @@ impl<T: Trait> LedgerOperation<T> {
 
             ensure!(amt_sum <= balance_limits, "Balance exceeds limit");
             
-            // emit EnableBalanceLimits event
+            // Emit EnableBalanceLimits event
             Module::<T>::deposit_event(RawEvent::EnableBalanceLimits(
                 channel_id,
             ));
 
-            // emit SetBalanceLimits event
+            // Emit SetBalanceLimits event
             Module::<T>::deposit_event(RawEvent::SetBalanceLimits(
                 channel_id,
                 balance_limits
@@ -452,7 +465,7 @@ impl<T: Trait> LedgerOperation<T> {
             if amounts[pid] > Zero::zero() {
                 let celer_ledger_account = Module::<T>::get_celer_ledger_id();
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
-                    celer_ledger_account,
+                    frame_system::RawOrigin::Signed(celer_ledger_account).into(),
                     peer_addrs[pid].clone(),
                     channel_id,
                     amounts[pid],
@@ -461,8 +474,15 @@ impl<T: Trait> LedgerOperation<T> {
         } else {
             Err(Error::<T>::Error)?
         }
-        
+
         ChannelMap::<T>::insert(channel_id, channel.clone());
+        
+        // Emit OpenChannel event
+        Module::<T>::deposit_event(RawEvent::OpenChannel(
+            channel_id,
+            vec![channel.peer_profiles[0].peer_addr.clone(), channel.peer_profiles[1].peer_addr.clone()],
+            vec![channel.peer_profiles[0].deposit, channel.peer_profiles[1].deposit]
+        ));
         return Ok(channel_id);
     }
 
@@ -493,7 +513,7 @@ impl<T: Trait> LedgerOperation<T> {
             let celer_ledger_account = Module::<T>::get_celer_ledger_id();
             if transfer_from_amount > Zero::zero() {
                 Pool::<T>::transfer_to_celer_wallet_by_ledger(
-                    celer_ledger_account,
+                    frame_system::RawOrigin::Signed(celer_ledger_account).into(),
                     caller,
                     channel_id,
                     transfer_from_amount,
@@ -675,9 +695,14 @@ impl<T: Trait> LedgerOperation<T> {
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: new_withdraw_intent,
         };
-
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
 
+        // Emit IntendWithdraw event
+        Module::<T>::deposit_event(RawEvent::IntendWithdraw(
+            channel_id,
+            receiver.clone(),
+            amount
+        ));
         return Ok((channel_id, receiver, amount));
     }
 
@@ -802,6 +827,17 @@ impl<T: Trait> LedgerOperation<T> {
             )?;
         }
 
+        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>)
+            = Module::<T>::get_balance_map(channel_id);
+        // Emit Confirmwithdraw event
+        Module::<T>::deposit_event(RawEvent::ConfirmWithdraw(
+            channel_id,
+            amount,
+            receiver.clone(),
+            recipient_channel_id,
+            deposits,
+            withdrawals
+        ));
         return Ok((amount, receiver, recipient_channel_id));
     }
 
@@ -834,9 +870,12 @@ impl<T: Trait> LedgerOperation<T> {
             cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
             withdraw_intent: initialize_withdraw_intent,
         };
-
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
 
+        // Emit VetoWithdraw event
+        Module::<T>::deposit_event(RawEvent::VetoWithdraw(
+            channel_id
+        ));
         Ok(())
     }
 
@@ -936,6 +975,19 @@ impl<T: Trait> LedgerOperation<T> {
         } else {
             Err(Error::<T>::NotChannelPeer)?
         }
+
+        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>)
+            = Module::<T>::get_balance_map(channel_id);
+        // Emit CooperativeWithdraw event
+        Module::<T>::deposit_event(RawEvent::CooperativeWithdraw(
+            channel_id,
+            amount,
+            receiver.clone(),
+            recipient_channel_id,
+            deposits,
+            withdrawals,
+            withdraw_info.seq_num
+        ));
 
         return Ok((
             channel_id,
@@ -1328,6 +1380,11 @@ impl<T: Trait> LedgerOperation<T> {
             settle_balance.clone(),
         )?;
 
+        // Emit ConfirmSettle event
+        Module::<T>::deposit_event(RawEvent::ConfirmSettle(
+            channel_id,
+            settle_balance.clone()
+        ));
         return Ok((channel_id, settle_balance));
     }
 
@@ -1384,6 +1441,11 @@ impl<T: Trait> LedgerOperation<T> {
 
         batch_transfer_out::<T>(channel_id, peer_addrs, settle_balance.clone())?;
 
+        // Emit CooperativeSettle event
+        Module::<T>::deposit_event(RawEvent::CooperativeSettle(
+            channel_id,
+            settle_balance.clone()
+        ));
         return Ok((channel_id, settle_balance));
     }
 
@@ -1425,6 +1487,11 @@ fn create_wallet_id<T: Trait>(peers: Vec<T::AccountId>, nonce: T::Hash) -> T::Ha
     encoded.extend(nonce.encode());
     let wallet_id = T::Hashing::hash(&encoded);
 
+    // Emit CreateWallet event
+    Module::<T>::deposit_event(RawEvent::CreateWallet(
+        wallet_id,
+        vec![peers[0].clone(), peers[1].clone()]
+    ));
     return wallet_id;
 }
 
@@ -1473,7 +1540,7 @@ fn add_deposit<T: Trait>(
         };
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
     
-        // emit Deposit event
+        // Emit Deposit event
         Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
@@ -1510,7 +1577,7 @@ fn add_deposit<T: Trait>(
         };
         ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel.clone()));
 
-        // emit Deposit event
+        // Emit Deposit event
         Module::<T>::deposit_event(RawEvent::DepositToChannel(
             channel_id,
             vec![
@@ -1617,7 +1684,7 @@ fn _clear_pays<T: Trait>(
             total_amt_out = total_amt_out
                 .checked_add(&out_amts[i])
                 .ok_or(Error::<T>::OverFlow)?;
-            // emit ClearOnePay event
+            // Emit ClearOnePay event
             Module::<T>::deposit_event(RawEvent::ClearOnePay(
                 channel_id,
                 pay_id_list.pay_ids[i].clone(),
@@ -1700,7 +1767,7 @@ fn _clear_pays<T: Trait>(
         let out_amts_len = out_amts.len();
         for i in 0..out_amts_len {
             total_amt_out = total_amt_out.checked_add(&out_amts[i]).ok_or(Error::<T>::OverFlow)?;
-            // emit ClearOnePay event
+            // Emit ClearOnePay event
             Module::<T>::deposit_event(RawEvent::ClearOnePay(
                 channel_id,
                 pay_id_list.pay_ids[i].clone(),
@@ -1803,7 +1870,7 @@ fn update_overall_states_by_intend_state<T: Trait>(
     update_channel_status::<T>(new_channel, channel_id, ChannelStatus::Settling)?;
 
     let seq_nums = get_state_seq_nums::<T>(channel_id);
-    // emit IntendSettle event
+    // Emit IntendSettle event
     Module::<T>::deposit_event(RawEvent::IntendSettle(channel_id, seq_nums));
 
     Ok(())
