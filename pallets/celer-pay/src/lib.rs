@@ -908,7 +908,7 @@ decl_event! (
         WithdrawFromPool(AccountId, Balance),
         /// Transfer(from, receiver, amount)
         Transfer(AccountId, AccountId, Balance),
-        /// Approval(channel_id, owner, spender)
+        /// Approval(owner, spender, amount)
         Approval(AccountId, AccountId, Balance),
 
         /// PayRegsitry
