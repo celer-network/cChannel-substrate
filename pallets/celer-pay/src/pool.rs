@@ -1,14 +1,13 @@
 use super::{Module, Allowed, BalanceOf, Balances, Error, Wallets, RawEvent};
 use crate::traits::Trait;
 use crate::celer_wallet::WalletOf;
-use crate::ledger_operation::CELER_LEDGER_ID;
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
     ensure,
     storage::{StorageDoubleMap, StorageMap},
 };
 use frame_system::ensure_signed;
-use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub};
+use sp_runtime::traits::{CheckedAdd, CheckedSub};
 use sp_runtime::{ModuleId, DispatchError};
 
 pub const POOL_ID: ModuleId = ModuleId(*b"_pool_id");
@@ -47,6 +46,11 @@ impl<T: Trait> Pool<T> {
             ExistenceRequirement::AllowDeath,
         )?;
 
+        // Emit DepositToPool event
+        Module::<T>::deposit_event(RawEvent::DepositToPool(
+            receiver.clone(),
+            msg_value
+        ));
         return Ok((receiver, msg_value));
     }
 
@@ -76,6 +80,11 @@ impl<T: Trait> Pool<T> {
             ExistenceRequirement::AllowDeath,
         )?;
 
+        // Emit WithdrawFromPool event
+        Module::<T>::deposit_event(RawEvent::WithdrawFromPool(
+            caller.clone(),
+            value
+        ));
         return Ok((caller, value));
     }
 
@@ -89,6 +98,12 @@ impl<T: Trait> Pool<T> {
 
         Allowed::<T>::insert(&caller, &spender, &value);
 
+        // Emit Approval event
+        Module::<T>::deposit_event(RawEvent::Approval(
+            caller.clone(),
+            spender.clone(),
+            value
+        ));
         return Ok((caller, spender, value));
     }
 
@@ -108,9 +123,8 @@ impl<T: Trait> Pool<T> {
             allowed_balances >= value,
             "spender does not have enough allowed balances"
         );
-        let new_allowed_balances = allowed_balances
-            .checked_sub(&value)
-            .ok_or(Error::<T>::UnderFlow)?;
+        let new_allowed_balances = allowed_balances.checked_sub(&value)
+                .ok_or(Error::<T>::UnderFlow)?;
 
         let exist_address: bool = Balances::<T>::contains_key(&from);
         ensure!(
@@ -135,6 +149,12 @@ impl<T: Trait> Pool<T> {
 
         _transfer::<T>(from.clone(), to.clone(), value)?;
 
+        // Emit Transer event
+        Module::<T>::deposit_event(RawEvent::Transfer(
+            from.clone(),
+            to.clone(),
+            value
+        ));
         return Ok((from, to, value));
     }
 
@@ -168,14 +188,13 @@ impl<T: Trait> Pool<T> {
             allowed_balances >= amount,
             "spender not have enough allowed balances"
         );
-        let new_allowed_balances = allowed_balances
-            .checked_sub(&amount)
-            .ok_or(Error::<T>::UnderFlow)?;
+        let new_allowed_balances = allowed_balances.checked_sub(&amount)
+                .ok_or(Error::<T>::UnderFlow)?;
         Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
 
         // Increase owner's wallet balances
-        let new_wallet_balance_amount =
-            w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+        let new_wallet_balance_amount = w.balance.checked_add(&amount)
+                .ok_or(Error::<T>::OverFlow)?;
         let new_wallet = WalletOf::<T> {
             owners: w.owners,
             balance: new_wallet_balance_amount,
@@ -183,9 +202,8 @@ impl<T: Trait> Pool<T> {
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
         // Decrease Pool Balances
-        let new_pool_balances = pool_balances
-            .checked_sub(&amount)
-            .ok_or(Error::<T>::UnderFlow)?;
+        let new_pool_balances = pool_balances.checked_sub(&amount)
+                .ok_or(Error::<T>::UnderFlow)?;
         Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
         let pool_account = Module::<T>::get_pool_id();
@@ -197,19 +215,26 @@ impl<T: Trait> Pool<T> {
             ExistenceRequirement::AllowDeath,
         )?;
 
+        // Emit Transfer event
+        Module::<T>::deposit_event(RawEvent::Transfer(
+            from,
+            celer_wallet_account.clone(),
+            amount
+        ));
         return Ok((wallet_id, celer_wallet_account, amount));
     }
 
     // Transfer native token from one address to a wallet in CelerWallet Module.
     // This function called by Celer Ledger.
     pub fn transfer_to_celer_wallet_by_ledger(
-        celer_ledger_account: T::AccountId,
+        origin: T::Origin,
         from: T::AccountId,
         wallet_id: T::Hash,
         amount: BalanceOf<T>,
     ) -> Result<(T::Hash, T::AccountId, BalanceOf<T>), DispatchError> {
-        let account = ledger_account::<T>();
-        ensure!(celer_ledger_account == account, "Ledger Account is not invalid",);
+        let caller = ensure_signed(origin)?;
+        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
+        ensure!(caller == celer_ledger_account, "Caler is not Celer Ledger module",);
 
         let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
             Some(_w) => _w,
@@ -276,10 +301,16 @@ impl<T: Trait> Pool<T> {
             Some(_allowed) => _allowed,
             None => Err(Error::<T>::AllowedNotExist)?,
         };
-        let new_balances = balances
-                .checked_add(&added_value).ok_or(Error::<T>::OverFlow)?;
+        let new_balances = balances.checked_add(&added_value)
+                .ok_or(Error::<T>::OverFlow)?;
         Allowed::<T>::mutate(&caller, &spender, |balance| {*balance = Some(new_balances.clone())});
 
+        // Emit Approval event
+        Module::<T>::deposit_event(RawEvent::Approval(
+            caller.clone(),
+            spender.clone(),
+            new_balances.clone()
+        ));
         return Ok((caller, spender, new_balances));
     }
 
@@ -296,14 +327,19 @@ impl<T: Trait> Pool<T> {
             Some(_balance) => _balance,
             None => Err(Error::<T>::AllowedNotExist)?,
         };
-        let new_balances = balances
-            .checked_sub(&subtracted_value)
-            .ok_or(Error::<T>::UnderFlow)?;
+        let new_balances = balances.checked_sub(&subtracted_value)
+                .ok_or(Error::<T>::UnderFlow)?;
 
         Allowed::<T>::mutate(&caller, &spender, |balance| {
             *balance = Some(new_balances.clone())
         });
 
+        // Emit Approval event
+        Module::<T>::deposit_event(RawEvent::Approval(
+            caller.clone(),
+            spender.clone(),
+            new_balances.clone()
+        ));
         return Ok((caller, spender, new_balances));
     }
 }
@@ -323,11 +359,6 @@ fn _transfer<T: Trait>(
     T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
 
     Ok(())
-}
-
-
-fn ledger_account<T: Trait>() -> T::AccountId {
-    CELER_LEDGER_ID.into_account()
 }
 
 #[cfg(test)]
