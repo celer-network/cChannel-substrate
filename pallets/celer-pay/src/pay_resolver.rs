@@ -1,4 +1,4 @@
-use super::{BalanceOf, Error, Module};
+use super::{BalanceOf, Error, Module, RawEvent};
 use crate::traits::Trait;
 use crate::pay_registry::PayRegistry;
 use crate::numeric_condition_caller::NumericConditionCaller;
@@ -245,6 +245,13 @@ fn resolve_payment<T: Trait>(
         }
 
         PayRegistry::<T>::set_pay_info(pay_hash, amount, new_deadline)?;
+        
+        // Emit ResolvePayment event
+        Module::<T>::deposit_event(RawEvent::ResolvePayment(
+            pay_id,
+            amount,
+            new_deadline
+        ));
         return Ok((pay_id, amount, new_deadline));
     }
 }
