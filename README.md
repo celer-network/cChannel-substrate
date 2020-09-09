@@ -4,7 +4,7 @@
 * [Core Concepts](#core-concepts)
 * [Release Features](#release-features)
 * [Run Celer local testnet in Docker](#run-celer-local-testnet-in-docker)
-* [Buidling and Testing celer-pay runtime module from source](#building-and-testing-from-source)
+* [Buidling and Testing celer-pay runtime module from source](#building-and-testing-celer-pay-runtime-module-from-source)
 
 ## Overview
 CelerPay is a generalized payment network that supports efficient off-chain token transfer with the capbability to resolve arbitrary conditional dependency on on-chain verifiable states. This repo implements the CelerPay runtime module with substrate. It includes a collection of runtime module acting as the binding of core CelerPay abstractions and supporting modules. CeleryPay runtime module only specify the interaction logic of two peers. A network of payment channels can be built using these single-hop primitives and protocols.
@@ -90,29 +90,25 @@ rustup default stable
 3. Wasm Compilation
 
 ```
-rustup update nightly
-rustup target add wasm32-unknown-unknown --toolchain nightly
+rustup install nightly-2020-05-15
+rustup override set nightly-2020-05-15
+rustup target add wasm32-unknwon-unknwon --toolchain nightly-2020-05-15
 ```
 
-4. Rustup Update
-
-```
-rustup update
-```
-5. Install celer-pay runtime module
+4. Install celer-pay runtime module
 ```
 git clone git@github.com:celer-network/cChannel-substrate.git
 ```
-6. Go to cChannel-substrate's root directory
+5. Go to cChannel-substrate's root directory
 
-7. Build celer-pay runtime moodule
+6. Build celer-pay runtime moodule
 
 ```
 cd ./pallets/celer-pay
 cargo build --release
 ```
 
-8. Test celer-pay runtime module
+7. Test celer-pay runtime module
 
 ```
 cargo test -p celer-pay-module
