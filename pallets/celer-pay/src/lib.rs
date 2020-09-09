@@ -231,7 +231,6 @@ decl_module! {
             msg_value: BalanceOf<T>
         ) -> DispatchResult {
             LedgerOperation::<T>::open_channel(origin, open_request, msg_value)?;            
-
             let wallet_num = Self::wallet_num() + 1;
             WalletNum::put(wallet_num);
 
@@ -268,7 +267,6 @@ decl_module! {
             transfer_from_amount: BalanceOf<T>
         ) -> DispatchResult {
             LedgerOperation::<T>::deposit(origin, channel_id, receiver, msg_value, transfer_from_amount)?;
-
             Ok(())
         }
 
@@ -314,7 +312,6 @@ decl_module! {
                 msg_values.len() == transfer_from_amounts.len(),
                 "Length do not match"
             );
-
             for i in 0..channel_ids.len() {
                 LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), msg_values[i], transfer_from_amounts[i])?;
             }
@@ -458,9 +455,10 @@ decl_module! {
         /// # </weight>
         #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
         fn cooperative_withdraw(
-            _origin,
+            origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
         ) -> DispatchResult {
+            ensure_signed(origin)?;
             LedgerOperation::<T>::cooperative_withdraw(cooperative_withdraw_request)?;
             Ok(())
         }
@@ -525,11 +523,12 @@ decl_module! {
         /// # </weight>
         #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn clear_pays(
-            _origin,
+            origin,
             channel_id: T::Hash,
             peer_from: T::AccountId,
             pay_id_list: PayIdList<T::Hash>
         ) -> DispatchResult {
+            ensure_signed(origin)?;
             LedgerOperation::<T>::clear_pays(channel_id, peer_from, pay_id_list)?;
             Ok(())
         }
