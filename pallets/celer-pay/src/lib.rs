@@ -140,7 +140,7 @@ decl_module! {
         
         fn deposit_event() = default;
 
-        /// Celer Ledger
+ /// ============================ Celer Ledger Operation =========================================
         /// Set the balance limits
         ///
         /// Parameters:
@@ -210,7 +210,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `open_request`: open channel request message
-        /// `msg_value`: caller's deposit amount
+        /// `msg_value`: amount of funds to deposit from caller
         /// 
         /// # <weight>
         /// ## Weight
@@ -238,12 +238,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Deposit native token into the channel
+        /// Deposit funds into the channel
         ///
         /// Parameters:
         /// `channel_id`: Id of the channel
         /// `receiver`: address of the receiver
-        /// `msg_value`: caller's deposit amount
+        /// `msg_value`: amount of funds to deposit from caller
         /// `transfer_from_amount`: amount of funds to be transfered from Pool
         /// 
         /// # <weight>
@@ -272,13 +272,13 @@ decl_module! {
             Ok(())
         }
 
-        /// Deposit native tokens into the channel
+        /// Deposit funds into the channel
         ///
         /// Parameters:
-        /// `channel_ids`: Ids of channel
-        /// `receivers`: addresses of receiver
-        /// `msg_values`: caller's deposit amounts
-        /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
+        /// `channel_ids`: Id list of channel
+        /// `receivers`: address list of receiver
+        /// `msg_values`: amounts list of funds to deposit from caller
+        /// `transfer_from_amounts`: amounts list of funds to be transfered from Pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -371,7 +371,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of channel
         /// `amount`: amount of funds to withdraw
-        /// `receipient_channel_id`: withdraw to receiver address if hash(0),
+        /// `receipient_channel_id`: withdraw to receiver address if zero_hash(),
         ///     otherwise deposit to receiver address in the recipient channel
         /// 
         /// # <weight>
@@ -465,7 +465,7 @@ decl_module! {
             Ok(())
         }
 
-        /// Intent to settle channel with an array of signed simplex states
+        /// Intend to settle channel with an array of signed simplex states
         ///
         /// Dev: simplex states in this array are not necessarily in the same channel,
         ///      which means intendSettle natively supports multi-channel batch processing.
@@ -588,12 +588,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Celer Wallet
+ /// ============================= Celer Wallet =======================================
         /// Deposit native token to a wallet.
         ///
         /// Parameter:
         /// `wallet_id`: Id of the wallet to deposit into
-        /// `msg_value`: depoist amount
+        /// `msg_value`: amount of funds to deposit to wallet
         /// 
         /// # <weight>
         /// ## Weight
@@ -612,12 +612,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Pool
+ /// ========================= Pool ===================================================
         /// Deposit native token into Pool
         ///
         /// Parameters:
         /// `receiver`: the address native token is deposited to pool
-        /// `msg_value`: amount of deposit to pool
+        /// `msg_value`: amount of funds to deposit to pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -639,7 +639,7 @@ decl_module! {
         /// Withdraw native token from Pool
         ///
         /// Parameter:
-        /// `value`: amount of native token to withdraw
+        /// `value`: amount of funds to withdraw from pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -657,11 +657,11 @@ decl_module! {
             Ok(())
         }
 
-        /// Approve the passed address the spend the specified amount of native token on behalf of caller.
+        /// Approve the passed address the spend the specified amount of funds on behalf of caller.
         ///
         /// Parameters:
         /// `spender`: the address which will spend the funds
-        /// `value`: amount of native token to spent
+        /// `value`: amount of funds to spent
         /// 
         /// # <weight>
         /// ## Weight
@@ -679,12 +679,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Transfer native token from one address to another.
+        /// Transfer funds from one address to another.
         ///
         /// Parameters:
-        /// `from`: the address which you want to transfer native token from
+        /// `from`: the address which you want to transfer funds from
         /// `to`: the address which you want to transfer to
-        /// `value`: amount of native token to be transferred
+        /// `value`: amount of funds to be transferred
         /// 
         /// # <weight>
         /// ## Weight
@@ -710,8 +710,8 @@ decl_module! {
         ///
         /// Parameters:
         /// `from`: the address which you want to transfer native token from
-        /// `wallet_id`: Id of the wallet you want to deposit native token into
-        /// `amount`: amount of native token to be transfered
+        /// `wallet_id`: Id of the wallet you want to deposit funds into
+        /// `amount`: amount of funds to be transfered
         /// 
         /// # <weight>
         /// ## Weight
@@ -738,7 +738,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `spender`: the address which spend the funds.
-        /// `added_value`: amount of native token to increase the allowance by
+        /// `added_value`: amount of funds to increase the allowance by
         /// 
         /// # <weight>
         /// ## Weight
@@ -761,7 +761,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `spender`: the address which will spend the funds
-        /// `subtracted_value`: amount of native tokent o decrease the allowance by
+        /// `subtracted_value`: amount of funds to decrease the allowance by
         /// 
         /// # <weight>
         /// ## Weight
@@ -780,7 +780,7 @@ decl_module! {
             Ok(())
         }
 
-        /// PayResolver
+ /// ==================================== PayResolver =============================================
         /// Resolve a payment by onchain getting its conditons outcomes
         ///
         /// Dev: HASH_LOCK should only be used for establishing multi-hop paymetns,
