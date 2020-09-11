@@ -17,10 +17,10 @@ RUN apt-get update && \
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	export PATH="$PATH:$HOME/.cargo/bin" && \
-	rustup install nightly-2020-05-15 && \
-	rustup override set nightly-2020-05-15 && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2020-05-15 && \
-	cargo build "--$PROFILE" 
+	rustup toolchain install nightly && \
+	rustup target add wasm32-unknown-unknown --toolchain nightly && \
+	rustup default stable && \
+	cargo build "--$PROFILE"
 	
 # ===== SECOND STAGE ======
 FROM phusion/baseimage:0.10.2
