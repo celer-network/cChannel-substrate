@@ -23,12 +23,12 @@ version = '0.8.6'
 [dependencies.sc-basic-authorship]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-cli]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-client-api]
 git = 'https://github.com/paritytech/substrate.git'
@@ -38,32 +38,32 @@ version = '2.0.0-rc4'
 [dependencies.sc-consensus]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-consensus-aura]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-executor]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-finality-grandpa]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-network]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-service]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sc-transaction-pool]
 git = 'https://github.com/paritytech/substrate.git'
@@ -73,12 +73,12 @@ version = '2.0.0-rc4'
 [dependencies.sp-consensus]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sp-consensus-aura]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc4'
-version = '0.8.0-rc3'
+version = '0.8.0-rc4'
 
 [dependencies.sp-core]
 git = 'https://github.com/paritytech/substrate.git'
