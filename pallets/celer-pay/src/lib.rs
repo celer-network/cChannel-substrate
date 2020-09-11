@@ -1184,7 +1184,7 @@ impl<T: Trait> Module<T> {
         ));
     }
 
-    /// Return the seq_num of two simplex channel states
+    /// Return the channel number of given status
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
