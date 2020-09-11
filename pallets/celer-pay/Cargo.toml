@@ -1,6 +1,6 @@
 [package]
 name = "celer-pay-module"
-version = "0.8.7"
+version = "0.8.6"
 authors = ["Celer"]
 edition = "2018"
 
@@ -96,10 +96,10 @@ version = '2.0.0-rc5'
 default-features = false
 path = '../mock-numeric-condition'
 package = 'mock-numeric-condition'
-version = '0.8.7'
+version = '0.8.6'
 
 [dev-dependencies.mock-boolean-condition]
 default_features = false
 path = '../mock-boolean-condition'
 package = 'mock-boolean-condition'
-version = '0.8.7'
+version = '0.8.6'
