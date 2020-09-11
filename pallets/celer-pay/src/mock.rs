@@ -57,6 +57,7 @@ parameter_types! {
 }
 
 impl frame_system::Trait for TestRuntime {
+    type BaseCallFilter = ();
     type Origin = Origin;
     type Call = Call;
     type Index = u64;
@@ -80,6 +81,7 @@ impl frame_system::Trait for TestRuntime {
     type AccountData = pallet_balances::AccountData<u64>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
+    type SystemWeightInfo = ();
 }
 
 parameter_types! {
@@ -92,12 +94,14 @@ impl pallet_balances::Trait for TestRuntime {
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = frame_system::Module<TestRuntime>;
+    type WeightInfo = ();
 }
 
 impl pallet_timestamp::Trait for TestRuntime {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
 }
 
 impl mock_boolean_condition::Trait for TestRuntime {}
