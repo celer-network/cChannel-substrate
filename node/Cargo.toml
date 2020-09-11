@@ -30,6 +30,7 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc5'
 version = '0.8.0-rc5'
 
+
 [dependencies.sc-client-api]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc5'
@@ -37,6 +38,7 @@ version = '2.0.0-rc5'
 
 [dependencies.sc-consensus]
 git = 'https://github.com/paritytech/substrate.git'
+
 tag = 'v2.0.0-rc5'
 version = '0.8.0-rc5'
 

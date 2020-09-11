@@ -78,6 +78,7 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc5'
 version = '0.8.0-rc5'
 
+
 [dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'

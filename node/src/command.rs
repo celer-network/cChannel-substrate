@@ -23,8 +23,10 @@ use sc_service::ServiceParams;
 use crate::service::new_full_params;
 
 impl SubstrateCli for Cli {
+
 	fn impl_name() -> String {
 		"Celer Substrate Node".into()
+
 	}
 
 	fn impl_version() -> String {
