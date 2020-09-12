@@ -90,9 +90,9 @@ rustup default stable
 3. Wasm Compilation
 
 ```
-rustup install nightly-2020-05-15
-rustup override set nightly-2020-05-15
-rustup target add wasm32-unknwon-unknwon --toolchain nightly-2020-05-15
+rustup install nightly
+rustup target add wasm32-unknwon-unknwon --toolchain nightly
+rustup default stable
 ```
 
 4. Install celer-pay runtime module
