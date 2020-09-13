@@ -91,7 +91,7 @@ rustup default stable
 
 ```
 rustup install nightly
-rustup target add wasm32-unknwon-unknwon --toolchain nightly
+rustup target add wasm32-unknown-unknown --toolchain nightly
 rustup default stable
 ```
 
