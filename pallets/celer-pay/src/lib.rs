@@ -140,7 +140,7 @@ decl_module! {
         
         fn deposit_event() = default;
 
-        /// Celer Ledger
+ /// ============================ Celer Ledger Operation =========================================
         /// Set the balance limits
         ///
         /// Parameters:
@@ -210,7 +210,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `open_request`: open channel request message
-        /// `msg_value`: caller's deposit amount
+        /// `msg_value`: amount of funds to deposit from caller
         /// 
         /// # <weight>
         /// ## Weight
@@ -237,12 +237,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Deposit native token into the channel
+        /// Deposit funds into the channel
         ///
         /// Parameters:
         /// `channel_id`: Id of the channel
         /// `receiver`: address of the receiver
-        /// `msg_value`: caller's deposit amount
+        /// `msg_value`: amount of funds to deposit from caller
         /// `transfer_from_amount`: amount of funds to be transfered from Pool
         /// 
         /// # <weight>
@@ -270,13 +270,13 @@ decl_module! {
             Ok(())
         }
 
-        /// Deposit native tokens into the channel
+        /// Deposit funds into the channel
         ///
         /// Parameters:
-        /// `channel_ids`: Ids of channel
-        /// `receivers`: addresses of receiver
-        /// `msg_values`: caller's deposit amounts
-        /// `transfer_from_amounts`: amounts of funds to be transfered from Pool
+        /// `channel_ids`: Id list of channel
+        /// `receivers`: address list of receiver
+        /// `msg_values`: amounts list of funds to deposit from caller
+        /// `transfer_from_amounts`: amounts list of funds to be transfered from Pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -368,7 +368,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of channel
         /// `amount`: amount of funds to withdraw
-        /// `receipient_channel_id`: withdraw to receiver address if hash(0),
+        /// `receipient_channel_id`: withdraw to receiver address if zero_hash(),
         ///     otherwise deposit to receiver address in the recipient channel
         /// 
         /// # <weight>
@@ -463,7 +463,7 @@ decl_module! {
             Ok(())
         }
 
-        /// Intent to settle channel with an array of signed simplex states
+        /// Intend to settle channel with an array of signed simplex states
         ///
         /// Dev: simplex states in this array are not necessarily in the same channel,
         ///      which means intendSettle natively supports multi-channel batch processing.
@@ -587,12 +587,103 @@ decl_module! {
             Ok(())
         }
 
-        /// Celer Wallet
+        /// Emit AccountId of Ledger Operation module
+        #[weight = 10_000]
+        fn emit_celer_ledger_id(_origin) {
+            Self::deposit_event(RawEvent::CelerLedgerId(CELER_LEDGER_ID.into_account()));
+        }
+
+        /// Emit channel confirm settle open time
+        #[weight = 10_000]
+        fn emit_settle_finalized_time(
+            _origin,
+            channel_id: T::Hash
+        ) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+            Self::deposit_event(RawEvent::SettleFinalizedTime(c.settle_finalized_time));
+        }
+
+        /// Emit channel status
+        #[weight = 10_000]
+        fn emit_channel_status(
+            _origin, 
+            channel_id: T::Hash
+        ) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => Self::deposit_event(RawEvent::ChannelStatus(0)),
+            };
+            Self::deposit_event(RawEvent::ChannelStatus(c.status as u8));
+        }
+
+        /// Emit cooperative withdraw seq_num
+        #[weight = 10_000]
+        fn emit_cooperative_withdraw_seq_num(
+            _origin,
+            channel_id: T::Hash
+        ) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+            Self::deposit_event(RawEvent::CooperativeWithdrawSeqNum(c.cooperative_withdraw_seq_num));
+        }
+
+        /// Emit one channel's total balance amount
+        #[weight = 10_000]
+        fn emit_total_balance(
+            _origin,
+            channel_id: T::Hash
+        ) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+            let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
+            balance = balance.checked_add(&c.peer_profiles[1].deposit)
+                .ok_or(Error::<T>::OverFlow)?;
+            balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()))
+                .ok_or(Error::<T>::UnderFlow)?;
+            balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()))
+                .ok_or(Error::<T>::UnderFlow)?;
+            Self::deposit_event(RawEvent::TotalBalance(balance));
+        }
+
+        /// Emit one channel's balance info
+        #[weight = 10_000]
+        fn emit_balance_map(
+            _origin,
+            channel_id: T::Hash
+        ) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+            Self::deposit_event(RawEvent::BalanceMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+                vec![
+                    c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
+                    c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
+                ]
+            ));
+        }
+
+        /// Emit channel's dispute timeout
+        
+
+ /// ============================= Celer Wallet =======================================
         /// Deposit native token to a wallet.
         ///
         /// Parameter:
         /// `wallet_id`: Id of the wallet to deposit into
-        /// `msg_value`: depoist amount
+        /// `msg_value`: amount of funds to deposit to wallet
         /// 
         /// # <weight>
         /// ## Weight
@@ -611,12 +702,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Pool
+ /// ========================= Pool ===================================================
         /// Deposit native token into Pool
         ///
         /// Parameters:
         /// `receiver`: the address native token is deposited to pool
-        /// `msg_value`: amount of deposit to pool
+        /// `msg_value`: amount of funds to deposit to pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -638,7 +729,7 @@ decl_module! {
         /// Withdraw native token from Pool
         ///
         /// Parameter:
-        /// `value`: amount of native token to withdraw
+        /// `value`: amount of funds to withdraw from pool
         /// 
         /// # <weight>
         /// ## Weight
@@ -656,11 +747,11 @@ decl_module! {
             Ok(())
         }
 
-        /// Approve the passed address the spend the specified amount of native token on behalf of caller.
+        /// Approve the passed address the spend the specified amount of funds on behalf of caller.
         ///
         /// Parameters:
         /// `spender`: the address which will spend the funds
-        /// `value`: amount of native token to spent
+        /// `value`: amount of funds to spent
         /// 
         /// # <weight>
         /// ## Weight
@@ -678,12 +769,12 @@ decl_module! {
             Ok(())
         }
 
-        /// Transfer native token from one address to another.
+        /// Transfer funds from one address to another.
         ///
         /// Parameters:
-        /// `from`: the address which you want to transfer native token from
+        /// `from`: the address which you want to transfer funds from
         /// `to`: the address which you want to transfer to
-        /// `value`: amount of native token to be transferred
+        /// `value`: amount of funds to be transferred
         /// 
         /// # <weight>
         /// ## Weight
@@ -709,8 +800,8 @@ decl_module! {
         ///
         /// Parameters:
         /// `from`: the address which you want to transfer native token from
-        /// `wallet_id`: Id of the wallet you want to deposit native token into
-        /// `amount`: amount of native token to be transfered
+        /// `wallet_id`: Id of the wallet you want to deposit funds into
+        /// `amount`: amount of funds to be transfered
         /// 
         /// # <weight>
         /// ## Weight
@@ -737,7 +828,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `spender`: the address which spend the funds.
-        /// `added_value`: amount of native token to increase the allowance by
+        /// `added_value`: amount of funds to increase the allowance by
         /// 
         /// # <weight>
         /// ## Weight
@@ -760,7 +851,7 @@ decl_module! {
         ///
         /// Parameters:
         /// `spender`: the address which will spend the funds
-        /// `subtracted_value`: amount of native tokent o decrease the allowance by
+        /// `subtracted_value`: amount of funds to decrease the allowance by
         /// 
         /// # <weight>
         /// ## Weight
@@ -779,7 +870,7 @@ decl_module! {
             Ok(())
         }
 
-        /// PayResolver
+ /// ==================================== PayResolver =============================================
         /// Resolve a payment by onchain getting its conditons outcomes
         ///
         /// Dev: HASH_LOCK should only be used for establishing multi-hop paymetns,
@@ -915,7 +1006,57 @@ decl_event! (
         PayInfoUpdate(Hash, Balance, BlockNumber),
         /// ResolvePayment(pay_id, amount, resolve_deadline)
         ResolvePayment(Hash, Balance, BlockNumber),
-    }
+
+        /// RPC
+        /// AccountId of Ledger Operation module
+        CelerLedgerId(AccountId),
+        /// Channel settle confirm settle open time
+        SettleFinalizedTime(BlockNumber),
+        /// Channel status
+        ChannelStatus(u8),
+        /// Cooperative withdraw seq num
+        CooperativeWithdrawSeqNum(u128),
+        /// One channel's total balance amount
+        TotalBalance(Balance),
+        /// One channel's balance info
+        BalanceMap(Vec<AccountId>, Vec<Balance>, Vec<Balance>),
+        /// Channel's dispute timeout
+        DisputeTimeout(BlockNumber),
+        /// State sequence num map of a duplex channel
+        StateSeqNumMap(Vec<AccountId>, Vec<u128>),
+        /// Transfer out map of a duplex channel
+        TransferOutMap(Vec<AccountId>, Vec<Balance>),
+        /// Next pay id list hash map
+        NextPayIdListHashMap(Vec<AccountId>, Vec<Hash>),
+        /// Last pay resolve deadline map of a duplex channel
+        LastPayResolveDeadlineMap(Vec<AccountId>, Vec<BlockNumber>),
+        /// Pending pay out map of a duplex channel
+        PendingPayOutMap(Vec<AccountId>, Vec<Balance>),
+        /// Withdraw intent info of the channel
+        WithdrawIntent(AccountId, Balance, BlockNumber, Hash),
+        /// Channel number of given status
+        ChannelStatusNums(u8),
+        /// Balance limits
+        BalanceLimits(Balance),
+        /// Balance limits enabled
+        BalanceLimitsEnabled(bool)
+        /// migration info of the peers in the channel
+        PeersMigrationInfo(Vec<AccountId>, Vec<Balance>, Vec<Balance>, Vec<u128>, Vec<Balance>, Vec<Balance>),
+        /// AccountId of Celer Wallet module
+        CelerWalletId(AccountId),
+        /// Wallet owners corresponding to wallet id
+        WalletOwners(Vec<AccountId>),
+        /// Amount of funds which is deposited into specified wallet
+        WalletBalance(Balance),
+        /// AccountId of Pool
+        PoolId(AccountId),
+        /// Amount of funds which is pooled of specifed address
+        PoolBalance(Balance),
+        /// Amount of funds which owner allowed to a spender
+        Allownance(Balance),
+        /// AccountId of PayResolver module
+        PayResolverId(AccountId)
+    }   
 );
 
 decl_error! {
@@ -962,7 +1103,7 @@ impl<T: Trait> Module<T> {
         return CELER_LEDGER_ID.into_account();
     }
 
-    /// Return channel settle open time
+    /// Return channel confirm settle open time
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -978,12 +1119,12 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_channel_status(channel_id: T::Hash) -> ChannelStatus {
+    pub fn get_channel_status(channel_id: T::Hash) -> u8 {
         let c = match Self::channel_map(channel_id) {
             Some(channel) => channel,
-            None => return ChannelStatus::Uninitialized,
+            None => return ChannelStatus::Uninitialized as u8,
         };
-        return c.status;
+        return c.status as u8;
     }
 
     /// Return cooperative withdraw seq_num
@@ -1014,7 +1155,7 @@ impl<T: Trait> Module<T> {
         return Ok(balance);
     }
 
-    /// Return one channel's balance info
+    /// Return 
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1192,11 +1333,11 @@ impl<T: Trait> Module<T> {
         return <ChannelStatusNums>::get(channel_status);
     }
 
-    /// Return balance limit
+    /// Return balance limits
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_balance_limit(channel_id: T::Hash) -> Option<BalanceOf<T>> {
+    pub fn get_balance_limits(channel_id: T::Hash) -> Option<BalanceOf<T>> {
         let c = match Self::channel_map(channel_id) {
             Some(channel) => channel,
             None => return None,
@@ -1204,7 +1345,7 @@ impl<T: Trait> Module<T> {
         return c.balance_limits;
     }
 
-    /// Return balanceLimitsEnabled
+    /// Whether balance limits is enable.
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1280,11 +1421,11 @@ impl<T: Trait> Module<T> {
         return Some(owners);
     }
 
-    /// Return balance in a given wallet
+    /// Return amount of funds which is deposited into specified wallet
     ///
     /// Parameter:
     /// `wallet_id`: Id of the wallet
-    pub fn get_balance(wallet_id: T::Hash) -> Option<BalanceOf<T>> {
+    pub fn get_wallet_balance(wallet_id: T::Hash) -> Option<BalanceOf<T>> {
         let w: WalletOf<T> = match Self::wallet(wallet_id) {
             Some(wallet) => wallet,
             None => return None,
@@ -1300,20 +1441,20 @@ impl<T: Trait> Module<T> {
         return POOL_ID.into_account();
     }
 
-    /// Return balnce in pooled Pool
+    /// Return amount of funds which is pooled of specified address
     ///
     /// Prameter:
     /// `owner`: the address of query balance of
-    pub fn balance_of(owner: T::AccountId) -> Option<BalanceOf<T>> {
+    pub fn get_pool_balance(owner: T::AccountId) -> Option<BalanceOf<T>> {
         return Self::balances(owner);
     }
 
-    /// Return amount of owner allowed to a spender
+    /// Return amount of funds which owner allowed to a spender
     ///
     /// Parameters:
     /// `owner`: the address which owns the funds
     /// `spender`: the address which will spend the funds
-    pub fn allowance(owner: T::AccountId, spender: T::AccountId) -> Option<BalanceOf<T>> {
+    pub fn get_allowance(owner: T::AccountId, spender: T::AccountId) -> Option<BalanceOf<T>> {
         return Self::allowed(owner, spender);
     }
 
@@ -1366,4 +1507,3 @@ impl<T: Trait> Module<T> {
         return zero_hash;
     }
 }
-
