@@ -1,4 +1,4 @@
-use super::{Module, Allowed, BalanceOf, Balances, Error, Wallets, RawEvent};
+use super::{Module, Allowed, BalanceOf, PoolBalances, Error, Wallets, RawEvent};
 use crate::traits::Trait;
 use crate::celer_wallet::WalletOf;
 use frame_support::traits::{Currency, ExistenceRequirement};
@@ -31,12 +31,12 @@ impl<T: Trait> Pool<T> {
         let pool_account = Module::<T>::get_pool_id();
         ensure!(receiver != pool_account, "receiver address is pool account");
 
-        if Balances::<T>::contains_key(&receiver) == false {
-            Balances::<T>::insert(&receiver, &msg_value);
+        if PoolBalances::<T>::contains_key(&receiver) == false {
+            PoolBalances::<T>::insert(&receiver, &msg_value);
         } else {
-            let balances = Balances::<T>::get(&receiver).unwrap();
+            let balances = PoolBalances::<T>::get(&receiver).unwrap();
             let new_balances = balances.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
-            Balances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
+            PoolBalances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
         }
 
         T::Currency::transfer(
@@ -60,17 +60,17 @@ impl<T: Trait> Pool<T> {
         value: BalanceOf<T>,
     ) -> Result<(T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
-        let exist_address: bool = Balances::<T>::contains_key(&caller);
+        let exist_address: bool = PoolBalances::<T>::contains_key(&caller);
         ensure!(
             exist_address == true,
             "caller's address is not exist in Pool Balances"
         );
 
-        let balances = Balances::<T>::get(&caller).unwrap();
+        let balances = PoolBalances::<T>::get(&caller).unwrap();
         ensure!(balances >= value, "caller does not have enough balances");
 
         let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::UnderFlow)?;
-        Balances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
+        PoolBalances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
 
         let pool_account = Module::<T>::get_pool_id();
         T::Currency::transfer(
@@ -126,12 +126,12 @@ impl<T: Trait> Pool<T> {
         let new_allowed_balances = allowed_balances.checked_sub(&value)
                 .ok_or(Error::<T>::UnderFlow)?;
 
-        let exist_address: bool = Balances::<T>::contains_key(&from);
+        let exist_address: bool = PoolBalances::<T>::contains_key(&from);
         ensure!(
             exist_address == true,
             "from's address is not exist in Balances"
         );
-        let balances = Balances::<T>::get(&from).unwrap();
+        let balances = PoolBalances::<T>::get(&from).unwrap();
         ensure!(
             balances >= value,
             "from address does not have enough balances"
@@ -174,7 +174,7 @@ impl<T: Trait> Pool<T> {
         let exist_allowed: bool = Allowed::<T>::contains_key(&from, &caller);
         ensure!(exist_allowed == true, "Corresponding Allowed not exist");
 
-        let pool_balances = match Balances::<T>::get(&from) {
+        let pool_balances = match PoolBalances::<T>::get(&from) {
             Some(_balance) => _balance,
             None => Err(Error::<T>::BalancesNotExist)?,
         };
@@ -204,7 +204,7 @@ impl<T: Trait> Pool<T> {
         // Decrease Pool Balances
         let new_pool_balances = pool_balances.checked_sub(&amount)
                 .ok_or(Error::<T>::UnderFlow)?;
-        Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
+        PoolBalances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
         let pool_account = Module::<T>::get_pool_id();
         let celer_wallet_account = Module::<T>::get_celer_wallet_id();
@@ -241,7 +241,7 @@ impl<T: Trait> Pool<T> {
             None => return Err(Error::<T>::WalletNotExist)?,
         };
 
-        let pool_balances = match Balances::<T>::get(&from) {
+        let pool_balances = match PoolBalances::<T>::get(&from) {
             Some(_balance) => _balance,
             None => Err(Error::<T>::BalancesNotExist)?,
         };
@@ -274,7 +274,7 @@ impl<T: Trait> Pool<T> {
         // Decrease Pool Balances
         let new_pool_balances = pool_balances
                 .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
-        Balances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
+        PoolBalances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
         let pool_account = Module::<T>::get_pool_id();
         let celer_wallet_account = Module::<T>::get_celer_wallet_id();
@@ -351,9 +351,9 @@ fn _transfer<T: Trait>(
     value: BalanceOf<T>,
 ) -> Result<(), DispatchError> {
     // Increase Pool balances of from address
-    let balances = Balances::<T>::get(&from).unwrap();
+    let balances = PoolBalances::<T>::get(&from).unwrap();
     let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::OverFlow)?;
-    Balances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
+    PoolBalances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 
     let pool_account = Module::<T>::get_pool_id();
     T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;

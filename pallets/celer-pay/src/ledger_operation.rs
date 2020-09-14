@@ -727,7 +727,7 @@ impl<T: Trait> LedgerOperation<T> {
         let block_number = frame_system::Module::<T>::block_number();
         ensure!(block_number >= dispute_timeout, "Dispute not timeout");
 
-        let zero_channel_id: T::Hash = Module::<T>::zero_hash();
+        let zero_channel_id: T::Hash = Module::<T>::get_zero_hash();
         let receiver = withdraw_intent.receiver;
         let amount = withdraw_intent.amount.unwrap_or(Zero::zero());
         let recipient_channel_id = withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id);
@@ -1060,14 +1060,14 @@ impl<T: Trait> LedgerOperation<T> {
                     Err(Error::<T>::Error)?
                 }
 
-                let hash_zero = Module::<T>::zero_hash();
-                let next_pay_id_list_hash = simplex_state.pending_pay_ids.clone().unwrap().next_list_hash.unwrap_or(hash_zero);
+                let zero_hash = Module::<T>::get_zero_hash();
+                let next_pay_id_list_hash = simplex_state.pending_pay_ids.clone().unwrap().next_list_hash.unwrap_or(zero_hash);
                 
                 if peer_from_id == 0 {
                     let new_state: PeerStateOf<T>;
                     // updating pending_pay_out is only needed when migrating ledger during settling phrase, which will
                     // affect the withdraw limit after the migration
-                    if next_pay_id_list_hash == hash_zero {
+                    if next_pay_id_list_hash == zero_hash {
                         // Update simplex_state-dependent fields
                         new_state = PeerStateOf::<T> {
                             seq_num: simplex_state.seq_num,
@@ -1118,7 +1118,7 @@ impl<T: Trait> LedgerOperation<T> {
                     let new_state: PeerStateOf<T>;
                     // updating pending_pay_out is only needed when migrating ledger during settling phrase, which will
                     // affect the withdraw limit after the migration
-                    if next_pay_id_list_hash == hash_zero {
+                    if next_pay_id_list_hash == zero_hash {
                         // Update simplex_state-dependent fields
                         new_state = PeerStateOf::<T> {
                             seq_num: simplex_state.seq_num,
@@ -1225,10 +1225,10 @@ impl<T: Trait> LedgerOperation<T> {
             let state = c.peer_profiles[0].state.clone();
             let new_state: PeerStateOf<T>;
 
-            let hash_zero = Module::<T>::zero_hash();
-            let next_pay_id_list_hash = state.next_pay_id_list_hash.unwrap_or(hash_zero);
+            let zero_hash = Module::<T>::get_zero_hash();
+            let next_pay_id_list_hash = state.next_pay_id_list_hash.unwrap_or(zero_hash);
 
-            if next_pay_id_list_hash != hash_zero {
+            if next_pay_id_list_hash != zero_hash {
                 ensure!(next_pay_id_list_hash == list_hash, "List hash mismatch");
 
                 new_state = PeerStateOf::<T> {
@@ -1272,9 +1272,9 @@ impl<T: Trait> LedgerOperation<T> {
             let state = c.peer_profiles[1].clone().state;
             let new_state: PeerStateOf<T>;
 
-            let hash_zero = Module::<T>::zero_hash();
-            let next_pay_id_list_hash = state.next_pay_id_list_hash.unwrap_or(hash_zero);
-            if next_pay_id_list_hash != hash_zero {
+            let zero_hash = Module::<T>::get_zero_hash();
+            let next_pay_id_list_hash = state.next_pay_id_list_hash.unwrap_or(zero_hash);
+            if next_pay_id_list_hash != zero_hash {
                 ensure!(next_pay_id_list_hash == list_hash, "List hash mismatch");
 
                 new_state = PeerStateOf::<T> {
@@ -1348,12 +1348,12 @@ impl<T: Trait> LedgerOperation<T> {
         // last_pay_resolve_deadline to also include clear_pays safe margin and rename it.
         let state_1 = peer_profiles[0].state.clone();
         let state_2 = peer_profiles[1].state.clone();
-        let hash_zero = Module::<T>::zero_hash();
+        let zero_hash = Module::<T>::get_zero_hash();
 
         ensure!(
-            (state_1.next_pay_id_list_hash.unwrap_or(hash_zero) == hash_zero
+            (state_1.next_pay_id_list_hash.unwrap_or(zero_hash) == zero_hash
                 || block_number > state_1.last_pay_resolve_deadline)
-                && (state_2.next_pay_id_list_hash.unwrap_or(hash_zero) == hash_zero
+                && (state_2.next_pay_id_list_hash.unwrap_or(zero_hash) == zero_hash
                     || block_number > state_2.last_pay_resolve_deadline),
             "Payments are not finalized"
         );
@@ -1628,7 +1628,7 @@ fn withdraw_funds<T: Trait>(
         return Ok(());
     }
 
-    let zero_channel_id: T::Hash = Module::<T>::zero_hash();
+    let zero_channel_id: T::Hash = Module::<T>::get_zero_hash();
     if recipient_channel_id == zero_channel_id {
         withdraw::<T>(channel_id, receiver, amount)?;
     } else {
@@ -1696,8 +1696,8 @@ fn _clear_pays<T: Trait>(
         // updating pending_pay_out is only needed when migrating ledger during settling phrase,
         // which will affect the withdraw limit after the migration.
         let new_transfer_out_1 = state_1.transfer_out.checked_add(&total_amt_out).ok_or(Error::<T>::OverFlow)?;
-        let hash_zero = Module::<T>::zero_hash();
-        if pay_id_list.next_list_hash.unwrap_or(hash_zero) == hash_zero {
+        let zero_hash = Module::<T>::get_zero_hash();
+        if pay_id_list.next_list_hash.unwrap_or(zero_hash) == zero_hash {
             // if there are not more uncleared pays in this state, the pending_pay_out must be 0
             let new_state_1 = PeerStateOf::<T> {
                 seq_num: state_1.seq_num,
@@ -1779,8 +1779,8 @@ fn _clear_pays<T: Trait>(
         // updating pending_pay_out is only needed when migrating ledger during settling phrase,
         // which will affect the withdraw limit after the migration.
         let new_transfer_out_2 = state_2.transfer_out.checked_add(&total_amt_out).ok_or(Error::<T>::OverFlow)?;
-        let hash_zero = Module::<T>::zero_hash();
-        if pay_id_list.next_list_hash.unwrap_or(hash_zero) == hash_zero {
+        let zero_hash = Module::<T>::get_zero_hash();
+        if pay_id_list.next_list_hash.unwrap_or(zero_hash) == zero_hash {
             // if there are not more uncleared pays in this state, the pending_pay_out must be 0
             let new_state_2 = PeerStateOf::<T> {
                 seq_num: state_2.seq_num,

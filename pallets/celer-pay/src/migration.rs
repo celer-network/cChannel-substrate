@@ -199,33 +199,33 @@ pub mod test {
         // ledger migration
         migration_test(channel_id, channel_peers.clone());
 
-        let mut wallet_balance = CelerModule::get_balance(channel_id).unwrap();
+        let mut wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
         assert_eq!(wallet_balance, 300);
 
         // confirmSettle in new ledger
         let settle_balance = confirm_settle_test(channel_id, peers_pair);
 
-        wallet_balance = CelerModule::get_balance(channel_id).unwrap();
+        wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
         assert_eq!(wallet_balance, 0);
     }
 
     fn migration_test(channel_id: H256, channel_peers: Vec<AccountId>) {
         let celer_ledger_account = CelerModule::get_celer_ledger_id();
-        let old_balance_limit = CelerModule::get_balance_limit(channel_id).unwrap();
+        let old_balance_limit = CelerModule::get_balance_limits(channel_id).unwrap();
         let old_balance_limits_enabled = CelerModule::get_balance_limits_enabled(channel_id).unwrap();
         let old_settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id);
         let old_balance_map = CelerModule::get_balance_map(channel_id);
         let old_dispute_timeout = CelerModule::get_dispute_time_out(channel_id).unwrap();
         let old_peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
         let old_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
-        let old_wallet_balance = CelerModule::get_balance(channel_id).unwrap();
-        let old_balances_of_pool = CelerModule::balance_of(channel_peers[0].clone()).unwrap();
-        let old_allowance = CelerModule::allowance(channel_peers[0].clone(), celer_ledger_account.clone());
+        let old_wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
+        let old_balances_of_pool = CelerModule::get_pool_balance(channel_peers[0].clone()).unwrap();
+        let old_allowance = CelerModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         // Perform upgrade
         CelerModule::on_runtime_upgrade();
 
-        let new_balance_limit = CelerModule::get_balance_limit(channel_id).unwrap();
+        let new_balance_limit = CelerModule::get_balance_limits(channel_id).unwrap();
         let new_balance_limits_enabled = CelerModule::get_balance_limits_enabled(channel_id).unwrap();
         let new_settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id);
         let new_balance_map = CelerModule::get_balance_map(channel_id);
@@ -233,9 +233,9 @@ pub mod test {
         let new_peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
         let new_withdraw_intent = CelerModule::get_withdraw_intent(channel_id).unwrap();
         let new_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
-        let new_wallet_balance = CelerModule::get_balance(channel_id).unwrap();
-        let new_balances_of_pool = CelerModule::balance_of(channel_peers[0].clone()).unwrap();
-        let new_allowance = CelerModule::allowance(channel_peers[0].clone(), celer_ledger_account.clone());
+        let new_wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
+        let new_balances_of_pool = CelerModule::get_pool_balance(channel_peers[0].clone()).unwrap();
+        let new_allowance = CelerModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         assert_eq!(old_balance_limit, new_balance_limit);
         assert_eq!(old_balance_limits_enabled, new_balance_limits_enabled);

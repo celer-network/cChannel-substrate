@@ -226,7 +226,7 @@ pub mod test_ledger_operation {
                 channel_id,
                 300
             ));
-            let amount = CelerModule::get_balance_limit(channel_id).unwrap();
+            let amount = CelerModule::get_balance_limits(channel_id).unwrap();
             assert_eq!(amount, 300);
         })
     }
