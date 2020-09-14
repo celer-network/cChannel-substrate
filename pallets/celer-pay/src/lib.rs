@@ -368,7 +368,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of channel
         /// `amount`: amount of funds to withdraw
-        /// `receipient_channel_id`: withdraw to receiver address if get_zero_hash(),
+        /// `receipient_channel_id`: withdraw to receiver address if zero_hash,
         ///     otherwise deposit to receiver address in the recipient channel
         /// 
         /// # <weight>
@@ -1561,7 +1561,7 @@ impl<T: Trait> Module<T> {
         ));
     }
 
-    /// Return the seq_num of two simplex channel states
+    /// Return the channel number of given status
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
