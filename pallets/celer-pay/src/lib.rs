@@ -67,7 +67,7 @@ decl_storage! {
         pub Wallets get(fn wallet): map hasher(blake2_128_concat) T::Hash => Option<WalletOf<T>>;
 
         /// Pool
-        pub Balances get(fn balances):
+        pub PoolBalances get(fn balances):
                 map hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
         pub Allowed get(fn allowed):
                 double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
@@ -368,7 +368,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of channel
         /// `amount`: amount of funds to withdraw
-        /// `receipient_channel_id`: withdraw to receiver address if zero_hash(),
+        /// `receipient_channel_id`: withdraw to receiver address if zero_hash,
         ///     otherwise deposit to receiver address in the recipient channel
         /// 
         /// # <weight>
@@ -846,6 +846,323 @@ decl_module! {
             )).into())
         }
 
+ //// ======================================================================================
+        /// TODO: RPC implementation
+        /// In the current version, rpc implementation included in the runtime will cause 
+        /// a substrate error at compile time, so I will implement it in the next version.
+        /// 
+        /// Emit AccountId of Ledger Operation module
+        #[weight = 10_000]
+        fn emit_celer_ledger_id(_origin) {
+            Self::deposit_event(RawEvent::CelerLedgerId(CELER_LEDGER_ID.into_account()));
+        }
+
+        /// Emit channel basic info
+        #[weight = 10_000]
+        fn emit_channel_info(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::ChannelInfo(
+                c.balance_limits_enabled,
+                c.balance_limits.unwrap_or(Zero::zero()),
+                c.status as u8,
+            ));
+        }
+        
+        /// Emit channel settle open time
+        #[weight = 10_000]
+        fn emit_settle_finalized_time(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::SettleFinalizedTime(
+                c.settle_finalized_time.unwrap_or(Zero::zero())
+            ));
+        }
+
+        /// Emit cooperative withdraw seq num
+        #[weight = 10_000]
+        fn emit_cooperative_withdraw_seq_num(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::CooperativeWithdrawSeqNum(
+                c.cooperative_withdraw_seq_num.unwrap_or(0)
+            ));
+        }
+
+        /// Emit one channel's total balance amount
+        #[weight = 10_000]
+        fn emit_total_balance(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+            let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
+            balance = balance.checked_add(&c.peer_profiles[1].deposit)
+                .ok_or(Error::<T>::OverFlow)?;
+            balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()))
+                .ok_or(Error::<T>::UnderFlow)?;
+            balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()))
+                .ok_or(Error::<T>::UnderFlow)?;
+        
+            Self::deposit_event(RawEvent::TotalBalance(balance));
+        }
+
+        /// Emit one channel's balance info
+        #[weight = 10_000]
+        fn emit_balance_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::BalanceMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+                vec![
+                    c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
+                    c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
+                ],
+            ));
+        }
+
+        /// Emit dipute time out
+        #[weight = 10_000]
+        fn emit_dispute_time_out(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::DisputeTimeout(
+                c.dispute_timeout
+            ));
+        }
+
+        /// Emit state seq_num map of a duplex channel
+        #[weight = 10_000]
+        fn emit_state_seq_num_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::StateSeqNumMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![
+                    c.peer_profiles[0].state.seq_num,
+                    c.peer_profiles[1].state.seq_num,
+                ],
+            ));
+        }
+
+        /// Emit transfer_out map of a duplex channel
+        #[weight = 10_000]
+        fn emit_transfer_out_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::TransferOutMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![
+                    c.peer_profiles[0].state.transfer_out,
+                    c.peer_profiles[1].state.transfer_out,
+                ],
+            ));
+        }
+
+        /// Emit next_pay_id_list_hash_map of a duplex channel
+        #[weight = 10_000]
+        fn emit_next_pay_id_list_hash_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            let zero_hash = Self::get_zero_hash();
+            Self::deposit_event(RawEvent::NextPayIdListHashMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![
+                    c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(zero_hash),
+                    c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(zero_hash),
+                ],
+            ));
+        }
+
+        /// Emit last_pay_resolve_deadline map of a duplex channel
+        #[weight = 10_000]
+        fn emit_last_pay_resolve_deadline_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::LastPayResolveDeadlineMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![
+                    c.peer_profiles[0].state.last_pay_resolve_deadline,
+                    c.peer_profiles[1].state.last_pay_resolve_deadline,
+                ],
+            ));
+        }
+
+        /// Emit pending_pay_out_map of a duplex channel
+        #[weight = 10_000]
+        fn emit_pending_pay_out_map(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::PendingPayOutMap(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![
+                    c.peer_profiles[0].state.pending_pay_out,
+                    c.peer_profiles[1].state.pending_pay_out,
+                ]
+            ))
+        }
+
+        /// Emit withdraw intent of the channel
+        #[weight = 10_000]
+        fn emit_withdraw_intent(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            let zero_hash = Self::get_zero_hash();
+            Self::deposit_event(RawEvent::WithdrawIntent(
+                c.withdraw_intent.receiver,
+                c.withdraw_intent.amount.unwrap_or(Zero::zero()),
+                c.withdraw_intent.request_time.unwrap_or(Zero::zero()),
+                c.withdraw_intent.recipient_channel_id.unwrap_or(zero_hash),
+            ));
+        }
+
+        /// Emit channel number if given status
+        #[weight = 10_000]
+        fn emit_channel_status_num(_origin, channel_status: u8) {
+            Self::deposit_event(RawEvent::ChannelStatusNums(
+                <ChannelStatusNums>::get(channel_status).unwrap_or(0)
+            ))
+        }
+
+        /// Emit migration info of the peers in the channel
+        #[weight = 10_000]
+        fn emit_peers_migration_info(_origin, channel_id: T::Hash) {
+            let c = match Self::channel_map(channel_id) {
+                Some(channel) => channel,
+                None => return Err(Error::<T>::ChannelNotExist)?,
+            };
+
+            Self::deposit_event(RawEvent::PeersMigrationInfo(
+                vec![
+                    c.peer_profiles[0].peer_addr.clone(),
+                    c.peer_profiles[1].peer_addr.clone(),
+                ],
+                vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
+                vec![
+                    c.peer_profiles[0].withdrawal.unwrap_or(Zero::zero()),
+                    c.peer_profiles[1].withdrawal.unwrap_or(Zero::zero()),
+                ],
+                vec![
+                    c.peer_profiles[0].state.seq_num,
+                    c.peer_profiles[1].state.seq_num,
+                ],
+                vec![
+                    c.peer_profiles[0].state.transfer_out,
+                    c.peer_profiles[1].state.transfer_out,
+                ],
+                vec![
+                    c.peer_profiles[0].state.pending_pay_out,
+                    c.peer_profiles[1].state.pending_pay_out,
+                ],
+            ));
+        }
+
+        /// Emit AccountId of Celer Wallet module
+        #[weight = 10_000]
+        fn emit_celer_wallet_id(_origin) {
+            Self::deposit_event(RawEvent::CelerWalletId(
+                WALLET_ID.into_account()
+            ));
+        }
+
+        /// Emit wallet info corresponding to wallet_id
+        #[weight = 10_000]
+        fn emit_wallet_info(_origin, wallet_id: T::Hash) {
+            let w: WalletOf<T> = match Self::wallet(wallet_id) {
+                Some(wallet) => wallet,
+                None => return Err(Error::<T>::WalletNotExist)?,
+            };
+            
+            Self::deposit_event(RawEvent::WalletInfo(
+                w.owners,
+                w.balance
+            ));
+        }
+
+        /// Emit AccountId of Pool
+        #[weight = 10_000]
+        fn emit_pool_id(_origin) {
+            Self::deposit_event(RawEvent::PoolId(
+                POOL_ID.into_account()
+            ));
+        }
+
+        /// Emit Amount of funds which is pooled of specifed address
+        #[weight = 10_000]
+        fn emit_pool_balance(_origin, owner: T::AccountId) {
+            Self::deposit_event(RawEvent::PoolBalance(
+                Self::balances(owner).unwrap_or(Zero::zero())
+            ));
+        }
+
+        /// Emit Amount of funds which owner allowed to a spender
+        #[weight = 10_000]
+        fn emit_allowance(_origin, owner: T::AccountId, spender: T::AccountId) {
+            Self::deposit_event(RawEvent::Allowance(
+                Self::allowed(owner, spender).unwrap()
+            ));
+        }
+
+        /// Emit AccountId of PayResolver module
+        #[weight = 10_000]
+        fn emit_pay_resolver_id(_origin) {
+            Self::deposit_event(RawEvent::PayResolverId(
+                PAY_RESOLVER_ID.into_account()
+            ));
+        }
+
         fn on_runtime_upgrade() -> Weight {
             migration::on_runtime_upgrade::<T>();
             500_000
@@ -915,7 +1232,67 @@ decl_event! (
         PayInfoUpdate(Hash, Balance, BlockNumber),
         /// ResolvePayment(pay_id, amount, resolve_deadline)
         ResolvePayment(Hash, Balance, BlockNumber),
-    }
+
+        /// Information of state
+        /// AccountId of Ledger Operation module
+        CelerLedgerId(AccountId),
+        /// Channel basic info
+        ChannelInfo(
+            bool, // balance_limits_enabled
+            Balance, // balance_limits
+            u8, // channel_status
+        ),
+        /// channel settle open time
+        SettleFinalizedTime(BlockNumber),
+        /// Cooperative withdraw seq_num
+        CooperativeWithdrawSeqNum(u128),
+        /// one channel's total balance amount
+        TotalBalance(Balance),
+        /// one channel's balance info
+        BalanceMap(Vec<AccountId>, Vec<Balance>, Vec<Balance>),
+        /// channel's dispute timeout
+        DisputeTimeout(BlockNumber),
+        /// state seq_num map of a duplex channel
+        StateSeqNumMap(Vec<AccountId>, Vec<u128>),
+        /// transfer_out map of a duplex channel
+        TransferOutMap(Vec<AccountId>, Vec<Balance>),
+        /// next_pay_id_list_hash map of a duplex channel
+        NextPayIdListHashMap(Vec<AccountId>, Vec<Hash>),
+        /// last_pay_resolve_deadline map of a duplex channel
+        LastPayResolveDeadlineMap(Vec<AccountId>, Vec<BlockNumber>),
+        /// pending_pay_out_map of a duplex channel
+        PendingPayOutMap(Vec<AccountId>, Vec<Balance>),
+        /// withdraw intent of the channel
+        WithdrawIntent(
+            AccountId, // receiver of withdraw intent
+            Balance, // amount of withdraw intent
+            BlockNumber, // request time of withdraw intent
+            Hash // recipient channel id of withdraw intent
+        ),
+        /// Channel number of given status
+        ChannelStatusNums(u8),
+        /// migration info of the peers in the channel
+        PeersMigrationInfo(
+            Vec<AccountId>, // channel peers
+            Vec<Balance>, // deposit
+            Vec<Balance>, // withdrawals 
+            Vec<u128>, // seq_num
+            Vec<Balance>, // transfer_out
+            Vec<Balance> // pending_pay_out
+        ),
+        /// AccountId of Celer Wallet module
+        CelerWalletId(AccountId),
+        /// wallet info corresponding to wallet_id
+        WalletInfo(Vec<AccountId>, Balance),
+        /// AccountId of Pool
+        PoolId(AccountId),
+        /// Amount of funds which is pooled of specifed address
+        PoolBalance(Balance),
+        /// Amount of funds which owner allowed to a spender
+        Allowance(Balance),
+        /// AccountId of PayResolver module
+        PayResolverId(AccountId),
+    }   
 );
 
 decl_error! {
@@ -962,7 +1339,7 @@ impl<T: Trait> Module<T> {
         return CELER_LEDGER_ID.into_account();
     }
 
-    /// Return channel settle open time
+    /// Return channel confirm settle open time
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1014,7 +1391,7 @@ impl<T: Trait> Module<T> {
         return Ok(balance);
     }
 
-    /// Return one channel's balance info
+    /// Return 
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1103,15 +1480,15 @@ impl<T: Trait> Module<T> {
             None => return None,
         };
 
-        let hash_zero = Self::zero_hash();
+        let zero_hash = Self::get_zero_hash();
         return Some((
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
             vec![
-                c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(hash_zero),
-                c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(hash_zero),
+                c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(zero_hash),
+                c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(zero_hash),
             ],
         ));
     }
@@ -1174,7 +1551,7 @@ impl<T: Trait> Module<T> {
             None => return None,
         };
 
-        let zero_channel_id: T::Hash = Self::zero_hash();
+        let zero_channel_id: T::Hash = Self::get_zero_hash();
         let withdraw_intent = c.withdraw_intent;
         return Some((
             withdraw_intent.receiver,
@@ -1192,11 +1569,11 @@ impl<T: Trait> Module<T> {
         return <ChannelStatusNums>::get(channel_status);
     }
 
-    /// Return balance limit
+    /// Return balance limits
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_balance_limit(channel_id: T::Hash) -> Option<BalanceOf<T>> {
+    pub fn get_balance_limits(channel_id: T::Hash) -> Option<BalanceOf<T>> {
         let c = match Self::channel_map(channel_id) {
             Some(channel) => channel,
             None => return None,
@@ -1204,7 +1581,7 @@ impl<T: Trait> Module<T> {
         return c.balance_limits;
     }
 
-    /// Return balanceLimitsEnabled
+    /// Whether balance limits is enable.
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1280,11 +1657,11 @@ impl<T: Trait> Module<T> {
         return Some(owners);
     }
 
-    /// Return balance in a given wallet
+    /// Return amount of funds which is deposited into specified wallet
     ///
     /// Parameter:
     /// `wallet_id`: Id of the wallet
-    pub fn get_balance(wallet_id: T::Hash) -> Option<BalanceOf<T>> {
+    pub fn get_wallet_balance(wallet_id: T::Hash) -> Option<BalanceOf<T>> {
         let w: WalletOf<T> = match Self::wallet(wallet_id) {
             Some(wallet) => wallet,
             None => return None,
@@ -1300,20 +1677,20 @@ impl<T: Trait> Module<T> {
         return POOL_ID.into_account();
     }
 
-    /// Return balnce in pooled Pool
+    /// Return amount of funds which is pooled of specified address
     ///
     /// Prameter:
     /// `owner`: the address of query balance of
-    pub fn balance_of(owner: T::AccountId) -> Option<BalanceOf<T>> {
+    pub fn get_pool_balance(owner: T::AccountId) -> Option<BalanceOf<T>> {
         return Self::balances(owner);
     }
 
-    /// Return amount of owner allowed to a spender
+    /// Return amount of funds which owner allowed to a spender
     ///
     /// Parameters:
     /// `owner`: the address which owns the funds
     /// `spender`: the address which will spend the funds
-    pub fn allowance(owner: T::AccountId, spender: T::AccountId) -> Option<BalanceOf<T>> {
+    pub fn get_allowance(owner: T::AccountId, spender: T::AccountId) -> Option<BalanceOf<T>> {
         return Self::allowed(owner, spender);
     }
 
@@ -1360,10 +1737,9 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    pub fn zero_hash() -> T::Hash {
+    pub fn get_zero_hash() -> T::Hash {
         let zero_vec = vec![0 as u8];
-        let zero_hash = T::Hashing::hash(&zero_vec);
-        return zero_hash;
+        let get_zero_hash = T::Hashing::hash(&zero_vec);
+        return get_zero_hash;
     }
 }
-
