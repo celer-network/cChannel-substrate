@@ -284,7 +284,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::zero_hash();
+            let zero_channel_id = CelerModule::get_zero_hash();
             assert_ok!(CelerModule::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -325,7 +325,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::zero_hash();
+            let zero_channel_id = CelerModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -373,7 +373,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::zero_hash();
+            let zero_channel_id = CelerModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -419,7 +419,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::zero_hash();
+            let zero_channel_id = CelerModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 1,
