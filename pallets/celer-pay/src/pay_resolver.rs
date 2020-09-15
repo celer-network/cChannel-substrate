@@ -223,10 +223,24 @@ fn resolve_payment<T: Trait>(
         if amount == pay.transfer_func.max_transfer.receiver.amt {
             // set resolve deadline = current block number if amount = max
             PayRegistry::<T>::set_pay_info(pay_hash, amount, block_number)?;
+            
+            // Emit ResolvePayment event
+            Module::<T>::deposit_event(RawEvent::ResolvePayment(
+                pay_id,
+                amount,
+                block_number
+            ));
             return Ok((pay_id, amount, block_number));
         } else {
             // should not update the onchain resolve deadline if not max amount
             PayRegistry::<T>::set_pay_amount(pay_hash, amount)?;
+            
+            // Emit ResolvePayment event
+            Module::<T>::deposit_event(RawEvent::ResolvePayment(
+                pay_id,
+                amount,
+                current_deadline
+            ));
             return Ok((pay_id, amount, current_deadline));
         }
     } else {
