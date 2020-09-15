@@ -427,7 +427,14 @@ impl<T: Trait> LedgerOperation<T> {
         if amt_sum == Zero::zero() {
             ensure!(msg_value == Zero::zero(), "msg_value is not 0");
 
-            ChannelMap::<T>::insert(channel_id, channel);
+            ChannelMap::<T>::insert(channel_id, channel.clone());
+
+            // Emit OpenChannel event
+            Module::<T>::deposit_event(RawEvent::OpenChannel(
+                channel_id,
+                vec![channel.peer_profiles[0].peer_addr.clone(), channel.peer_profiles[1].peer_addr.clone()],
+                vec![Zero::zero(), Zero::zero()]
+            ));
             return Ok(channel_id);
         }
 
@@ -533,12 +540,13 @@ impl<T: Trait> LedgerOperation<T> {
         let state_len = signed_simplex_state_array.signed_simplex_states.len();
 
         // snapshot each state
-        let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0]
-            .simplex_state
-            .clone();
+        let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
         for i in 0..state_len {
             let current_channel_id: T::Hash = simplex_state.channel_id;
-            let c: ChannelOf<T> = ChannelMap::<T>::get(current_channel_id).unwrap();
+            let c: ChannelOf<T> = match ChannelMap::<T>::get(&current_channel_id) {
+                Some(channel) => channel,
+                None => Err(Error::<T>::ChannelNotExist)?,
+            };
 
             ensure!(c.status == ChannelStatus::Operable, "Channel status error");
 
@@ -769,7 +777,7 @@ impl<T: Trait> LedgerOperation<T> {
         // Update record of one peer's withdrawal amount
         if rid == 0 {
             let new_amount: BalanceOf<T> = c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())
-                .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
                 deposit: c.peer_profiles[0].deposit,
@@ -797,8 +805,8 @@ impl<T: Trait> LedgerOperation<T> {
                 recipient_channel_id,
             )?;
         } else {
-            let new_amount: BalanceOf<T> = c.peer_profiles[1].clone().withdrawal.unwrap()
-                .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+            let new_amount: BalanceOf<T> = c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
                 deposit: c.peer_profiles[1].deposit,
@@ -845,7 +853,10 @@ impl<T: Trait> LedgerOperation<T> {
     pub fn veto_withdraw(origin: T::Origin, channel_id: T::Hash) -> Result<(), DispatchError> {
         let caller = ensure_signed(origin)?;
 
-        let c = ChannelMap::<T>::get(channel_id).unwrap();
+        let c = match ChannelMap::<T>::get(&channel_id) {
+            Some(_channel) => _channel,
+            None => Err(Error::<T>::ChannelNotExist)?,
+        };
         ensure!(c.status == ChannelStatus::Operable, "Channel status error");
         let intent = c.withdraw_intent.clone();
         let celer_ledger_account = Module::<T>::get_celer_ledger_id();
@@ -916,7 +927,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         if receiver.clone() == c.peer_profiles[0].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())
-                .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_1 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[0].peer_addr.clone(),
                 deposit: c.peer_profiles[0].deposit,
@@ -1009,7 +1020,10 @@ impl<T: Trait> LedgerOperation<T> {
         let mut simplex_state = signed_simplex_state_array.signed_simplex_states[0].simplex_state.clone();
         for i in 0..state_len {
             let current_channel_id = simplex_state.channel_id;
-            let c: ChannelOf<T> = ChannelMap::<T>::get(current_channel_id).unwrap();
+            let c: ChannelOf<T> = match ChannelMap::<T>::get(&current_channel_id) {
+                Some(channel) => channel,
+                None => Err(Error::<T>::ChannelNotExist)?,
+            };
 
             if Self::is_peer(c.clone(), caller.clone()) {
                 ensure!(
@@ -1210,7 +1224,10 @@ impl<T: Trait> LedgerOperation<T> {
         peer_from: T::AccountId,
         pay_id_list: PayIdList<T::Hash>,
     ) -> Result<(), DispatchError> {
-        let c = ChannelMap::<T>::get(channel_id).unwrap();
+        let c = match ChannelMap::<T>::get(&channel_id) {
+            Some(_channel) => _channel,
+            None => Err(Error::<T>::ChannelNotExist)?,
+        };
         ensure!(c.status == ChannelStatus::Settling, "Channel status error");
 
         let mut encoded: Vec<u8> = vec![];
@@ -1218,7 +1235,6 @@ impl<T: Trait> LedgerOperation<T> {
             encoded.extend(pay_id.encode());
         });
         encoded.extend(pay_id_list.next_list_hash.encode());
-      
         let list_hash = T::Hashing::hash(&encoded);
 
         if peer_from == c.peer_profiles[0].peer_addr {
@@ -1394,7 +1410,10 @@ impl<T: Trait> LedgerOperation<T> {
     ) -> Result<(T::Hash, Vec<BalanceOf<T>>), DispatchError> {
         let settle_info = settle_request.settle_info;
         let channel_id = settle_info.channel_id;
-        let c = ChannelMap::<T>::get(channel_id).unwrap();
+        let c = match ChannelMap::<T>::get(&channel_id) {
+            Some(_channel) => _channel,
+            None => Err(Error::<T>::ChannelNotExist)?,
+        };
         ensure!(
             c.status == ChannelStatus::Operable || c.status == ChannelStatus::Settling,
             "Channel status error"
@@ -1681,8 +1700,7 @@ fn _clear_pays<T: Trait>(
         let mut total_amt_out: BalanceOf<T> = Zero::zero();
         let out_amts_len = out_amts.len();
         for i in 0..out_amts_len {
-            total_amt_out = total_amt_out
-                .checked_add(&out_amts[i])
+            total_amt_out = total_amt_out.checked_add(&out_amts[i])
                 .ok_or(Error::<T>::OverFlow)?;
             // Emit ClearOnePay event
             Module::<T>::deposit_event(RawEvent::ClearOnePay(
