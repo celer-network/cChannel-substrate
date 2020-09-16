@@ -783,7 +783,7 @@ pub mod test_ledger_operation {
     }
 
     #[test]
-    fn test_pass_cooperative_withdraw_when_using_an_unexpected_seq_num() {
+    fn test_pass_cooperative_withdraw_when_using_an_expected_seq_num() {
         ExtBuilder::build().execute_with(|| {
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -848,6 +848,52 @@ pub mod test_ledger_operation {
             assert_eq!(_amount, 200);
             assert_eq!(_receiver, channel_peers[0]);
             assert_eq!(_withdraw_info_seq_num, 1);
+        })
+    }
+
+    #[test]
+    fn test_pass_cooperative_withdraw_when_receiver_is_channel_peer_1() {
+        ExtBuilder::build().execute_with(|| {
+            let alice_pair = account_pair("Alice");
+            let bob_pair = account_pair("Bob");
+            let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
+            let open_channel_request = get_open_channel_request(true, 800, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
+            let channel_id = LedgerOperation::<TestRuntime>::open_channel(
+                Origin::signed(channel_peers[1]),
+                open_channel_request.clone(),
+                0,
+            ).unwrap();
+
+            assert_ok!(LedgerOperation::<TestRuntime>::deposit(
+                Origin::signed(channel_peers[0]),
+                channel_id,
+                channel_peers[0],
+                300,
+                0
+            ));
+
+            let zero_vec = vec![0 as u8];
+            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let cooperative_withdraw_request = get_cooperative_withdraw_request(
+                channel_id,
+                1,
+                200,
+                channel_peers[1],
+                9999999,
+                zero_channel_id,
+                peers_pair.clone(),
+            );
+            let (_channel_id, _amount, _receiver, _, _withdraw_info_seq_num) =
+                LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap();
+            assert_eq!(_channel_id, channel_id);
+            assert_eq!(_amount, 200);
+            assert_eq!(_receiver, channel_peers[1]);
+            assert_eq!(_withdraw_info_seq_num, 1);
+
+            let (_, _deposits, _withdrawals)
+                = CelerModule::get_balance_map(channel_id);
+            assert_eq!(_deposits, vec![300, 0]);
+            assert_eq!(_withdrawals, vec![0, 200]);
         })
     }
 

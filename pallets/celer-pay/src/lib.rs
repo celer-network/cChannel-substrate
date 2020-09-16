@@ -368,7 +368,7 @@ decl_module! {
         /// Parameters:
         /// `channel_id`: Id of channel
         /// `amount`: amount of funds to withdraw
-        /// `receipient_channel_id`: withdraw to receiver address if get_zero_hash(),
+        /// `recipient_channel_id`: withdraw to receiver address if get_zero_hash(),
         ///     otherwise deposit to receiver address in the recipient channel
         /// 
         /// # <weight>
@@ -383,9 +383,9 @@ decl_module! {
             origin,
             channel_id: T::Hash,
             amount: BalanceOf<T>,
-            receipient_channel_id: T::Hash
+            recipient_channel_id: T::Hash
         ) -> DispatchResult {
-            LedgerOperation::<T>::intend_withdraw(origin, channel_id, amount, receipient_channel_id)?;
+            LedgerOperation::<T>::intend_withdraw(origin, channel_id, amount, recipient_channel_id)?;
             Ok(())
         }
 
@@ -1192,7 +1192,7 @@ decl_event! (
         SnapshotStates(Hash, Vec<u128>),
         /// IntendWithdraw(channel_id, receiver, amount)
         IntendWithdraw(Hash, AccountId, Balance),
-        /// ConfirmWithdraw(channel_id, withdrawn_amount, receiver, receipient_channel_id, deposits, withdrawals)
+        /// ConfirmWithdraw(channel_id, withdrawn_amount, receiver, recipient_channel_id, deposits, withdrawals)
         ConfirmWithdraw(Hash, Balance, AccountId, Hash, Vec<Balance>, Vec<Balance>),
         /// VetoWithdraw(channel_id)
         VetoWithdraw(Hash),

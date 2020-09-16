@@ -956,7 +956,7 @@ impl<T: Trait> LedgerOperation<T> {
             )?;
         } else if receiver.clone() == c.peer_profiles[1].peer_addr {
             let new_withdrawal_amount = c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())
-                .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+                    .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
             let new_peer_profiles_2 = PeerProfileOf::<T> {
                 peer_addr: c.peer_profiles[1].peer_addr.clone(),
                 deposit: c.peer_profiles[1].deposit,
@@ -970,7 +970,7 @@ impl<T: Trait> LedgerOperation<T> {
                 dispute_timeout: c.dispute_timeout,
                 token: c.token,
                 status: c.status,
-                peer_profiles: vec![c.peer_profiles[1].clone(), new_peer_profiles_2],
+                peer_profiles: vec![c.peer_profiles[0].clone(), new_peer_profiles_2],
                 cooperative_withdraw_seq_num: Some(withdraw_info.seq_num),
                 withdraw_intent: c.withdraw_intent,
             };
