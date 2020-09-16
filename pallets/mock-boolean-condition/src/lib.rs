@@ -23,6 +23,7 @@ decl_module! {
                 "FalseOutcome"
             );
 
+            // If outcome is true, return Ok(())
             Ok(())
         }
 
