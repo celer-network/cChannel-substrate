@@ -424,8 +424,8 @@ impl<T: Trait> LedgerOperation<T> {
 
         let amt_sum: BalanceOf<T> = amounts[0].checked_add(&amounts[1]).ok_or(Error::<T>::OverFlow)?;
         // if total deposit is 0
-        if amt_sum == Zero::zero() {
-            ensure!(msg_value == Zero::zero(), "msg_value is not 0");
+        if amt_sum.is_zero() {
+            ensure!(msg_value.is_zero(), "msg_value is not 0");
 
             ChannelMap::<T>::insert(channel_id, channel.clone());
 
@@ -740,15 +740,6 @@ impl<T: Trait> LedgerOperation<T> {
         let amount = withdraw_intent.amount.unwrap_or(Zero::zero());
         let recipient_channel_id = withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id);
 
-        // Initialize c.wihdraw_intent
-        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
-        let initialize_withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: celer_ledger_account,
-            amount: None,
-            request_time: None,
-            recipient_channel_id: None,
-        };
-
         // check withdraw limit
         let mut rid: u8 = 0;
         if receiver == c.peer_profiles[0].peer_addr {
@@ -784,6 +775,14 @@ impl<T: Trait> LedgerOperation<T> {
                 withdrawal: Some(new_amount),
                 state: c.peer_profiles[0].clone().state,
             };
+            // Initialize c.wihdraw_intent
+            let celer_ledger_account = Module::<T>::get_celer_ledger_id();
+            let initialize_withdraw_intent = WithdrawIntentOf::<T> {
+                receiver: celer_ledger_account,
+                amount: None,
+                request_time: None,
+                recipient_channel_id: None,
+            };
             let new_channel = ChannelOf::<T> {
                 balance_limits_enabled: c.balance_limits_enabled,
                 balance_limits: c.balance_limits,
@@ -812,6 +811,14 @@ impl<T: Trait> LedgerOperation<T> {
                 deposit: c.peer_profiles[1].deposit,
                 withdrawal: Some(new_amount),
                 state: c.peer_profiles[1].clone().state,
+            };
+            // Initialize c.wihdraw_intent
+            let celer_ledger_account = Module::<T>::get_celer_ledger_id();
+            let initialize_withdraw_intent = WithdrawIntentOf::<T> {
+                receiver: celer_ledger_account,
+                amount: None,
+                request_time: None,
+                recipient_channel_id: None,
             };
             let new_channel = ChannelOf::<T> {
                 balance_limits_enabled: c.balance_limits_enabled,
@@ -1449,7 +1456,7 @@ impl<T: Trait> LedgerOperation<T> {
             settle_info.settle_balance[1].amt,
         ];
         let total_settle_balance = settle_balance[0]
-            .checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
+                .checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
         let total_balance = Module::<T>::get_total_balance(channel_id)?;
         ensure!(
             total_settle_balance == total_balance,
@@ -2019,10 +2026,9 @@ fn update_balance<T: Trait>(
 
     let celer_wallet_account = Module::<T>::get_celer_wallet_id();
 
-    let mut new_amount: BalanceOf<T> = Zero::zero();
     if op == MathOperation::Sub {
         ensure!(w.balance >= amount, "balance of amount is not deposited");
-        new_amount = w.balance.checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
+        let new_amount = w.balance.checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         let new_wallet = WalletOf::<T> {
             owners: w.owners,
             balance: new_amount,
@@ -2041,7 +2047,7 @@ fn update_balance<T: Trait>(
             T::Currency::free_balance(&caller) >= amount,
             "caller does not have enough balances."
         );
-        new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
+        let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
         let new_wallet = WalletOf::<T> {
             owners: w.owners,
             balance: new_amount,

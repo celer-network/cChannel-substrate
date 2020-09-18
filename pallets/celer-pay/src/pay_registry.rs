@@ -35,8 +35,13 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: pay_info.resolve_deadline,
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(pay_id, amt, pay_info.resolve_deadline.unwrap_or(Zero::zero())));
+            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                pay_id, 
+                amt, 
+                pay_info.resolve_deadline.unwrap_or(Zero::zero())
+            ));
         } else {
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amt),
@@ -67,6 +72,7 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: Some(deadline),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            
             // Emit PayInfoUpdate event
             Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
@@ -102,6 +108,7 @@ impl<T: Trait> PayRegistry<T> {
             resolve_deadline: Some(deadline),
         };
         <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+        
         // Emit PayInfoUpdate event
         Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
             pay_id,
@@ -130,6 +137,7 @@ impl<T: Trait> PayRegistry<T> {
                     resolve_deadline: pay_info.resolve_deadline,
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                
                 // Emit PayInfoUpdate event
                 Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
@@ -173,6 +181,7 @@ impl<T: Trait> PayRegistry<T> {
                     resolve_deadline: Some(deadlines[i]),
                 };
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                
                 // Emit PayInfoUpdate event
                 Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
@@ -215,6 +224,7 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: Some(deadlines[i]),
             };
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            
             // Emit PayInfoUpdate event
             Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
