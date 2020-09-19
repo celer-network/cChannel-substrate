@@ -147,7 +147,10 @@ impl<T: Trait> PayResolver<T> {
                 resolve_pay_request.hash_preimages,
             )?;
         } else if func_type == TransferFunctionType::BooleanOr {
-            amount = calculate_boolean_or_payment::<T>(pay.clone(), resolve_pay_request.hash_preimages)?;
+            amount = calculate_boolean_or_payment::<T>(
+                pay.clone(), 
+                resolve_pay_request.hash_preimages
+            )?;
         } else if is_numeric_logic::<T>(func_type.clone()) {
             amount = calculate_numeric_logic_payment::<T>(
                 pay.clone(),
