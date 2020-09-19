@@ -2004,8 +2004,7 @@ fn withdraw<T: Trait>(
 
 fn is_wallet_owner<T: Trait>(wallet_id: T::Hash, addr: T::AccountId) -> bool {
     let w: WalletOf<T> = Wallets::<T>::get(wallet_id).unwrap();
-    let len = w.owners.len() - 1;
-    for i in 0..len {
+    for i in 0..w.owners.len() {
         if addr == w.owners[i] {
             return true;
         }
