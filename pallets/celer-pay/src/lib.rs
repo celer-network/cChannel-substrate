@@ -107,11 +107,9 @@ mod weight_for {
     pub(crate) fn intend_settle<T: Trait>(
         signed_simplex_states_len: u64,
         signed_simplex_states_len_weight: u64,
-        pay_ids_len: Weight,
-        pay_ids_len_weight: Weight,
     ) -> Weight {
-        T::DbWeight::get().reads_writes(signed_simplex_states_len + 2 * pay_ids_len , 2 * pay_ids_len)
-            .saturating_add(pay_ids_len_weight.saturating_mul(50_000_000))
+        T::DbWeight::get().reads_writes(signed_simplex_states_len + 2, 2)
+            .saturating_add(50_000_000)
             .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
     }
 
@@ -468,13 +466,14 @@ decl_module! {
         /// Dev: simplex states in this array are not necessarily in the same channel,
         ///      which means intendSettle natively supports multi-channel batch processing.
         ///      A simplex state with non-zero seqNum (non-null state) must be co-signed by both peers,
-        ///      while a simplex state with seqNum=0 (null state) only needs to be signed by one peer.
+        ///      while a simplex state with seqNum = 0 (null state) only needs to be signed by one peer.
         ///
         /// Parameter:
         /// `signed_simplex_state_array`: SignedSimplexStateArray message
         /// 
         /// # <weight>
         /// ## Weight
+        /// Dev: Weight calculation based on pay hashes-len is not support yet
         /// - Complexity: `O(N * M)`
         ///     - `N` signed_simplex_states-len
         ///     - `M` pay_hashes-len
@@ -485,10 +484,8 @@ decl_module! {
         /// # </weight>
         #[weight = (
             weight_for::intend_settle::<T>(
-                signed_simplex_state_array.signed_simplex_states.len() as u64,
-                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as u64, // M
+                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
                 signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as Weight, // M
             ),
             DispatchClass::Operational
         )]
@@ -500,9 +497,7 @@ decl_module! {
 
             Ok(Some(weight_for::intend_settle::<T>(
                 signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as u64, // M
                 signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                signed_simplex_state_array.signed_simplex_states[0].clone().simplex_state.clone().pending_pay_ids.unwrap().pay_ids.len() as Weight, // M
             )).into())
         }
 
