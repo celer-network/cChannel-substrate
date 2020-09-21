@@ -27,7 +27,7 @@ use ledger_operation::{
     ChannelOf, ChannelStatus, CooperativeSettleRequestOf, CooperativeWithdrawRequestOf,
     LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf, CELER_LEDGER_ID,
 };
-use celer_wallet::{CelerWallet, WalletOf, WALLET_ID};
+use celer_wallet::{WalletOf, WALLET_ID};
 use pay_registry::{PayInfoOf, PayRegistry};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, PAY_RESOLVER_ID};
 use pool::{Pool, POOL_ID};
@@ -579,30 +579,6 @@ decl_module! {
         ) -> DispatchResult {
             ensure_signed(origin)?;
             LedgerOperation::<T>::cooperative_settle(settle_request)?;
-            Ok(())
-        }
-
- /// ============================= Celer Wallet =======================================
-        /// Deposit native token to a wallet.
-        ///
-        /// Parameter:
-        /// `wallet_id`: Id of the wallet to deposit into
-        /// `msg_value`: amount of funds to deposit to wallet
-        /// 
-        /// # <weight>
-        /// ## Weight
-        /// - Complexity: `O(1)`
-        /// - DB:
-        ///   - 1 storage reads `Walletss`
-        ///   - 1 storage mutation `Wallets`
-        /// # </weight>
-        #[weight = 500_000 + T::DbWeight::get().reads_writes(1, 1)]
-        fn deposit_native_token(
-            origin,
-            wallet_id: T::Hash,
-            msg_value: BalanceOf<T>
-        ) -> DispatchResult {
-            CelerWallet::<T>::deposit_native_token(origin, wallet_id, msg_value)?;
             Ok(())
         }
 

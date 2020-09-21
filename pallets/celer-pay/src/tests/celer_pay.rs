@@ -647,37 +647,6 @@ pub mod tests_celer {
     }
 
     #[test]
-    fn test_pass_deposit_native_token() {
-        ExtBuilder::build().execute_with(|| {
-            let alice_pair = account_pair("Alice");
-            let bob_pair = account_pair("Bob");
-            let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
-
-            let open_channel_request = get_open_channel_request(
-                false,
-                0,
-                500001,
-                10,
-                true,
-                channel_peers.clone(),
-                1,
-                peers_pair,
-            );
-            let wallet_id = LedgerOperation::<TestRuntime>::open_channel(
-                Origin::signed(channel_peers[1]),
-                open_channel_request.clone(),
-                0,
-            ).unwrap();
-
-            assert_ok!(CelerModule::deposit_native_token(
-                Origin::signed(channel_peers[0]),
-                wallet_id,
-                100
-            ));
-        })
-    }
-
-    #[test]
     fn test_pass_deposit_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
