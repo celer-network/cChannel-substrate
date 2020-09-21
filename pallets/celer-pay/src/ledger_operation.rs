@@ -1360,13 +1360,13 @@ impl<T: Trait> LedgerOperation<T> {
             "Settle is not finalized"
         );
 
-        // require channel status of current intend_settle has benn finalized,
+        // require channel status of current intend_settle has been finalized,
         // namely all payment have already been either cleared or expired
         // Note: this last PayResolveDeadline should use
         //      (the actual last resolve deadline of all pays + clear_pays safe margin)
         //      to ensure that peers have enough time to clear_pays before confirm_settle.
-        //      Howener this only matters if there are multiple blocks of pending pay list
-        //      i.e. the next_pay_id_list_hash after intend_settle is not Hash(0).
+        //      However this only matters if there are multiple blocks of pending pay list
+        //      i.e. the next_pay_id_list_hash after intend_settle is not zero_hash (defined in get_zero_hash()).
         // TODO: add an additonal clear_safe_margin param or change the semantics of
         // last_pay_resolve_deadline to also include clear_pays safe margin and rename it.
         let state_1 = peer_profiles[0].state.clone();
