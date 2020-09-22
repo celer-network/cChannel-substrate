@@ -1,4 +1,4 @@
-use super::{BalanceOf, PayInfoMap, Module, RawEvent};
+use super::{BalanceOf, PayInfoMap, Module as CelerPayModule, RawEvent};
 use crate::traits::Trait;
 use codec::{Decode, Encode};
 use frame_support::{ensure, storage::StorageMap};
@@ -19,7 +19,7 @@ pub struct PayRegistry<T>(sp_std::marker::PhantomData<T>);
 
 impl<T: Trait> PayRegistry<T> {
     pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
-        let pay_resolver_account = Module::<T>::get_pay_resolver_id();
+        let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
         let mut encoded = pay_hash.encode();
         encoded.extend(pay_resolver_account.encode());
         let pay_id = T::Hashing::hash(&encoded);
@@ -37,7 +37,7 @@ impl<T: Trait> PayRegistry<T> {
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id, 
                 amt, 
                 pay_info.resolve_deadline.unwrap_or(Zero::zero())
@@ -50,7 +50,7 @@ impl<T: Trait> PayRegistry<T> {
             PayInfoMap::<T>::insert(pay_id, new_pay_info);
             
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
                 amt,
                 Zero::zero(),
@@ -74,7 +74,7 @@ impl<T: Trait> PayRegistry<T> {
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
                 pay_info.amount.unwrap_or(Zero::zero()),
                 deadline,
@@ -87,7 +87,7 @@ impl<T: Trait> PayRegistry<T> {
             PayInfoMap::<T>::insert(pay_id, new_pay_info);
             
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
                 Zero::zero(),
                 deadline
@@ -110,7 +110,7 @@ impl<T: Trait> PayRegistry<T> {
         <PayInfoMap<T>>::mutate(&pay_id, |info| *info = Some(new_pay_info));
         
         // Emit PayInfoUpdate event
-        Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+        CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
             pay_id,
             amt,
             deadline,
@@ -139,7 +139,7 @@ impl<T: Trait> PayRegistry<T> {
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 
                 // Emit PayInfoUpdate event
-                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
                     amts[i],
                     pay_info.resolve_deadline.unwrap()
@@ -152,7 +152,7 @@ impl<T: Trait> PayRegistry<T> {
                 PayInfoMap::<T>::insert(pay_id, new_pay_info);
 
                 // Emit PayInfoUpdate event
-                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
                     amts[i],
                     Zero::zero(),
@@ -183,7 +183,7 @@ impl<T: Trait> PayRegistry<T> {
                 PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 
                 // Emit PayInfoUpdate event
-                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
                     pay_info.amount.unwrap(),
                     deadlines[i],
@@ -196,7 +196,7 @@ impl<T: Trait> PayRegistry<T> {
                 PayInfoMap::<T>::insert(pay_id, new_pay_info);
                 
                 // Emit PayInfoUpdate event
-                Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                     pay_id,
                     Zero::zero(),
                     deadlines[i],
@@ -226,7 +226,7 @@ impl<T: Trait> PayRegistry<T> {
             PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             
             // Emit PayInfoUpdate event
-            Module::<T>::deposit_event(RawEvent::PayInfoUpdate(
+            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
                 pay_id,
                 amts[i],
                 deadlines[i]

@@ -17,7 +17,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_open_channel() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -40,7 +40,7 @@ pub mod tests_celer {
                 1,
                 peers_pair,
             );
-            assert_ok!(CelerModule::open_channel(
+            assert_ok!(CelerPayModule::open_channel(
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
@@ -51,7 +51,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_set_balnce_limits() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -73,14 +73,14 @@ pub mod tests_celer {
                 1,
                 peers_pair,
             );
-            assert_ok!(CelerModule::open_channel(
+            assert_ok!(CelerPayModule::open_channel(
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
             ));
 
             let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-            assert_ok!(CelerModule::set_balance_limits(
+            assert_ok!(CelerPayModule::set_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id,
                 200
@@ -91,7 +91,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_disable_balance_limits() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -113,14 +113,14 @@ pub mod tests_celer {
                 1,
                 peers_pair,
             );
-            assert_ok!(CelerModule::open_channel(
+            assert_ok!(CelerPayModule::open_channel(
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
             ));
 
             let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-            assert_ok!(CelerModule::disable_balance_limits(
+            assert_ok!(CelerPayModule::disable_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -130,7 +130,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_enable_balance_limits() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -152,14 +152,14 @@ pub mod tests_celer {
                 1,
                 peers_pair,
             );
-            assert_ok!(CelerModule::open_channel(
+            assert_ok!(CelerPayModule::open_channel(
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
             ));
 
             let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-            assert_ok!(CelerModule::enable_balance_limits(
+            assert_ok!(CelerPayModule::enable_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -169,7 +169,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_deposit() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -191,14 +191,14 @@ pub mod tests_celer {
                 1,
                 peers_pair,
             );
-            assert_ok!(CelerModule::open_channel(
+            assert_ok!(CelerPayModule::open_channel(
                 Origin::signed(channel_peers[0]),
                 open_channel_request.clone(),
                 200
             ));
 
             let channel_id = calculate_channel_id(open_channel_request, channel_peers.clone());
-            assert_ok!(CelerModule::deposit(
+            assert_ok!(CelerPayModule::deposit(
                 Origin::signed(channel_peers[0]),
                 channel_id,
                 channel_peers[0],
@@ -211,7 +211,7 @@ pub mod tests_celer {
     #[test]
     fn test_pass_snapshot_states() {
         ExtBuilder::build().execute_with(|| {
-                        let celer_ledger_account = CelerModule::get_celer_ledger_id();
+                        let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -246,7 +246,7 @@ pub mod tests_celer {
                 peers_pair.clone(),
             );
 
-            assert_ok!(CelerModule::snapshot_states(
+            assert_ok!(CelerPayModule::snapshot_states(
                 Origin::signed(channel_peers[0]),
                 signed_simplex_state_array
             ));
@@ -284,8 +284,8 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::get_zero_hash();
-            assert_ok!(CelerModule::intend_withdraw(
+            let zero_channel_id = CelerPayModule::get_zero_hash();
+            assert_ok!(CelerPayModule::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
                 200,
@@ -325,7 +325,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::get_zero_hash();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -335,7 +335,7 @@ pub mod tests_celer {
 
             System::set_block_number(System::block_number() + 11);
 
-            assert_ok!(CelerModule::confirm_withdraw(
+            assert_ok!(CelerPayModule::confirm_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -373,7 +373,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::get_zero_hash();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -381,7 +381,7 @@ pub mod tests_celer {
                 zero_channel_id,
             ).unwrap();
 
-            assert_ok!(CelerModule::veto_withdraw(
+            assert_ok!(CelerPayModule::veto_withdraw(
                 Origin::signed(channel_peers[1]),
                 channel_id
             ));
@@ -419,7 +419,7 @@ pub mod tests_celer {
                 0
             ));
 
-            let zero_channel_id = CelerModule::get_zero_hash();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 1,
@@ -429,7 +429,7 @@ pub mod tests_celer {
                 zero_channel_id,
                 peers_pair,
             );
-            assert_ok!(CelerModule::cooperative_withdraw(
+            assert_ok!(CelerPayModule::cooperative_withdraw(
                 Origin::signed(channel_peers[0]),
                 cooperative_withdraw_request
             ));
@@ -492,7 +492,7 @@ pub mod tests_celer {
             assert_eq!(System::block_number(), 3);
 
             // intend settle
-            assert_ok!(CelerModule::intend_settle(
+            assert_ok!(CelerPayModule::intend_settle(
                 Origin::signed(channel_peers[0]),
                 signed_simplex_state_array,
             ));
@@ -592,10 +592,10 @@ pub mod tests_celer {
                 ));
             }
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
-            assert_ok!(CelerModule::confirm_settle(
+            assert_ok!(CelerPayModule::confirm_settle(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -639,7 +639,7 @@ pub mod tests_celer {
                 500000,
                 peers_pair,
             );
-            assert_ok!(CelerModule::cooperative_settle(
+            assert_ok!(CelerPayModule::cooperative_settle(
                 Origin::signed(channel_peers[0]),
                 cooperative_settle_request
             ));
@@ -650,7 +650,7 @@ pub mod tests_celer {
     fn test_pass_deposit_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
-            assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
+            assert_ok!(CelerPayModule::deposit_pool(Origin::signed(alice), alice, 100));
         })
     }
 
@@ -658,8 +658,8 @@ pub mod tests_celer {
     fn test_pass_withdraw_from_pool() {
         ExtBuilder::build().execute_with(|| {
             let alice = account_key("Alice");
-            assert_ok!(CelerModule::deposit_pool(Origin::signed(alice), alice, 100));
-            assert_ok!(CelerModule::withdraw_from_pool(Origin::signed(alice), 100));
+            assert_ok!(CelerPayModule::deposit_pool(Origin::signed(alice), alice, 100));
+            assert_ok!(CelerPayModule::withdraw_from_pool(Origin::signed(alice), 100));
         })
     }
 
@@ -672,7 +672,7 @@ pub mod tests_celer {
 
             deposit_pool(bob, 200);
             approve(bob, risa, 150);
-            assert_ok!(CelerModule::transfer_from(
+            assert_ok!(CelerPayModule::transfer_from(
                 Origin::signed(risa),
                 bob,
                 alice, 150
@@ -685,53 +685,10 @@ pub mod tests_celer {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
-            assert_ok!(CelerModule::approve(
+            assert_ok!(CelerPayModule::approve(
                 Origin::signed(bob.clone()),
                 risa.clone(),
                 100
-            ));
-        })
-    }
-
-    #[test]
-    fn test_pass_transfer_to_celer_wallet() {
-        ExtBuilder::build().execute_with(|| {
-            let risa = account_key("Risa"); // spender address
-            let alice_pair = account_pair("Alice"); // owner address
-            let bob_pair = account_pair("Bob"); // owner address
-            let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
-
-            let open_channel_request = get_open_channel_request(
-                false,
-                0,
-                500001,
-                10,
-                true,
-                channel_peers.clone(),
-                1,
-                peers_pair,
-            );
-            let wallet_id = LedgerOperation::<TestRuntime>::open_channel(
-                Origin::signed(channel_peers[1]),
-                open_channel_request.clone(),
-                0,
-            ).unwrap();
-            assert_ok!(CelerModule::deposit_pool(
-                Origin::signed(channel_peers[0]),
-                channel_peers[0],
-                200
-            ));
-            assert_ok!(CelerModule::approve(
-                Origin::signed(channel_peers[0].clone()),
-                risa.clone(),
-                200
-            ));
-
-            assert_ok!(CelerModule::transfer_to_celer_wallet(
-                Origin::signed(risa),
-                channel_peers[0].clone(),
-                wallet_id,
-                200
             ));
         })
     }
@@ -743,7 +700,7 @@ pub mod tests_celer {
             let risa = account_key("Risa"); // spender address
             approve(bob, risa, 100);
 
-            assert_ok!(CelerModule::increase_allowance(
+            assert_ok!(CelerPayModule::increase_allowance(
                 Origin::signed(bob),
                 risa,
                 50
@@ -758,7 +715,7 @@ pub mod tests_celer {
             let risa = account_key("Risa"); // spender address
             approve(bob, risa, 100);
 
-            assert_ok!(CelerModule::decrease_allowance(
+            assert_ok!(CelerPayModule::decrease_allowance(
                 Origin::signed(bob),
                 risa,
                 50
@@ -784,7 +741,7 @@ pub mod tests_celer {
                 hash_preimages: vec![H256::from_low_u64_be(1)],
             };
 
-            assert_ok!(CelerModule::resolve_payment_by_conditions(
+            assert_ok!(CelerPayModule::resolve_payment_by_conditions(
                 Origin::signed(account_key("Alice")),
                 pay_request
             ));
@@ -817,7 +774,7 @@ pub mod tests_celer {
                 sig_of_src: sig_of_src,
                 sig_of_dest: sig_of_dest,
             };
-            assert_ok!(CelerModule::resolve_payment_by_vouched_result(
+            assert_ok!(CelerPayModule::resolve_payment_by_vouched_result(
                 Origin::signed(account_key("Alice")),
                 vouched_cond_pay_result
             ));

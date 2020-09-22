@@ -21,7 +21,7 @@ pub mod test_ledger_operation {
     fn test_pass_return_uninitialized_status_for_an_inexistent_channel() {
         ExtBuilder::build().execute_with(|| {
             let random_channel_id: H256 = H256::from_low_u64_be(3);
-            let status = CelerModule::get_channel_status(random_channel_id);
+            let status = CelerPayModule::get_channel_status(random_channel_id);
             assert_eq!(status, ChannelStatus::Uninitialized);
         })
     }
@@ -46,7 +46,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_open_channel_with_deposits_with_deposits_before_setting_deposit_limits() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -171,7 +171,7 @@ pub mod test_ledger_operation {
                 open_channel_request,
                 0,
             ).unwrap();
-            assert_ok!(CelerModule::enable_balance_limits(
+            assert_ok!(CelerPayModule::enable_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -203,7 +203,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let risa = account_key("Risa"); // not owner
-            let err = CelerModule::set_balance_limits(Origin::signed(risa), channel_id, 200).unwrap_err();
+            let err = CelerPayModule::set_balance_limits(Origin::signed(risa), channel_id, 200).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller is not channel peer"));
         })
     }
@@ -221,12 +221,12 @@ pub mod test_ledger_operation {
                 0,
             ).unwrap();
 
-            assert_ok!(CelerModule::set_balance_limits(
+            assert_ok!(CelerPayModule::set_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id,
                 300
             ));
-            let amount = CelerModule::get_balance_limits(channel_id).unwrap();
+            let amount = CelerPayModule::get_balance_limits(channel_id).unwrap();
             assert_eq!(amount, 300);
         })
     }
@@ -245,7 +245,7 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
             // approve ledger to spend
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             approve(channel_peers[1], celer_ledger_account, 200);
             let open_channel_request = get_open_channel_request(true, 10000, 500000, 10, false, channel_peers.clone(), 0, peers_pair);
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
@@ -332,7 +332,7 @@ pub mod test_ledger_operation {
 
             let risa = account_key("Risa");
             let err =
-                CelerModule::disable_balance_limits(Origin::signed(risa), channel_id).unwrap_err();
+                CelerPayModule::disable_balance_limits(Origin::signed(risa), channel_id).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller is not channel peer"));
         })
     }
@@ -350,7 +350,7 @@ pub mod test_ledger_operation {
                 0,
             ).unwrap();
 
-            assert_ok!(CelerModule::disable_balance_limits(
+            assert_ok!(CelerPayModule::disable_balance_limits(
                 Origin::signed(channel_peers[0]),
                 channel_id
             ));
@@ -369,7 +369,7 @@ pub mod test_ledger_operation {
                 open_channel_request.clone(),
                 0,
             ).unwrap();
-            let _ = CelerModule::disable_balance_limits(Origin::signed(channel_peers[0]), channel_id).unwrap();
+            let _ = CelerPayModule::disable_balance_limits(Origin::signed(channel_peers[0]), channel_id).unwrap();
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -395,7 +395,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let risa = account_key("Risa");
-            let err = CelerModule::enable_balance_limits(Origin::signed(risa), channel_id).unwrap_err();
+            let err = CelerPayModule::enable_balance_limits(Origin::signed(risa), channel_id).unwrap_err();
             assert_eq!(err, DispatchError::Other("caller is not channel peer"));
         })
     }
@@ -414,8 +414,8 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             // enable balance limit and set balance limit
-            let _ = CelerModule::enable_balance_limits(Origin::signed(channel_peers[0]), channel_id).unwrap();
-            let _ = CelerModule::set_balance_limits(Origin::signed(channel_peers[0]), channel_id, 10).unwrap();
+            let _ = CelerPayModule::enable_balance_limits(Origin::signed(channel_peers[0]), channel_id).unwrap();
+            let _ = CelerPayModule::set_balance_limits(Origin::signed(channel_peers[0]), channel_id, 10).unwrap();
 
             let err = LedgerOperation::<TestRuntime>::deposit(
                 Origin::signed(channel_peers[0]),
@@ -448,7 +448,7 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
             // approve ledger to spend
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             approve(channel_peers[0], celer_ledger_account, 200);
 
             assert_ok!(LedgerOperation::<TestRuntime>::deposit(
@@ -891,7 +891,7 @@ pub mod test_ledger_operation {
             assert_eq!(_withdraw_info_seq_num, 1);
 
             let (_, _deposits, _withdrawals)
-                = CelerModule::get_balance_map(channel_id);
+                = CelerPayModule::get_balance_map(channel_id);
             assert_eq!(_deposits, vec![300, 0]);
             assert_eq!(_withdrawals, vec![0, 200]);
         })
@@ -945,12 +945,12 @@ pub mod test_ledger_operation {
                 _withdraw_info_seq_num,
             ) = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap();
 
-            let balance_amt = CelerModule::get_total_balance(channel_id).unwrap();
+            let balance_amt = CelerPayModule::get_total_balance(channel_id).unwrap();
             let (_channel_peer, _deposits, _withdrawals): (
                 Vec<AccountId>,
                 Vec<Balance>,
                 Vec<Balance>,
-            ) = CelerModule::get_balance_map(channel_id);
+            ) = CelerPayModule::get_balance_map(channel_id);
 
             assert_eq!(_channel_id, channel_id);
             assert_eq!(_withdrawn_amount, 200);
@@ -1013,12 +1013,12 @@ pub mod test_ledger_operation {
                 _withdraw_info_seq_num,
             ) = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap();
 
-            let _balance_amt_1 = CelerModule::get_total_balance(channel_id_1).unwrap();
+            let _balance_amt_1 = CelerPayModule::get_total_balance(channel_id_1).unwrap();
             let (_channel_peer_1, _deposits_1, _withdrawals_1): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) 
-                = CelerModule::get_balance_map(channel_id_1);
-            let _balance_amt_2 = CelerModule::get_total_balance(channel_id_2).unwrap();
+                = CelerPayModule::get_balance_map(channel_id_1);
+            let _balance_amt_2 = CelerPayModule::get_total_balance(channel_id_2).unwrap();
             let (_channel_peer_2, _deposits_2, _withdrawals_2): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) 
-                = CelerModule::get_balance_map(channel_id_2);
+                = CelerPayModule::get_balance_map(channel_id_2);
 
             assert!(
                 channel_peers_2[0] == channel_peers_1[0]
@@ -1245,13 +1245,13 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             assert_eq!(settle_finalized_time, System::block_number() + 10);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             assert_eq!(peers_migration_info.4, vec![13, 31]);
             assert_eq!(peers_migration_info.5, vec![7, 15]);
 
@@ -1436,7 +1436,7 @@ pub mod test_ledger_operation {
             let amounts = vec![vec![3, 4], vec![7, 8]];
 
             for peer_index in 0..2 {
-                assert_ok!(CelerModule::clear_pays(
+                assert_ok!(CelerPayModule::clear_pays(
                     Origin::signed(channel_peers[0]),
                     channel_id,
                     channel_peers[peer_index as usize],
@@ -1533,7 +1533,7 @@ pub mod test_ledger_operation {
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
             assert_eq!(err, DispatchError::Other("Settle is not finalized"));
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             assert!(System::block_number() <= settle_finalized_time);
         })
     }
@@ -1613,15 +1613,15 @@ pub mod test_ledger_operation {
             }
 
             let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerModule::get_balance_map(channel_id);
+                CelerPayModule::get_balance_map(channel_id);
 
             assert_eq!(deposits, [5, 0]);
             assert_eq!(withdrawals, [0, 0]);
 
-            let (_, transfer_out) = CelerModule::get_transfer_out_map(channel_id).unwrap();
+            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id).unwrap();
             assert_eq!(transfer_out, [20, 46]);
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
@@ -1703,14 +1703,14 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             // pass after settleFinalizedTime
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let pay_id_list_array = global_result.4;
             let amounts = vec![vec![3, 4], vec![7, 8]];
 
             for peer_index in 0..2 {
-                assert_ok!(CelerModule::clear_pays(
+                assert_ok!(CelerPayModule::clear_pays(
                     Origin::signed(channel_peers[0]),
                     channel_id,
                     channel_peers[peer_index as usize],
@@ -1804,7 +1804,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array.clone(),
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let pay_id_list_array = global_result_1.4;
@@ -1918,22 +1918,22 @@ pub mod test_ledger_operation {
                 ));
             }
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerModule::get_balance_map(channel_id);
+                CelerPayModule::get_balance_map(channel_id);
             assert_eq!(deposits, [500, 500]);
             assert_eq!(withdrawals, [0, 0]);
 
-            let (_, transfer_out) = CelerModule::get_transfer_out_map(channel_id).unwrap();
+            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id).unwrap();
             assert_eq!(transfer_out, [20, 46]);
 
             let (_, settle_balance) =
                 LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
             assert_eq!(settle_balance, [526, 474]);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Closed);
         })
     }
@@ -1941,7 +1941,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_open_channel_when_total_deposit_is_larger_than_zero() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -1961,7 +1961,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerModule::get_balance_map(channel_id);
+                CelerPayModule::get_balance_map(channel_id);
             assert_eq!(deposits, [100, 200]);
         })
     }
@@ -1970,7 +1970,7 @@ pub mod test_ledger_operation {
     fn test_pass_open_channel_when_total_deposit_is_larger_than_zero_and_msg_value_receiver_is_1_and_caller_is_not_peers(
     ) {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -1990,7 +1990,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerModule::get_balance_map(channel_id);
+                CelerPayModule::get_balance_map(channel_id);
             assert_eq!(deposits, [100, 200]);
         })
     }
@@ -2058,14 +2058,14 @@ pub mod test_ledger_operation {
                 peers_pair,
             );
 
-            let total_balance = CelerModule::get_total_balance(channel_id).unwrap();
+            let total_balance = CelerPayModule::get_total_balance(channel_id).unwrap();
             assert_eq!(total_balance, 200);
 
             let (channel_id, settle_balance): (H256, Vec<Balance>) =
                 LedgerOperation::<TestRuntime>::cooperative_settle(cooperative_settle_request).unwrap();
             assert_eq!(settle_balance, [150, 50]);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Closed);
         })
     }
@@ -2127,17 +2127,17 @@ pub mod test_ledger_operation {
             assert_eq!(System::block_number(), 3);
 
             // intend settle
-            let _ = CelerModule::intend_settle(
+            let _ = CelerPayModule::intend_settle(
                 Origin::signed(channel_peers[0]),
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             //System::set_block_number(System::block_number() + settle_finalized_time);
             let expected_settle_finalized_time = System::block_number() + 10;
             assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
 
             for i in 0..2 {
@@ -2157,7 +2157,7 @@ pub mod test_ledger_operation {
                 }
             }
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             // updated transfer_out map with cleared pays in the head PayIdList
             assert_eq!(peers_migration_info.4, [10, 20]);
             assert_eq!(peers_migration_info.5, [10, 26]);
@@ -2226,14 +2226,14 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(System::block_number() + settle_finalized_time);
 
             let (_, settle_balance) =
                 LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
             assert_eq!(settle_balance, [110, 190]);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Closed);
         })
     }
@@ -2241,7 +2241,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_0_payment() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2272,14 +2272,14 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             let expected_single_settle_finalized_time = 10 as BlockNumber + System::block_number();
             assert!(settle_finalized_time == expected_single_settle_finalized_time);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             // updated transfer_out map with cleared pays in the head PayIdList
             assert_eq!(peers_migration_info.4, [0, 0]);
             // updated pending_pay_out map without cleared pays in the head PayIdList
@@ -2290,7 +2290,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_with_0_payment_again() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2333,7 +2333,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_after_0_payment_intend_settle() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2363,13 +2363,13 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array.clone(),
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let (_, settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
             assert_eq!(settle_balance, [100, 200]);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Closed);
         })
     }
@@ -2377,7 +2377,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2444,11 +2444,11 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             let expected_single_settle_finalized_time = 10 + System::block_number();
             assert_eq!(settle_finalized_time, expected_single_settle_finalized_time);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
 
             let amounts = vec![1, 2];
@@ -2466,7 +2466,7 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             assert_eq!(peers_migration_info.4, [13, 0]);
             assert_eq!(peers_migration_info.5, [0, 0]);
         })
@@ -2475,7 +2475,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_with_one_non_null_simplex_state() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2542,14 +2542,14 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             System::set_block_number(settle_finalized_time);
 
             let (_, settle_balance) =
                 LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
             assert_eq!(settle_balance, [87, 213]);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Closed);
         })
     }
@@ -2557,7 +2557,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_with_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2689,9 +2689,9 @@ pub mod test_ledger_operation {
 
             let expected_settle_finalized_time = 10 + System::block_number();
             for i in 0..3 {
-                let settle_finalized_time = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let settle_finalized_time = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
                 assert_eq!(expected_settle_finalized_time, settle_finalized_time);
-                let status = CelerModule::get_channel_status(unique_channel_ids[i]);
+                let status = CelerPayModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, ChannelStatus::Settling);
             }
 
@@ -2721,7 +2721,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_confirm_settle_when_multiple_cross_channel_simplex_states() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2860,7 +2860,7 @@ pub mod test_ledger_operation {
 
             let mut settle_finalized_time: BlockNumber = 0;
             for i in 0..3 {
-                let tmp = CelerModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let tmp = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
                 if tmp > settle_finalized_time {
                     settle_finalized_time = tmp;
                 }
@@ -2872,7 +2872,7 @@ pub mod test_ledger_operation {
                 let (_, settle_balance) =
                     LedgerOperation::<TestRuntime>::confirm_settle(unique_channel_ids[i]).unwrap();
                 assert_eq!(settle_balance, expected_settle_balances[i]);
-                let status = CelerModule::get_channel_status(unique_channel_ids[i]);
+                let status = CelerPayModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, ChannelStatus::Closed);
             }
         })
@@ -2925,7 +2925,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_snapshot_states_and_then_intend_withdraw_and_confirm_withdraw() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -2988,12 +2988,12 @@ pub mod test_ledger_operation {
             assert_eq!(_recipient_channel_id, zero_channel_id);
 
             // get total balance
-            let balance_amt = CelerModule::get_total_balance(channel_id).unwrap();
+            let balance_amt = CelerPayModule::get_total_balance(channel_id).unwrap();
             assert_eq!(balance_amt, 200);
 
             // get balance map
             let (_channel_peers, _deposits, _withdrawals) =
-                CelerModule::get_balance_map(channel_id);
+                CelerPayModule::get_balance_map(channel_id);
             assert_eq!(_channel_peers, channel_peers);
             assert_eq!(_deposits, [100, 200]);
             assert_eq!(_withdrawals, [100, 0]);
@@ -3087,7 +3087,7 @@ pub mod test_ledger_operation {
                 LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap();
             assert_eq!(amount, 50);
 
-            let (_, _deposits, _withdrawals) = CelerModule::get_balance_map(channel_id);
+            let (_, _deposits, _withdrawals) = CelerPayModule::get_balance_map(channel_id);
             assert_eq!(_deposits, [50, 150]);
             assert_eq!(_withdrawals, [50, 0]);
         })
@@ -3096,7 +3096,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_with_smaller_seq_num_than_snapshot() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -3162,7 +3162,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_when_same_seq_num_as_snapshot() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -3235,11 +3235,11 @@ pub mod test_ledger_operation {
                 local_signed_simplex_state_array
             ));
 
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             let expected_settle_finalized_time = 10 + System::block_number();
             assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
-            let status = CelerModule::get_channel_status(channel_id);
+            let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, ChannelStatus::Settling);
 
             let amounts = vec![1, 2];
@@ -3257,7 +3257,7 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             // updated transferOut map with clreared pays in the head PayIdList
             assert_eq!(peers_migration_info.4, vec![0, 13]);
             assert_eq!(peers_migration_info.5, vec![0, 0]);
@@ -3445,7 +3445,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_deposit_in_batch() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -3484,7 +3484,7 @@ pub mod test_ledger_operation {
             let receivers = vec![channel_peers[0].clone(), channel_peers[1].clone()];
             let amounts = vec![100, 200];
 
-            assert_ok!(CelerModule::deposit_in_batch(
+            assert_ok!(CelerPayModule::deposit_in_batch(
                 Origin::signed(deposit_account),
                 channel_ids.clone(),
                 receivers.clone(),
@@ -3492,8 +3492,8 @@ pub mod test_ledger_operation {
                 amounts.clone()
             ));
 
-            let (_, deposits_1, _) = CelerModule::get_balance_map(channel_ids[0].clone());
-            let (_, deposits_2, _) = CelerModule::get_balance_map(channel_ids[1].clone());
+            let (_, deposits_1, _) = CelerPayModule::get_balance_map(channel_ids[0].clone());
+            let (_, deposits_2, _) = CelerPayModule::get_balance_map(channel_ids[1].clone());
             assert_eq!(deposits_1, [100, 0]);
             assert_eq!(deposits_2, [0, 200]);
         })
@@ -3682,7 +3682,7 @@ pub mod test_ledger_operation {
                 LedgerOperation::<TestRuntime>::confirm_withdraw(channel_id).unwrap();
             assert_eq!(amount, 60);
 
-            let (_, _deposits, _withdrawals) = CelerModule::get_balance_map(channel_id);
+            let (_, _deposits, _withdrawals) = CelerPayModule::get_balance_map(channel_id);
             assert_eq!(_deposits, [50, 150]);
             assert_eq!(_withdrawals, [60, 0]);
         })
@@ -3756,7 +3756,7 @@ pub mod test_ledger_operation {
     fn test_pass_update_pending_pay_out_to_0_correctly_when_intend_settle_a_state_with_only_one_pay_id_list(
     ) {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -3817,7 +3817,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let expected_single_settle_finalized_time = 10 + System::block_number();
-            let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
             assert_eq!(expected_single_settle_finalized_time, settle_finalized_time);
 
             for i in 0..2 {
@@ -3834,7 +3834,7 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
+            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
             // updated  transferOut  map  which  cleared pays in the head PayIdList
             assert_eq!(peers_migration_info.4, [10, 0]);
             // updated pendingPayOut map without cleared  pays  in the head PayIdList
@@ -3845,7 +3845,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_fail_intend_settle_operable_channel_for_a_non_peer() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -3888,7 +3888,7 @@ pub mod test_ledger_operation {
     #[test]
     fn test_pass_intend_settle_a_settling_channel_for_a_nonpeer() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());

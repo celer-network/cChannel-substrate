@@ -1,4 +1,4 @@
-use super::{Module, BalanceOf, Error, Wallets, RawEvent};
+use super::{Module as CelerPayModule, BalanceOf, Error, Wallets, RawEvent};
 use crate::traits::Trait;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
@@ -36,7 +36,7 @@ impl<T: Trait> CelerWallet<T> {
         update_balance::<T>(caller, wallet_id.clone(), msg_value.clone())?;
 
         // Emit DepositToWallet event
-        Module::<T>::deposit_event(RawEvent::DepositToWallet(
+        CelerPayModule::<T>::deposit_event(RawEvent::DepositToWallet(
             wallet_id, 
             msg_value
         ));
@@ -55,7 +55,7 @@ fn update_balance<T: Trait>(
         None => Err(Error::<T>::WalletNotExist)?,
     };
 
-    let celer_wallet_account = Module::<T>::get_celer_wallet_id();
+    let celer_wallet_account = CelerPayModule::<T>::get_celer_wallet_id();
 
     let new_amount = w.balance.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
 
