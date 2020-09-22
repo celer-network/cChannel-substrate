@@ -1,4 +1,4 @@
-use super::{BalanceOf, Error, Module, RawEvent};
+use super::{BalanceOf, Error, Module as CelerPayModule, RawEvent};
 use crate::traits::Trait;
 use crate::pay_registry::PayRegistry;
 use crate::numeric_condition_caller::NumericConditionCaller;
@@ -180,12 +180,12 @@ impl<T: Trait> PayResolver<T> {
 
         // Check signatures
         let encoded = encode_conditional_pay::<T>(pay.clone());
-        Module::<T>::check_single_signature(
+        CelerPayModule::<T>::check_single_signature(
             vouched_pay_result.sig_of_src,
             &encoded,
             pay.src.clone(),
         )?;
-        Module::<T>::check_single_signature(
+        CelerPayModule::<T>::check_single_signature(
             vouched_pay_result.sig_of_dest,
             &encoded,
             pay.dest.clone(),
@@ -228,7 +228,7 @@ fn resolve_payment<T: Trait>(
             PayRegistry::<T>::set_pay_info(pay_hash, amount, block_number)?;
             
             // Emit ResolvePayment event
-            Module::<T>::deposit_event(RawEvent::ResolvePayment(
+            CelerPayModule::<T>::deposit_event(RawEvent::ResolvePayment(
                 pay_id,
                 amount,
                 block_number
@@ -239,7 +239,7 @@ fn resolve_payment<T: Trait>(
             PayRegistry::<T>::set_pay_amount(pay_hash, amount)?;
             
             // Emit ResolvePayment event
-            Module::<T>::deposit_event(RawEvent::ResolvePayment(
+            CelerPayModule::<T>::deposit_event(RawEvent::ResolvePayment(
                 pay_id,
                 amount,
                 current_deadline
@@ -264,7 +264,7 @@ fn resolve_payment<T: Trait>(
         PayRegistry::<T>::set_pay_info(pay_hash, amount, new_deadline)?;
         
         // Emit ResolvePayment event
-        Module::<T>::deposit_event(RawEvent::ResolvePayment(
+        CelerPayModule::<T>::deposit_event(RawEvent::ResolvePayment(
             pay_id,
             amount,
             new_deadline
@@ -293,7 +293,7 @@ fn calculate_boolean_and_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let pay_resolver_account = Module::<T>::get_pay_resolver_id();
+            let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean condition
             let call_is_finalized = cond.call_is_finalized.unwrap();
@@ -342,7 +342,7 @@ fn calculate_boolean_or_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j += 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let pay_resolver_account = Module::<T>::get_pay_resolver_id();
+            let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean_condition
             let call_is_finalized = cond.call_is_finalized.unwrap();
@@ -446,7 +446,7 @@ fn is_numeric_logic<T: Trait>(func_type: TransferFunctionType) -> bool {
 
 // Calculate pay id
 pub fn calculate_pay_id<T: Trait>(pay_hash: T::Hash) -> T::Hash {
-    let pay_resolver_account = Module::<T>::get_pay_resolver_id();
+    let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
     let mut encoded = pay_hash.encode();
     encoded.extend(pay_resolver_account.encode());
     let pay_id = T::Hashing::hash(&encoded);

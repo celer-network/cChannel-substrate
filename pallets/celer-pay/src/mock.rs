@@ -39,7 +39,7 @@ impl_outer_event! {
 impl_outer_dispatch! {
     pub enum Call for TestRuntime where origin: Origin {
         frame_system::System,
-        celer_pay::CelerModule,
+        celer_pay::CelerPayModule,
         mock_boolean_condition::MockBooleanCondition,
     }
 }
@@ -116,7 +116,7 @@ impl Trait for TestRuntime {
     type Call = Call;
 }
 
-pub type CelerModule = Module<TestRuntime>;
+pub type CelerPayModule = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
 pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
 type MockBooleanCondition = mock_boolean_condition::Module<TestRuntime>;

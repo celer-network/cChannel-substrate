@@ -1,4 +1,5 @@
 use super::*;
+use super::Module as CelerPayModule;
 use crate::traits::Trait;
 use frame_support::storage::migration::{
     StorageIterator, 
@@ -25,13 +26,13 @@ fn upgrade_v1_to_v2<T: Trait>() {
     sp_runtime::print("Upgrading Celer Ledger...");
     // First, migrate old BalanceLimitEnabled to new Channel.
     // ChannelMap: map T::Hash => Option<Channel>;
-    for (hash, balance_limits_enabled) in StorageIterator::<bool>::new(b"CelerModule", b"BalanceLimitsEnabled").drain() {
-        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerModule", b"Channel", &hash);
+    for (hash, balance_limits_enabled) in StorageIterator::<bool>::new(b"CelerPayModule", b"BalanceLimitsEnabled").drain() {
+        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerPayModule", b"Channel", &hash);
         if let Some(mut channel) = old_channel {
             channel.balance_limits_enabled = balance_limits_enabled;
 
             // Do not migrate WithdrawIntent, in other words, migration will implicitly veto pending WithdrawIntent if any.
-            let celer_ledger_account: T::AccountId = Module::<T>::get_celer_ledger_id();
+            let celer_ledger_account: T::AccountId = CelerPayModule::<T>::get_celer_ledger_id();
             let init_withdraw_intent = WithdrawIntentOf::<T> {
                 receiver: celer_ledger_account,
                 amount: None,
@@ -49,74 +50,74 @@ fn upgrade_v1_to_v2<T: Trait>() {
             // Set ChannelStatus
             channel.status = ChannelStatus::Operable;
 
-            put_storage_value(b"CelerModule", b"Channel", &hash, channel);
+            put_storage_value(b"CelerPayModule", b"Channel", &hash, channel);
         }
     }
 
     // Second, migrate old BalanceLimits into new Channel.
-    for (hash, balance_limits) in StorageIterator::<BalanceOf<T>>::new(b"CelerModule", b"BalanceLimits").drain() {
-        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerModule", b"Channel", &hash);
+    for (hash, balance_limits) in StorageIterator::<BalanceOf<T>>::new(b"CelerPayModule", b"BalanceLimits").drain() {
+        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerPayModule", b"Channel", &hash);
         if let Some(mut channel) = old_channel {
             channel.balance_limits = Some(balance_limits);
-            put_storage_value(b"CelerModule", b"Channel", &hash, channel);
+            put_storage_value(b"CelerPayModule", b"Channel", &hash, channel);
         }
     }
 
     // Forth, migrate old DisputeTimeout into new Channel.
-    for (hash, dispute_timeout) in StorageIterator::<T::BlockNumber>::new(b"CelerModule", b"DisputeTimeout").drain() {
-        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerModule", b"Channel", &hash);
+    for (hash, dispute_timeout) in StorageIterator::<T::BlockNumber>::new(b"CelerPayModule", b"DisputeTimeout").drain() {
+        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerPayModule", b"Channel", &hash);
         if let Some(mut channel) = old_channel {
             channel.dispute_timeout = dispute_timeout;
-            put_storage_value(b"CelerModule", b"Channel", &hash, channel);
+            put_storage_value(b"CelerPayModule", b"Channel", &hash, channel);
         }
     }
 
     // Fifth, migrate old PeerProfiles into new Channel.
-    for (hash, peer_profiles) in StorageIterator::<Vec<PeerProfileOf<T>>>::new(b"CelerModule", b"PeerProfiles").drain() {
-        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerModule", b"Channel", &hash);
+    for (hash, peer_profiles) in StorageIterator::<Vec<PeerProfileOf<T>>>::new(b"CelerPayModule", b"PeerProfiles").drain() {
+        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerPayModule", b"Channel", &hash);
         if let Some(mut channel) = old_channel {
             channel.peer_profiles  = peer_profiles;
-            put_storage_value(b"CelerModule", b"Channel", &hash, channel);
+            put_storage_value(b"CelerPayModule", b"Channel", &hash, channel);
         }
     }
 
     // Sixth, migrate CooperativeWithdrawSeqNum into new Channel.
-    for (hash, cooperative_withdraw_seq_num) in StorageIterator::<u128>::new(b"CelerModule", b"CooperativeWithdrawSeqNum").drain() {
-        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerModule", b"Channel", &hash);
+    for (hash, cooperative_withdraw_seq_num) in StorageIterator::<u128>::new(b"CelerPayModule", b"CooperativeWithdrawSeqNum").drain() {
+        let old_channel = get_storage_value::<ChannelOf<T>>(b"CelerPayModule", b"Channel", &hash);
         if let Some(mut channel) = old_channel {
             channel.cooperative_withdraw_seq_num = Some(cooperative_withdraw_seq_num);
-            put_storage_value(b"CelerModule", b"Channel", &hash, channel);
+            put_storage_value(b"CelerPayModule", b"Channel", &hash, channel);
         }
     }
 
     // Seventh, migrate Owners into new Wallet.
-    for (hash, owners) in StorageIterator::<Vec<T::AccountId>>::new(b"CelerModule", b"Owners").drain() {
-        let old_wallet = get_storage_value::<WalletOf<T>>(b"CelerModule", b"Wallet", &hash);
+    for (hash, owners) in StorageIterator::<Vec<T::AccountId>>::new(b"CelerPayModule", b"Owners").drain() {
+        let old_wallet = get_storage_value::<WalletOf<T>>(b"CelerPayModule", b"Wallet", &hash);
         if let Some(mut wallet) = old_wallet {
             wallet.owners = owners;
-            put_storage_value(b"CelerModule", b"Wallet", &hash, wallet);
+            put_storage_value(b"CelerPayModule", b"Wallet", &hash, wallet);
         }
     }
 
     // Eighth, migrate Balance into new Wallet.
-    for (hash, balance) in StorageIterator::<BalanceOf<T>>::new(b"CelerModule", b"Balance").drain() {
-        let old_wallet = get_storage_value::<WalletOf<T>>(b"CelerModule", b"Wallet", &hash);
+    for (hash, balance) in StorageIterator::<BalanceOf<T>>::new(b"CelerPayModule", b"Balance").drain() {
+        let old_wallet = get_storage_value::<WalletOf<T>>(b"CelerPayModule", b"Wallet", &hash);
         if let Some(mut wallet) = old_wallet {
             wallet.balance = balance;
-            put_storage_value(b"CelerModule", b"Wallet", &hash, wallet);
+            put_storage_value(b"CelerPayModule", b"Wallet", &hash, wallet);
         }
     }
 
     // Ninth, migrate Balance into new Balances.
     // pub Balances: map T::AccountId => Option<Balance>;
     for (hash, balance) in StorageIterator::<BalanceOf<T>>::new(b"Celermodule", b"Balances").drain() {
-        put_storage_value(b"CelerModule", b"Balances", &hash, balance);
+        put_storage_value(b"CelerPayModule", b"Balances", &hash, balance);
     }
 
     // Tenth, migrate Balance into new Allowed.
     // pub Allowed: double_map T::AccountId, T::AccountId => Option<Balance>;
-    for (hash, balance) in StorageIterator::<BalanceOf<T>>::new(b"CelerModule", b"Balance").drain() {
-        put_storage_value(b"CelerModule", b"Allowed", &hash, balance);
+    for (hash, balance) in StorageIterator::<BalanceOf<T>>::new(b"CelerPayModule", b"Balance").drain() {
+        put_storage_value(b"CelerPayModule", b"Allowed", &hash, balance);
     }
 
     StorageVersion::put(Releases::V2_0_0);
@@ -138,7 +139,7 @@ pub mod test {
     #[test]
     fn test_pass_migrate_operable_channel() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair)
@@ -152,21 +153,21 @@ pub mod test {
             let channel_id 
                 = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
 
-            <CelerModule as Store>::StorageVersion::put(Releases::V1_0_0);
+            <CelerPayModule as Store>::StorageVersion::put(Releases::V1_0_0);
 
             migration_test(channel_id, channel_peers.clone());
 
-            let new_status = CelerModule::get_channel_status(channel_id);
+            let new_status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(new_status, ChannelStatus::Operable);
 
-            assert_eq!(<CelerModule as Store>::StorageVersion::get(), Releases::V2_0_0);
+            assert_eq!(<CelerPayModule as Store>::StorageVersion::get(), Releases::V2_0_0);
         })
     }
 
     #[test]
     fn test_pass_migrate_settling_channel() {
         ExtBuilder::build().execute_with(|| {
-            let celer_ledger_account = CelerModule::get_celer_ledger_id();
+            let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair)
@@ -180,11 +181,11 @@ pub mod test {
             let channel_id 
                 = LedgerOperation::<TestRuntime>::open_channel(Origin::signed(channel_peers[1]), open_channel_request, 200).unwrap();
 
-            <CelerModule as Store>::StorageVersion::put(Releases::V1_0_0);
+            <CelerPayModule as Store>::StorageVersion::put(Releases::V1_0_0);
 
             migrate_settling_channel_test(channel_id, channel_peers, peers_pair);
 
-            assert_eq!(<CelerModule as Store>::StorageVersion::get(), Releases::V2_0_0);
+            assert_eq!(<CelerPayModule as Store>::StorageVersion::get(), Releases::V2_0_0);
         })
     }
 
@@ -199,43 +200,43 @@ pub mod test {
         // ledger migration
         migration_test(channel_id, channel_peers.clone());
 
-        let mut wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
+        let mut wallet_balance = CelerPayModule::get_wallet_balance(channel_id).unwrap();
         assert_eq!(wallet_balance, 300);
 
         // confirmSettle in new ledger
         let settle_balance = confirm_settle_test(channel_id, peers_pair);
 
-        wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
+        wallet_balance = CelerPayModule::get_wallet_balance(channel_id).unwrap();
         assert_eq!(wallet_balance, 0);
     }
 
     fn migration_test(channel_id: H256, channel_peers: Vec<AccountId>) {
-        let celer_ledger_account = CelerModule::get_celer_ledger_id();
-        let old_balance_limit = CelerModule::get_balance_limits(channel_id).unwrap();
-        let old_balance_limits_enabled = CelerModule::get_balance_limits_enabled(channel_id).unwrap();
-        let old_settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id);
-        let old_balance_map = CelerModule::get_balance_map(channel_id);
-        let old_dispute_timeout = CelerModule::get_dispute_time_out(channel_id).unwrap();
-        let old_peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
-        let old_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
-        let old_wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
-        let old_balances_of_pool = CelerModule::get_pool_balance(channel_peers[0].clone()).unwrap();
-        let old_allowance = CelerModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
+        let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
+        let old_balance_limit = CelerPayModule::get_balance_limits(channel_id).unwrap();
+        let old_balance_limits_enabled = CelerPayModule::get_balance_limits_enabled(channel_id).unwrap();
+        let old_settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
+        let old_balance_map = CelerPayModule::get_balance_map(channel_id);
+        let old_dispute_timeout = CelerPayModule::get_dispute_time_out(channel_id).unwrap();
+        let old_peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+        let old_wallet_owners = CelerPayModule::get_wallet_owners(channel_id).unwrap();
+        let old_wallet_balance = CelerPayModule::get_wallet_balance(channel_id).unwrap();
+        let old_balances_of_pool = CelerPayModule::get_pool_balance(channel_peers[0].clone()).unwrap();
+        let old_allowance = CelerPayModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         // Perform upgrade
-        CelerModule::on_runtime_upgrade();
+        CelerPayModule::on_runtime_upgrade();
 
-        let new_balance_limit = CelerModule::get_balance_limits(channel_id).unwrap();
-        let new_balance_limits_enabled = CelerModule::get_balance_limits_enabled(channel_id).unwrap();
-        let new_settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id);
-        let new_balance_map = CelerModule::get_balance_map(channel_id);
-        let new_dispute_timeout = CelerModule::get_dispute_time_out(channel_id).unwrap();
-        let new_peers_migration_info = CelerModule::get_peers_migration_info(channel_id).unwrap();
-        let new_withdraw_intent = CelerModule::get_withdraw_intent(channel_id).unwrap();
-        let new_wallet_owners = CelerModule::get_wallet_owners(channel_id).unwrap();
-        let new_wallet_balance = CelerModule::get_wallet_balance(channel_id).unwrap();
-        let new_balances_of_pool = CelerModule::get_pool_balance(channel_peers[0].clone()).unwrap();
-        let new_allowance = CelerModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
+        let new_balance_limit = CelerPayModule::get_balance_limits(channel_id).unwrap();
+        let new_balance_limits_enabled = CelerPayModule::get_balance_limits_enabled(channel_id).unwrap();
+        let new_settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
+        let new_balance_map = CelerPayModule::get_balance_map(channel_id);
+        let new_dispute_timeout = CelerPayModule::get_dispute_time_out(channel_id).unwrap();
+        let new_peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+        let new_withdraw_intent = CelerPayModule::get_withdraw_intent(channel_id).unwrap();
+        let new_wallet_owners = CelerPayModule::get_wallet_owners(channel_id).unwrap();
+        let new_wallet_balance = CelerPayModule::get_wallet_balance(channel_id).unwrap();
+        let new_balances_of_pool = CelerPayModule::get_pool_balance(channel_peers[0].clone()).unwrap();
+        let new_allowance = CelerPayModule::get_allowance(channel_peers[0].clone(), celer_ledger_account.clone());
 
         assert_eq!(old_balance_limit, new_balance_limit);
         assert_eq!(old_balance_limits_enabled, new_balance_limits_enabled);
@@ -249,7 +250,7 @@ pub mod test {
         assert_eq!(old_allowance, new_allowance);
 
         // Check whether withdraw_intent initialized
-        let celer_ledger_account = CelerModule::get_celer_ledger_id();
+        let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
         let init_withdraw_intent = WithdrawIntentOf::<TestRuntime> {
             receiver: celer_ledger_account,
             amount: None,
@@ -299,11 +300,11 @@ pub mod test {
         let signed_simplex_state_array = settle_bundle.0;
         let _ = LedgerOperation::<TestRuntime>::intend_settle(Origin::signed(channel_peers[0]), signed_simplex_state_array).unwrap();
 
-        let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+        let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
         let expected_settle_finalized_time = 10 + System::block_number();
         assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
-        let status = CelerModule::get_channel_status(channel_id);
+        let status = CelerPayModule::get_channel_status(channel_id);
         assert_eq!(status, ChannelStatus::Settling);
 
         let amounts = vec![1, 2, 5, 6];
@@ -339,11 +340,11 @@ pub mod test {
 
     fn confirm_settle_test(channel_id: H256, peers_pair: Vec<sr25519::Pair>) {
         // pass settle_finalized_time
-        let settle_finalized_time = CelerModule::get_settle_finalized_time(channel_id).unwrap();
+        let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
         System::set_block_number(settle_finalized_time);
 
         let (_, settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
-        let status = CelerModule::get_channel_status(channel_id);
+        let status = CelerPayModule::get_channel_status(channel_id);
 
         assert_eq!(settle_balance, [126, 174]);
         assert_eq!(status, ChannelStatus::Closed);

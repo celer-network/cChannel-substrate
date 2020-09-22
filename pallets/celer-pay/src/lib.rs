@@ -1659,12 +1659,12 @@ impl<T: Trait> Module<T> {
         encoded: &[u8],
         signers: Vec<T::AccountId>,
     ) -> Result<(), DispatchError> {
-        let signature1 = &signatures[0];
-        let signature2 = &signatures[1];
+        let signature_0 = &signatures[0];
+        let signature_1 = &signatures[1];
         ensure!(
-            (signature1.verify(encoded, &signers[0]) && signature2.verify(encoded, &signers[1]))
-                || (signature1.verify(encoded, &signers[1])
-                    && signature2.verify(encoded, &signers[0])),
+            (signature_0.verify(encoded, &signers[0]) && signature_1.verify(encoded, &signers[1]))
+                || (signature_0.verify(encoded, &signers[1])
+                    && signature_1.verify(encoded, &signers[0])),
             "Check co-sigs failed"
         );
 

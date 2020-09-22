@@ -1,4 +1,7 @@
-use super::{Module, Allowed, BalanceOf, PoolBalances, Error, Wallets, RawEvent};
+use super::{
+    Module as CelerPayModule, Allowed, BalanceOf, 
+    PoolBalances, Error, Wallets, RawEvent
+};
 use crate::traits::Trait;
 use crate::celer_wallet::WalletOf;
 use frame_support::traits::{Currency, ExistenceRequirement};
@@ -28,7 +31,7 @@ impl<T: Trait> Pool<T> {
             "caller does not have enough balances"
         );
 
-        let pool_account = Module::<T>::get_pool_id();
+        let pool_account = CelerPayModule::<T>::get_pool_id();
         ensure!(receiver != pool_account, "receiver address is pool account");
 
         if PoolBalances::<T>::contains_key(&receiver) == false {
@@ -47,7 +50,7 @@ impl<T: Trait> Pool<T> {
         )?;
 
         // Emit DepositToPool event
-        Module::<T>::deposit_event(RawEvent::DepositToPool(
+        CelerPayModule::<T>::deposit_event(RawEvent::DepositToPool(
             receiver.clone(),
             msg_value
         ));
@@ -72,7 +75,7 @@ impl<T: Trait> Pool<T> {
         let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::UnderFlow)?;
         PoolBalances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
 
-        let pool_account = Module::<T>::get_pool_id();
+        let pool_account = CelerPayModule::<T>::get_pool_id();
         T::Currency::transfer(
             &pool_account,
             &caller,
@@ -81,7 +84,7 @@ impl<T: Trait> Pool<T> {
         )?;
 
         // Emit WithdrawFromPool event
-        Module::<T>::deposit_event(RawEvent::WithdrawFromPool(
+        CelerPayModule::<T>::deposit_event(RawEvent::WithdrawFromPool(
             caller.clone(),
             value
         ));
@@ -99,7 +102,7 @@ impl<T: Trait> Pool<T> {
         Allowed::<T>::insert(&caller, &spender, &value);
 
         // Emit Approval event
-        Module::<T>::deposit_event(RawEvent::Approval(
+        CelerPayModule::<T>::deposit_event(RawEvent::Approval(
             caller.clone(),
             spender.clone(),
             value
@@ -141,7 +144,7 @@ impl<T: Trait> Pool<T> {
         Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
         
         // Emit Approval event
-        Module::<T>::deposit_event(RawEvent::Approval(
+        CelerPayModule::<T>::deposit_event(RawEvent::Approval(
             from.clone(),
             caller.clone(),
             new_allowed_balances,
@@ -150,7 +153,7 @@ impl<T: Trait> Pool<T> {
         _transfer::<T>(from.clone(), to.clone(), value)?;
 
         // Emit Transer event
-        Module::<T>::deposit_event(RawEvent::Transfer(
+        CelerPayModule::<T>::deposit_event(RawEvent::Transfer(
             from.clone(),
             to.clone(),
             value
@@ -167,7 +170,7 @@ impl<T: Trait> Pool<T> {
         amount: BalanceOf<T>,
     ) -> Result<(T::Hash, T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
-        let celer_ledger_account = Module::<T>::get_celer_ledger_id();
+        let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
         ensure!(caller == celer_ledger_account, "Caler is not Celer Ledger module",);
 
         let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
@@ -210,8 +213,8 @@ impl<T: Trait> Pool<T> {
                 .checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
         PoolBalances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
 
-        let pool_account = Module::<T>::get_pool_id();
-        let celer_wallet_account = Module::<T>::get_celer_wallet_id();
+        let pool_account = CelerPayModule::<T>::get_pool_id();
+        let celer_wallet_account = CelerPayModule::<T>::get_celer_wallet_id();
         T::Currency::transfer(
             &pool_account,
             &celer_wallet_account,
@@ -240,7 +243,7 @@ impl<T: Trait> Pool<T> {
         Allowed::<T>::mutate(&caller, &spender, |balance| {*balance = Some(new_balances.clone())});
 
         // Emit Approval event
-        Module::<T>::deposit_event(RawEvent::Approval(
+        CelerPayModule::<T>::deposit_event(RawEvent::Approval(
             caller.clone(),
             spender.clone(),
             new_balances.clone()
@@ -269,7 +272,7 @@ impl<T: Trait> Pool<T> {
         });
 
         // Emit Approval event
-        Module::<T>::deposit_event(RawEvent::Approval(
+        CelerPayModule::<T>::deposit_event(RawEvent::Approval(
             caller.clone(),
             spender.clone(),
             new_balances.clone()
@@ -289,7 +292,7 @@ fn _transfer<T: Trait>(
     let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::OverFlow)?;
     PoolBalances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 
-    let pool_account = Module::<T>::get_pool_id();
+    let pool_account = CelerPayModule::<T>::get_pool_id();
     T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
 
     Ok(())
