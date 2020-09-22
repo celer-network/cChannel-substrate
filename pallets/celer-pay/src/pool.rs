@@ -159,72 +159,6 @@ impl<T: Trait> Pool<T> {
     }
 
     // Transfer native token from one address to a wallet in CelerWallet Module.
-    pub fn transfer_to_celer_wallet(
-        origin: T::Origin,
-        from: T::AccountId,
-        wallet_id: T::Hash,
-        amount: BalanceOf<T>,
-    ) -> Result<(T::Hash, T::AccountId, BalanceOf<T>), DispatchError> {
-        let caller = ensure_signed(origin)?;
-        let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
-            Some(_w) => _w,
-            None => Err(Error::<T>::WalletNotExist)?,
-        };
-
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &caller);
-        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
-
-        let pool_balances = match PoolBalances::<T>::get(&from) {
-            Some(_balance) => _balance,
-            None => Err(Error::<T>::BalancesNotExist)?,
-        };
-        ensure!(
-            pool_balances >= amount,
-            "Wallet owner does not deposit to pool enough value"
-        );
-
-        let allowed_balances = Allowed::<T>::get(&from, &caller).unwrap();
-        ensure!(
-            allowed_balances >= amount,
-            "spender not have enough allowed balances"
-        );
-        let new_allowed_balances = allowed_balances.checked_sub(&amount)
-                .ok_or(Error::<T>::UnderFlow)?;
-        Allowed::<T>::mutate(&from, &caller, |balance| {*balance = Some(new_allowed_balances)});
-
-        // Increase owner's wallet balances
-        let new_wallet_balance_amount = w.balance.checked_add(&amount)
-                .ok_or(Error::<T>::OverFlow)?;
-        let new_wallet = WalletOf::<T> {
-            owners: w.owners,
-            balance: new_wallet_balance_amount,
-        };
-        Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
-
-        // Decrease Pool Balances
-        let new_pool_balances = pool_balances.checked_sub(&amount)
-                .ok_or(Error::<T>::UnderFlow)?;
-        PoolBalances::<T>::mutate(&from, |balances| *balances = Some(new_pool_balances));
-
-        let pool_account = Module::<T>::get_pool_id();
-        let celer_wallet_account = Module::<T>::get_celer_wallet_id();
-        T::Currency::transfer(
-            &pool_account,
-            &celer_wallet_account,
-            amount,
-            ExistenceRequirement::AllowDeath,
-        )?;
-
-        // Emit Transfer event
-        Module::<T>::deposit_event(RawEvent::Transfer(
-            from,
-            celer_wallet_account.clone(),
-            amount
-        ));
-        return Ok((wallet_id, celer_wallet_account, amount));
-    }
-
-    // Transfer native token from one address to a wallet in CelerWallet Module.
     // This function called by Celer Ledger.
     pub fn transfer_to_celer_wallet_by_ledger(
         origin: T::Origin,
@@ -364,8 +298,6 @@ fn _transfer<T: Trait>(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::tests::ledger_operation::test_ledger_operation::*;
-    use crate::ledger_operation::LedgerOperation;
     use crate::mock::*;
     use sp_runtime::DispatchError;
 
@@ -486,38 +418,6 @@ pub mod tests {
             assert_eq!(owner, bob);
             assert_eq!(spender, risa);
             assert_eq!(new_allowed_balances, 50);
-        })
-    }
-
-    #[test]
-    fn test_pass_transfer_celer_wallet() {
-        ExtBuilder::build().execute_with(|| {
-            let risa = account_key("Risa"); // spender address
-            let alice_pair = account_pair("Alice"); // owner address
-            let bob_pair = account_pair("Bob"); // owner address
-            let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
-
-            let open_channel_request = get_open_channel_request(false, 0, 500001, 10, true, channel_peers.clone(), 1, peers_pair);
-            let wallet_id = LedgerOperation::<TestRuntime>::open_channel(
-                Origin::signed(channel_peers[1]),
-                open_channel_request.clone(),
-                0,
-            ).unwrap();
-
-            // Depost native token to pool
-            deposit_pool(channel_peers[0], 200);
-            // Approve risa to use native token
-            approve(channel_peers[0], risa, 200);
-
-            // Transfer to native token wallet by risa
-            let (_wallet_id, _, _amount) = Pool::<TestRuntime>::transfer_to_celer_wallet(
-                Origin::signed(risa),
-                channel_peers[0],
-                wallet_id,
-                200,
-            ).unwrap();
-            assert_eq!(_wallet_id, wallet_id);
-            assert_eq!(_amount, 200);
         })
     }
 

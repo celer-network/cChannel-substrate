@@ -676,34 +676,6 @@ decl_module! {
             Ok(())
         }
 
-        /// Transfer to native token from one address to a wallet in CelerWallet Module.
-        ///
-        /// Parameters:
-        /// `from`: the address which you want to transfer native token from
-        /// `wallet_id`: Id of the wallet you want to deposit funds into
-        /// `amount`: amount of funds to be transfered
-        /// 
-        /// # <weight>
-        /// ## Weight
-        /// - Complexity: `O(1)`
-        /// - DB:
-        ///   - 1 storage reads `Wallets`
-        ///   - 1 storage mutation `Wallets`
-        ///   - 1 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
-        ///   - 2 storage reads `Allowed`
-        /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 2)]
-        fn transfer_to_celer_wallet(
-            origin,
-            from: T::AccountId,
-            wallet_id: T::Hash,
-            amount: BalanceOf<T>
-        ) -> DispatchResult {
-            Pool::<T>::transfer_to_celer_wallet(origin, from, wallet_id, amount)?;
-            Ok(())
-        }
-
         /// Increase the amount of native token that an owner allowed to a spender.
         ///
         /// Parameters:
@@ -843,7 +815,7 @@ decl_module! {
             ));
         }
         
-        /// Emit channel settle open time
+        /// Emit channel confirm settle open time
         #[weight = 10_000]
         fn emit_settle_finalized_time(_origin, channel_id: T::Hash) {
             let c = match Self::channel_map(channel_id) {

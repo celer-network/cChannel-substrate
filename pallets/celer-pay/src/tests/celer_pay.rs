@@ -694,49 +694,6 @@ pub mod tests_celer {
     }
 
     #[test]
-    fn test_pass_transfer_to_celer_wallet() {
-        ExtBuilder::build().execute_with(|| {
-            let risa = account_key("Risa"); // spender address
-            let alice_pair = account_pair("Alice"); // owner address
-            let bob_pair = account_pair("Bob"); // owner address
-            let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
-
-            let open_channel_request = get_open_channel_request(
-                false,
-                0,
-                500001,
-                10,
-                true,
-                channel_peers.clone(),
-                1,
-                peers_pair,
-            );
-            let wallet_id = LedgerOperation::<TestRuntime>::open_channel(
-                Origin::signed(channel_peers[1]),
-                open_channel_request.clone(),
-                0,
-            ).unwrap();
-            assert_ok!(CelerModule::deposit_pool(
-                Origin::signed(channel_peers[0]),
-                channel_peers[0],
-                200
-            ));
-            assert_ok!(CelerModule::approve(
-                Origin::signed(channel_peers[0].clone()),
-                risa.clone(),
-                200
-            ));
-
-            assert_ok!(CelerModule::transfer_to_celer_wallet(
-                Origin::signed(risa),
-                channel_peers[0].clone(),
-                wallet_id,
-                200
-            ));
-        })
-    }
-
-    #[test]
     fn test_pass_increase_allowance() {
         ExtBuilder::build().execute_with(|| {
             let bob = account_key("Bob"); // owner address
