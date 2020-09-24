@@ -16,7 +16,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_open_channel() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -50,7 +50,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_set_balnce_limits() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -90,7 +90,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_disable_balance_limits() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -129,7 +129,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_enable_balance_limits() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -168,7 +168,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_deposit() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -210,7 +210,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_snapshot_states() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
                         let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -256,7 +256,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_intend_withdraw() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -296,7 +296,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_confirm_withdraw() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -344,7 +344,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_veto_withdraw() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -390,7 +390,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_cooperative_withdraw() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -438,7 +438,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_intend_settle() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -502,7 +502,8 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_confirm_settle() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
+            System::set_block_number(1);
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -604,7 +605,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_cooperative_settle() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -648,7 +649,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_deposit_pool() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice");
             assert_ok!(CelerPayModule::deposit_pool(Origin::signed(alice), alice, 100));
         })
@@ -656,7 +657,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_withdraw_from_pool() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice");
             assert_ok!(CelerPayModule::deposit_pool(Origin::signed(alice), alice, 100));
             assert_ok!(CelerPayModule::withdraw_from_pool(Origin::signed(alice), 100));
@@ -665,7 +666,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_transfer_from() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice"); // to address
             let bob = account_key("Bob"); // from address
             let risa = account_key("Risa"); // spender address
@@ -682,7 +683,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_approve() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
             assert_ok!(CelerPayModule::approve(
@@ -695,7 +696,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_increase_allowance() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
             approve(bob, risa, 100);
@@ -710,7 +711,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_decrease_allowacne() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
             approve(bob, risa, 100);
@@ -725,7 +726,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -750,7 +751,7 @@ pub mod tests_celer {
 
     #[test]
     fn test_pass_payment_by_vouched_result() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
             let shared_pay = ConditionalPay {
                 pay_timestamp: 0,

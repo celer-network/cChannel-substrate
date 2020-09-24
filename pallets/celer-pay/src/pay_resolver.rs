@@ -214,7 +214,7 @@ fn resolve_payment<T: Trait>(
 
     // Should never resolve a pay before or not rearching on-chain resolve deadline.
     ensure!(
-        current_deadline == Zero::zero() || block_number <= current_deadline,
+        current_deadline.is_zero() || block_number <= current_deadline,
         "Passed onchain resolve pay deadline"
     );
 
@@ -279,17 +279,14 @@ fn calculate_boolean_and_payment<T: Trait>(
     preimages: Vec<T::Hash>,
 ) -> Result<BalanceOf<T>, DispatchError> {
     let mut j: usize = 0;
-
-    let pay_conditions_len = pay.conditions.len();
     let mut has_false_contract_cond: bool = false;
-    for i in 0..pay_conditions_len {
+    for i in 0..pay.conditions.len() {
         let cond = pay.conditions[i].clone();
         if cond.condition_type == ConditionType::HashLock {
             let hash_lock = match cond.hash_lock {
                 Some(lock) => lock,
                 None => Err(Error::<T>::HashLockNotExist)?,
             };
-
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
@@ -327,12 +324,10 @@ fn calculate_boolean_or_payment<T: Trait>(
     preimages: Vec<T::Hash>,
 ) -> Result<BalanceOf<T>, DispatchError> {
     let mut j: usize = 0;
-    let condition_len = pay.conditions.len();
-
     // Whether there are any contract based conditions, i.e. DEPLOYED_CONTRACT or VIRTUAL_CONTRACT
     let mut has_contract_cond = false;
     let mut has_true_contract_cond = false;
-    for i in 0..condition_len {
+    for i in 0..pay.conditions.len() {
         let cond = pay.conditions[i].clone();
         if cond.condition_type == ConditionType::HashLock {
             let hash_lock = match cond.hash_lock {
@@ -378,11 +373,9 @@ fn calculate_numeric_logic_payment<T: Trait>(
     func_type: TransferFunctionType,
 ) -> Result<BalanceOf<T>, DispatchError> {
     let mut amount: BalanceOf<T> = <BalanceOf<T>>::zero();
-
     let mut j: usize = 0;
-    let pay_conditions_len = pay.conditions.len();
     let mut has_contract_cond: bool = false;
-    for i in 0..pay_conditions_len {
+    for i in 0..pay.conditions.len() {
         let cond = pay.conditions[i].clone();
         if cond.condition_type == ConditionType::HashLock {
             let hash_lock = match cond.hash_lock {

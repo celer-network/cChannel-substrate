@@ -138,7 +138,7 @@ pub mod test {
 
     #[test]
     fn test_pass_migrate_operable_channel() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
@@ -166,7 +166,8 @@ pub mod test {
 
     #[test]
     fn test_pass_migrate_settling_channel() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {  
+            System::set_block_number(1); 
             let celer_ledger_account = CelerPayModule::get_celer_ledger_id();
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");

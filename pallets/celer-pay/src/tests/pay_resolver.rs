@@ -10,7 +10,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -38,7 +38,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_some_condition_false() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 20, 0);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -66,7 +66,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_or_and_some_conditions_true() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 30, 1);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -96,7 +96,7 @@ pub mod test_pay_resolver {
     #[test]
     fn test_pass_resolve_payment_by_conditions_when_the_logic_is_boolean_or_and_all_conditions_false(
     ) {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 30, 1);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -125,7 +125,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_vouched_result() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             test_resolve_payment_by_vouched_result(20);
         })
     }
@@ -133,7 +133,7 @@ pub mod test_pay_resolver {
     #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_25(
     ) {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             test_resolve_payment_by_vouched_result(20);
             test_resolve_payment_by_vouched_result(25);
         })
@@ -142,7 +142,7 @@ pub mod test_pay_resolver {
     #[test]
     fn test_pass_resolve_payment_by_vouched_result_pass_when_new_result_is_larger_than_old_result_35(
     ) {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             test_resolve_payment_by_vouched_result(20);
             test_resolve_payment_by_vouched_result(25);
             test_resolve_payment_by_vouched_result(35);
@@ -152,7 +152,7 @@ pub mod test_pay_resolver {
     #[test]
     fn test_fail_resolve_payment_by_vouched_result_pass_when_new_result_is_smaller_than_old_result()
     {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             test_resolve_payment_by_vouched_result(20);
             test_resolve_payment_by_vouched_result(25);
             test_resolve_payment_by_vouched_result(35);
@@ -188,7 +188,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_vouched_result_pass_when_exceeding_max_amount() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
             let shared_pay = ConditionalPay {
                 pay_timestamp: 0,
@@ -222,7 +222,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_conditions_when_deadline_passed() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 10, 0);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -250,7 +250,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_vouched_result_when_deadline_passed() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 3);
             let shared_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -287,7 +287,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_vouched_result_after_onchain_resolve_pay_deadline() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             test_resolve_payment_by_vouched_result(20);
             // Advance block number
             System::set_block_number(System::block_number() + 11);
@@ -327,7 +327,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_conditions_after_onchain_resolve_pay_deadline() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 100, 0);
             let shared_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -371,7 +371,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_fail_resolve_payment_by_conditions_with_a_false_hash_lock_condition() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 200, 1);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -395,7 +395,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_add() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 3);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -423,7 +423,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_max() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 4);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -451,7 +451,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_when_numeric_min() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 50, 5);
             let cond_pay = ConditionalPay {
                 pay_timestamp: Timestamp::get(),
@@ -480,7 +480,7 @@ pub mod test_pay_resolver {
     #[test]
     fn should_resolve_pay_using_max_amount_with_any_transfer_logic_as_long_as_there_are_no_contract_conditions(
     ) {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let mut transfer_func: TransferFunction<AccountId, BlockNumber>;
             let mut cond_pay: ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>;
             let mut encoded_cond_pay: Vec<u8>;
@@ -526,7 +526,7 @@ pub mod test_pay_resolver {
 
     #[test]
     fn should_use_current_block_number_as_onchain_reolve_deadline_if_updated_amount_is_max() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let transfer_func = get_transfer_func(account_key("Alice"), 35, 3);
             let cond_pay = ConditionalPay {
                 pay_timestamp: 0,

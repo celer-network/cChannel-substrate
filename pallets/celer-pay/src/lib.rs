@@ -1165,8 +1165,6 @@ decl_event! (
         DepositToPool(AccountId, Balance),
         /// WithdrawFromPool(receiver, amount)
         WithdrawFromPool(AccountId, Balance),
-        /// Transfer(from, receiver, amount)
-        Transfer(AccountId, AccountId, Balance),
         /// Approval(owner, spender, amount)
         Approval(AccountId, AccountId, Balance),
 

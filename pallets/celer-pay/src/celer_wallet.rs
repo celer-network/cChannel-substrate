@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_pass_deposit_native_token() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_fail_deposit_native_token_because_peer_does_not_have_enough_balance() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());

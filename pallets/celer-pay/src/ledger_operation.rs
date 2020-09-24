@@ -779,7 +779,6 @@ impl<T: Trait> LedgerOperation<T> {
                 state: c.peer_profiles[0].clone().state,
             };
             // Initialize c.wihdraw_intent
-            let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
             let initialize_withdraw_intent = WithdrawIntentOf::<T> {
                 receiver: celer_ledger_account,
                 amount: None,
@@ -816,7 +815,6 @@ impl<T: Trait> LedgerOperation<T> {
                 state: c.peer_profiles[1].clone().state,
             };
             // Initialize c.wihdraw_intent
-            let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
             let initialize_withdraw_intent = WithdrawIntentOf::<T> {
                 receiver: celer_ledger_account,
                 amount: None,
@@ -926,7 +924,7 @@ impl<T: Trait> LedgerOperation<T> {
         // require an increment of exactly 1 for seq_num of each cooperative withdraw request
         let cal_seq = withdraw_info.seq_num
                 .checked_sub(c.cooperative_withdraw_seq_num.unwrap_or(0)).ok_or(Error::<T>::UnderFlow)?;
-        ensure!(cal_seq == 1, "seq_num error");
+        ensure!(cal_seq == 1, "seqNum error");
         ensure!(
             frame_system::Module::<T>::block_number() <= withdraw_info.withdraw_deadline,
             "Withdraw deadline passed"
@@ -1388,7 +1386,7 @@ impl<T: Trait> LedgerOperation<T> {
             validate_settle_balance::<T>(c.clone())?;
 
         if valid_balance == false {
-            reset_duplex_state::<T>(c.clone(), channel_id);
+            reset_duplex_state::<T>(c.clone(), channel_id)?;
             CelerPayModule::<T>::deposit_event(RawEvent::ConfirmSettleFail(channel_id));
             Err(Error::<T>::ConfirmSettleFail)?
         }
@@ -1676,20 +1674,36 @@ fn withdraw_funds<T: Trait>(
 }
 
 // Reset the state of the channel
-fn reset_duplex_state<T: Trait>(c: ChannelOf<T>, channel_id: T::Hash) {
-    let new_channel = ChannelOf::<T> {
-        balance_limits_enabled: c.balance_limits_enabled,
-        balance_limits: c.balance_limits,
-        settle_finalized_time: None,
-        dispute_timeout: c.dispute_timeout,
-        token: c.token,
-        status: c.status,
-        peer_profiles: vec![c.peer_profiles[0].clone(), c.peer_profiles[1].clone()],
-        cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
-        withdraw_intent: c.withdraw_intent,
-    };
+fn reset_duplex_state<T: Trait>(mut c: ChannelOf<T>, channel_id: T::Hash) -> Result<(), DispatchError> {
+    // initialize settle_finalized_time
+    c.settle_finalized_time = None;
 
-    ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(new_channel));
+    update_channel_status::<T>(c.clone(), channel_id, ChannelStatus::Operable)?;
+    
+    // initialize peer_state
+    let initialize_state = PeerStateOf::<T> {
+        seq_num: 0,
+        transfer_out: Zero::zero(),
+        next_pay_id_list_hash: None,
+        last_pay_resolve_deadline: Zero::zero(),
+        pending_pay_out: Zero::zero(),
+    };
+    c.peer_profiles[0].state = initialize_state.clone();
+    c.peer_profiles[1].state = initialize_state;
+    
+    // reset possibly remaining WithdrawIntent freezed by previous intendSettle()
+    let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
+    let initialize_withdraw_intent = WithdrawIntentOf::<T> {
+        receiver: celer_ledger_account,
+        amount: None,
+        request_time: None,
+        recipient_channel_id: None,
+    };
+    c.withdraw_intent = initialize_withdraw_intent;
+
+    ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c));
+
+    Ok(())
 }
 
 // Clear payments by their hash array
@@ -1906,7 +1920,7 @@ fn update_overall_states_by_intend_state<T: Trait>(
 
 /// Update status of a channel
 fn update_channel_status<T: Trait>(
-    c: ChannelOf<T>,
+    mut c: ChannelOf<T>,
     channel_id: T::Hash,
     new_status: ChannelStatus,
 ) -> Result<(), DispatchError> {
@@ -1940,19 +1954,8 @@ fn update_channel_status<T: Trait>(
     let new_nums_2 = new_status_nums + 1;
     ChannelStatusNums::mutate(new_status.clone() as u8, |num| *num = Some(new_nums_2));
 
-    let new_channel = ChannelOf::<T> {
-        balance_limits_enabled: c.balance_limits_enabled,
-        balance_limits: c.balance_limits,
-        settle_finalized_time: c.settle_finalized_time,
-        dispute_timeout: c.dispute_timeout,
-        token: c.token,
-        status: new_status.clone(),
-        peer_profiles: vec![c.peer_profiles[0].clone(), c.peer_profiles[1].clone()],
-        cooperative_withdraw_seq_num: c.cooperative_withdraw_seq_num,
-        withdraw_intent: c.withdraw_intent,
-    };
-
-    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(new_channel));
+    c.status = new_status;
+    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(c));
 
     Ok(())
 }
