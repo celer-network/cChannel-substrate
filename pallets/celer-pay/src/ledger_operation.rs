@@ -979,7 +979,7 @@ impl<T: Trait> LedgerOperation<T> {
             new_state = PeerStateOf::<T> {
                 seq_num: state.seq_num,
                 transfer_out: state.transfer_out,
-                next_pay_id_list_hash: Some(next_pay_id_list_hash),
+                next_pay_id_list_hash: pay_id_list.next_list_hash,
                 last_pay_resolve_deadline: state.last_pay_resolve_deadline,
                 pending_pay_out: state.pending_pay_out,
             };
@@ -987,7 +987,7 @@ impl<T: Trait> LedgerOperation<T> {
             new_state = PeerStateOf::<T> {
                 seq_num: state.seq_num,
                 transfer_out: state.transfer_out,
-                next_pay_id_list_hash: None,
+                next_pay_id_list_hash: pay_id_list.next_list_hash,
                 last_pay_resolve_deadline: state.last_pay_resolve_deadline,
                 pending_pay_out: state.pending_pay_out,
             };
@@ -1362,7 +1362,7 @@ fn _clear_pays<T: Trait>(
         let new_state = PeerStateOf::<T> {
             seq_num: state.seq_num,
             transfer_out: new_transfer_out,
-            next_pay_id_list_hash: None,
+            next_pay_id_list_hash: state.next_pay_id_list_hash,
             last_pay_resolve_deadline: state.last_pay_resolve_deadline,
             pending_pay_out: Zero::zero(),
         };
