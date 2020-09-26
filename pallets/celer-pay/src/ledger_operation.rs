@@ -677,7 +677,7 @@ impl<T: Trait> LedgerOperation<T> {
         // Update record of one peer's withdrawal amount
         let new_amount: BalanceOf<T> = c.peer_profiles[rid as usize].clone().withdrawal.unwrap_or(Zero::zero())
                  .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
-        c.peer_profiles[rid as usize].withdrawal = Some(new_amount);
+        c.peer_profiles[rid].withdrawal = Some(new_amount);
 
         // Initialize c.wihdraw_intent
         let initialize_withdraw_intent = WithdrawIntentOf::<T> {
@@ -899,7 +899,6 @@ impl<T: Trait> LedgerOperation<T> {
                 }
 
                 c.peer_profiles[pid].state = new_state;
-                ChannelMap::<T>::mutate(&current_channel_id, |channel| { *channel = Some(c.clone()) });
             
                 _clear_pays::<T>(
                     c,
@@ -967,33 +966,21 @@ impl<T: Trait> LedgerOperation<T> {
         let list_hash = T::Hashing::hash(&encoded);
 
         let pid = get_peer_id::<T>(c.clone(), peer_from)?;
-
         let state = c.peer_profiles[pid].state.clone();
-        let new_state: PeerStateOf<T>;
 
         let zero_hash = CelerPayModule::<T>::get_zero_hash();
         let next_pay_id_list_hash = state.next_pay_id_list_hash.unwrap_or(zero_hash);
         if next_pay_id_list_hash != zero_hash {
             ensure!(next_pay_id_list_hash == list_hash, "List hash mismatch");
-
-            new_state = PeerStateOf::<T> {
-                seq_num: state.seq_num,
-                transfer_out: state.transfer_out,
-                next_pay_id_list_hash: pay_id_list.next_list_hash,
-                last_pay_resolve_deadline: state.last_pay_resolve_deadline,
-                pending_pay_out: state.pending_pay_out,
-            };
-        } else {
-            new_state = PeerStateOf::<T> {
-                seq_num: state.seq_num,
-                transfer_out: state.transfer_out,
-                next_pay_id_list_hash: pay_id_list.next_list_hash,
-                last_pay_resolve_deadline: state.last_pay_resolve_deadline,
-                pending_pay_out: state.pending_pay_out,
-            };
         }
+        let new_state = PeerStateOf::<T> {
+            seq_num: state.seq_num,
+            transfer_out: state.transfer_out,
+            next_pay_id_list_hash: pay_id_list.next_list_hash,
+            last_pay_resolve_deadline: state.last_pay_resolve_deadline,
+            pending_pay_out: state.pending_pay_out,
+        };
         c.peer_profiles[pid].state = new_state;
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c.clone()));
 
         _clear_pays::<T>(c, channel_id, pid, pay_id_list)?;
 
@@ -1215,14 +1202,7 @@ fn add_deposit<T: Trait>(
         ensure!(added_amount <= limits, "Balance exceeds limit");
     }
 
-    let mut rid: usize = 0;
-    if receiver == c.peer_profiles[0].peer_addr {
-        rid = 0;
-    } else if receiver == c.peer_profiles[1].peer_addr {
-        rid = 1;
-    } else {
-        Err(Error::<T>::NotChannelPeer)?
-    }
+    let rid = get_peer_id::<T>(c.clone(), receiver.clone())?;
 
     let new_deposit_balance = c.peer_profiles[rid].deposit.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
     c.peer_profiles[rid].deposit = new_deposit_balance;

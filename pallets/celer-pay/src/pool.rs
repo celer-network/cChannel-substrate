@@ -63,13 +63,12 @@ impl<T: Trait> Pool<T> {
         value: BalanceOf<T>,
     ) -> Result<(T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
-        let exist_address: bool = PoolBalances::<T>::contains_key(&caller);
-        ensure!(
-            exist_address == true,
-            "caller's address is not exist in Pool Balances"
-        );
+        
+        let balances = match PoolBalances::<T>::get(&caller) {
+            Some(_balances) => _balances,
+            None => Err(Error::<T>::PoolBalancesNotExist)?
+        };
 
-        let balances = PoolBalances::<T>::get(&caller).unwrap();
         ensure!(balances >= value, "caller does not have enough balances");
 
         let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::UnderFlow)?;
@@ -119,9 +118,11 @@ impl<T: Trait> Pool<T> {
     ) -> Result<(T::AccountId, T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
 
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &caller);
-        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
-        let allowed_balances = Allowed::<T>::get(&from, &caller).unwrap();
+        let allowed_balances = match Allowed::<T>::get(&from, &caller) {
+            Some(_allowed_balances) => _allowed_balances,
+            None => Err(Error::<T>::AllowedNotExist)?
+        };
+
         ensure!(
             allowed_balances >= value,
             "spender does not have enough allowed balances"
@@ -129,12 +130,11 @@ impl<T: Trait> Pool<T> {
         let new_allowed_balances = allowed_balances.checked_sub(&value)
                 .ok_or(Error::<T>::UnderFlow)?;
 
-        let exist_address: bool = PoolBalances::<T>::contains_key(&from);
-        ensure!(
-            exist_address == true,
-            "from's address is not exist in Balances"
-        );
-        let balances = PoolBalances::<T>::get(&from).unwrap();
+        let balances = match PoolBalances::<T>::get(&from) {
+            Some(_balances) => _balances,
+            None => Err(Error::<T>::PoolBalancesNotExist)?
+        };
+
         ensure!(
             balances >= value,
             "from address does not have enough balances"
@@ -174,17 +174,18 @@ impl<T: Trait> Pool<T> {
 
         let pool_balances = match PoolBalances::<T>::get(&from) {
             Some(_balance) => _balance,
-            None => Err(Error::<T>::BalancesNotExist)?,
+            None => Err(Error::<T>::PoolBalancesNotExist)?,
         };
         ensure!(
             pool_balances >= amount,
             "Wallet owner does not deposit to pool enough value"
         );
 
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &celer_ledger_account);
-        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
+        let allowed_balances = match Allowed::<T>::get(&from, &celer_ledger_account) {
+            Some(_allowed_balances) => _allowed_balances,
+            None => Err(Error::<T>::AllowedNotExist)?
+        };
 
-        let allowed_balances = Allowed::<T>::get(&from, &celer_ledger_account).unwrap();
         ensure!(
             allowed_balances >= amount,
             "spender not have enough allowed balances"
@@ -331,7 +332,7 @@ pub mod tests {
             let err = Pool::<TestRuntime>::withdraw(Origin::signed(alice), 10).unwrap_err();
             assert_eq!(
                 err,
-                DispatchError::Other("caller's address is not exist in Pool Balances")
+                DispatchError::Module { index: 0, error: 9, message: Some("PoolBalancesNotExist") }
             );
         })
     }

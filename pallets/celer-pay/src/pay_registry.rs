@@ -245,7 +245,6 @@ impl<T: Trait> PayRegistry<T> {
 
         let mut pay_info: PayInfoOf<T>;
         for i in 0..pay_id_len {
-           
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
                 pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
 
@@ -287,7 +286,7 @@ impl<T: Trait> PayRegistry<T> {
                 resolve_deadline: Some(Zero::zero()),
             };
             PayInfoMap::<T>::insert(&pay_id, &pay_info);
-            return Ok((pay_info.amount.unwrap(), pay_info.resolve_deadline.unwrap()));
+            return Ok((Zero::zero(), Zero::zero()));
         }
     }
 }
