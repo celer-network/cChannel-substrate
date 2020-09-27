@@ -108,7 +108,7 @@ mod weight_for {
         signed_simplex_states_len: u64,
         signed_simplex_states_len_weight: u64,
     ) -> Weight {
-        T::DbWeight::get().reads_writes(signed_simplex_states_len + 2, 2)
+        T::DbWeight::get().reads_writes(signed_simplex_states_len, 2)
             .saturating_add(50_000_000)
             .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
     }
@@ -399,11 +399,11 @@ decl_module! {
         /// - Complexity: `O(1)`
         /// - DB:
         ///   - 2 storage reads `ChannelMap`
-        ///   - 2 storage mutation `ChannelMap`
+        ///   - 1 storage mutation `ChannelMap`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
@@ -447,11 +447,11 @@ decl_module! {
         /// - Complexity: `O(1)`
         /// - DB:
         ///    - 2 storage reads `ChannelMap`
-        ///    - 2 storage mutation `ChannelMap`
+        ///    - 1 storage mutation `ChannelMap`
         ///    - 2 storage reads `Wallets`
         ///    - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 4)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
         fn cooperative_withdraw(
             origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
@@ -479,7 +479,7 @@ decl_module! {
         ///     - `M` pay_hashes-len
         /// - DB:
         ///   - N storage reads `ChannelMap`
-        ///   - 2 * N storage mutation `ChannelMap`
+        ///   - N storage mutation `ChannelMap`
         ///   - 2 * M storage reads `PayInfoMap`
         /// # </weight>
         #[weight = (
@@ -513,10 +513,10 @@ decl_module! {
         /// - Complexity: `O(N)`
         ///     - `N` pay_ids-len
         /// - DB:
-        ///   - 2 storage reads `ChannelMap`
+        ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn clear_pays(
             origin,
             channel_id: T::Hash,
@@ -540,13 +540,13 @@ decl_module! {
         /// - Complexity: `O(1)`
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
-        ///   - 2 storage mutation `ChannelMap`
-        ///   - 1 storage reads `ChannelStatusNums`
-        ///   - 1 storage mutation `ChannelStatusNums`
-        ///   - 1 storage reads `Wallets`
-        ///   - 1 storage mutation `Wallets`
+        ///   - 1 storage mutation `ChannelMap`
+        ///   - 2 storage reads `ChannelStatusNums`
+        ///   - 2 storage mutation `ChannelStatusNums`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(3, 4)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(5, 5)]
         fn confirm_settle(
             origin,
             channel_id: T::Hash
@@ -567,12 +567,12 @@ decl_module! {
         /// - DB:
         ///   - 2 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
-        ///   - 1 storage reads `ChannelStatusNums`
-        ///   - 1 storage mutation `ChannelStatusNums`
-        ///   - 1 storage reads `Wallets`
-        ///   - 1 storage mutation `Wallets`
+        ///   - 2 storage reads `ChannelStatusNums`
+        ///   - 2 storage mutation `ChannelStatusNums`
+        ///   - 2 storage reads `Wallets`
+        ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(6, 5)]
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
@@ -593,8 +593,8 @@ decl_module! {
         /// ## Weight
         /// - Complexity: `O(1)`
         /// - DB:
-        ///   - 2 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         /// #</weight>
         #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
         fn deposit_pool(
@@ -615,10 +615,10 @@ decl_module! {
         /// ## Weight
         /// - Complexity: `O(1)`
         /// - DB:
-        ///   - 2 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 1 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
@@ -660,12 +660,12 @@ decl_module! {
         /// ## Weight
         /// - Complexity: `O(1)`
         /// - DB:
-        ///   - 2 storage reads `Allowed`
+        ///   - 1 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
-        ///   - 3 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 2 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(5, 2)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(3, 2)]
         fn transfer_from(
             origin,
             from: T::AccountId,
@@ -1165,8 +1165,6 @@ decl_event! (
         DepositToPool(AccountId, Balance),
         /// WithdrawFromPool(receiver, amount)
         WithdrawFromPool(AccountId, Balance),
-        /// Transfer(from, receiver, amount)
-        Transfer(AccountId, AccountId, Balance),
         /// Approval(owner, spender, amount)
         Approval(AccountId, AccountId, Balance),
 
@@ -1259,7 +1257,7 @@ decl_error! {
         // confrom_settle fail
         ConfirmSettleFail,
         // Balances is not exist
-        BalancesNotExist,
+        PoolBalancesNotExist,
         // Wallet is not exist
         WalletNotExist,
         // Allowed is not exist

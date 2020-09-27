@@ -63,13 +63,12 @@ impl<T: Trait> Pool<T> {
         value: BalanceOf<T>,
     ) -> Result<(T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
-        let exist_address: bool = PoolBalances::<T>::contains_key(&caller);
-        ensure!(
-            exist_address == true,
-            "caller's address is not exist in Pool Balances"
-        );
+        
+        let balances = match PoolBalances::<T>::get(&caller) {
+            Some(_balances) => _balances,
+            None => Err(Error::<T>::PoolBalancesNotExist)?
+        };
 
-        let balances = PoolBalances::<T>::get(&caller).unwrap();
         ensure!(balances >= value, "caller does not have enough balances");
 
         let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::UnderFlow)?;
@@ -119,9 +118,11 @@ impl<T: Trait> Pool<T> {
     ) -> Result<(T::AccountId, T::AccountId, BalanceOf<T>), DispatchError> {
         let caller = ensure_signed(origin)?;
 
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &caller);
-        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
-        let allowed_balances = Allowed::<T>::get(&from, &caller).unwrap();
+        let allowed_balances = match Allowed::<T>::get(&from, &caller) {
+            Some(_allowed_balances) => _allowed_balances,
+            None => Err(Error::<T>::AllowedNotExist)?
+        };
+
         ensure!(
             allowed_balances >= value,
             "spender does not have enough allowed balances"
@@ -129,12 +130,11 @@ impl<T: Trait> Pool<T> {
         let new_allowed_balances = allowed_balances.checked_sub(&value)
                 .ok_or(Error::<T>::UnderFlow)?;
 
-        let exist_address: bool = PoolBalances::<T>::contains_key(&from);
-        ensure!(
-            exist_address == true,
-            "from's address is not exist in Balances"
-        );
-        let balances = PoolBalances::<T>::get(&from).unwrap();
+        let balances = match PoolBalances::<T>::get(&from) {
+            Some(_balances) => _balances,
+            None => Err(Error::<T>::PoolBalancesNotExist)?
+        };
+
         ensure!(
             balances >= value,
             "from address does not have enough balances"
@@ -152,12 +152,6 @@ impl<T: Trait> Pool<T> {
 
         _transfer::<T>(from.clone(), to.clone(), value)?;
 
-        // Emit Transer event
-        CelerPayModule::<T>::deposit_event(RawEvent::Transfer(
-            from.clone(),
-            to.clone(),
-            value
-        ));
         return Ok((from, to, value));
     }
 
@@ -180,17 +174,18 @@ impl<T: Trait> Pool<T> {
 
         let pool_balances = match PoolBalances::<T>::get(&from) {
             Some(_balance) => _balance,
-            None => Err(Error::<T>::BalancesNotExist)?,
+            None => Err(Error::<T>::PoolBalancesNotExist)?,
         };
         ensure!(
             pool_balances >= amount,
             "Wallet owner does not deposit to pool enough value"
         );
 
-        let exist_allowed: bool = Allowed::<T>::contains_key(&from, &celer_ledger_account);
-        ensure!(exist_allowed == true, "Corresponding Allowed not exist");
+        let allowed_balances = match Allowed::<T>::get(&from, &celer_ledger_account) {
+            Some(_allowed_balances) => _allowed_balances,
+            None => Err(Error::<T>::AllowedNotExist)?
+        };
 
-        let allowed_balances = Allowed::<T>::get(&from, &celer_ledger_account).unwrap();
         ensure!(
             allowed_balances >= amount,
             "spender not have enough allowed balances"
@@ -200,6 +195,13 @@ impl<T: Trait> Pool<T> {
         Allowed::<T>::mutate(&from, &celer_ledger_account, |balance| {
             *balance = Some(new_allowed_balances)
         });
+
+        // Emit Approval event
+        CelerPayModule::<T>::deposit_event(RawEvent::Approval(
+            from.clone(),
+            celer_ledger_account.clone(),
+            new_allowed_balances
+        ));
 
         let new_wallet_balance_amount = w.balance + amount;
         let new_wallet = WalletOf::<T> {
@@ -306,14 +308,14 @@ pub mod tests {
 
     #[test]
     fn test_pass_deposit_pool() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             deposit_pool(account_key("Bob"), 100);
         })
     }
 
     #[test]
     fn test_fail_deposit_pool_because_of_owner_does_not_enough_balance() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob");
             let err = Pool::<TestRuntime>::deposit_pool(Origin::signed(bob), bob, 2000).unwrap_err();
             assert_eq!(
@@ -325,19 +327,19 @@ pub mod tests {
 
     #[test]
     fn test_fail_withdraw_because_of_no_deposit() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice");
             let err = Pool::<TestRuntime>::withdraw(Origin::signed(alice), 10).unwrap_err();
             assert_eq!(
                 err,
-                DispatchError::Other("caller's address is not exist in Pool Balances")
+                DispatchError::Module { index: 0, error: 9, message: Some("PoolBalancesNotExist") }
             );
         })
     }
 
     #[test]
     fn test_pass_withdraw() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob");
             deposit_pool(bob, 100);
             let (receiver, value) =
@@ -349,7 +351,7 @@ pub mod tests {
 
     #[test]
     fn test_pass_approve() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
             approve(bob, risa, 200);
@@ -358,7 +360,7 @@ pub mod tests {
 
     #[test]
     fn test_pass_transfer_from() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice"); // to address
             let bob = account_key("Bob"); // from address
             let risa = account_key("Risa"); // spender address
@@ -376,7 +378,7 @@ pub mod tests {
 
     #[test]
     fn test_fail_transfer_from_because_approved_amount_is_not_enough() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let alice = account_key("Alice"); // to address
             let bob = account_key("Bob"); // from address
             let risa = account_key("Risa"); // spender address
@@ -394,7 +396,7 @@ pub mod tests {
 
     #[test]
     fn test_pass_increase_allowance() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
 
@@ -410,7 +412,7 @@ pub mod tests {
 
     #[test]
     fn test_pass_decrease_allowance() {
-        ExtBuilder::build().execute_with(|| {
+        ExtBuilder::build().execute_with(|| {   
             let bob = account_key("Bob"); // owner address
             let risa = account_key("Risa"); // spender address
 
