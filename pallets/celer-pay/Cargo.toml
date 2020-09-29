@@ -1,105 +1,41 @@
 [package]
 name = "celer-pay-module"
-version = "0.8.7"
+version = "0.8.8"
 authors = ["Celer"]
 edition = "2018"
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "1.3.4", features = ["derive"], default-features = false }
+serde = { version = "1.0.106", features = ["derive"], optional = true }
+
+sp-io = { version = "2.0.0", default_features = false }
+sp-core = { version = "2.0.0", default_features = false }
+sp-std = { version = "2.0.0", default_features = false }
+sp-runtime = { version = "2.0.0", default_features = false }
+frame-support = { version = "2.0.0", default_features = false }
+frame-system = { version = "2.0.0", default_features = false }
+pallet-balances = { version = "2.0.0", default_features = false }
+pallet-timestamp = { version = "2.0.0", default_features = false }
+mock-numeric-condition = { path = "../mock-numeric-condition", version = "0.8.8", default_features = false }
+
+[dev-dependencies]
+mock-boolean-condition = { path = "../mock-boolean-condition", version = "0.8.8", default_features = false }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
+	"serde",
 	"sp-io/std",
 	"sp-core/std",
+	"sp-std/std",
+	"sp-runtime/std",
 	"frame-support/std",
 	"frame-system/std",
-	"node-primitives/std",
-	"serde",
-	"sp-std/std",
 	"pallet-balances/std",
 	"pallet-timestamp/std",
 	"mock-numeric-condition/std",
 ]
-
-[package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
-
-[dependencies.serde]
-features = ['derive']
-optional = true
-version = '1.0.101'
-
-[dependencies.codec]
-default-features = false
-features = ['derive']
-package = 'parity-scale-codec'
-version = '1.3.4'
-
-[dependencies.sp-io]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.frame-support]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.sp-runtime]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.frame-system]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-package = 'frame-system'
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.node-primitives]
-default_features = false
-git = 'https://github.com/paritytech/substrate.git'
-package = 'node-primitives'
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.pallet-balances]
-git = 'https://github.com/paritytech/substrate.git'
-default_features = false
-package = 'pallet-balances'
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.sp-std]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.pallet-timestamp]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-package = 'pallet-timestamp'
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.sp-core]
-git = 'https://github.com/paritytech/substrate.git'
-default-features = false
-tag = 'v2.0.0-rc6'
-version = '2.0.0-rc6'
-
-[dependencies.mock-numeric-condition]
-default-features = false
-path = '../mock-numeric-condition'
-package = 'mock-numeric-condition'
-version = '0.8.7'
-
-[dev-dependencies.mock-boolean-condition]
-default-features = false
-path = '../mock-boolean-condition'
-package = 'mock-boolean-condition'
-version = '0.8.7'
