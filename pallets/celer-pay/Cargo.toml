@@ -20,6 +20,7 @@ frame-system = { version = "2.0.0", default_features = false }
 pallet-balances = { version = "2.0.0", default_features = false }
 pallet-timestamp = { version = "2.0.0", default_features = false }
 mock-numeric-condition = { path = "../mock-numeric-condition", version = "0.8.8", default_features = false }
+celer-pay-module-rpc-runtime-api = { path = "./rpc/runtime-api", version = "0.8.8", default_features = false }
 
 [dev-dependencies]
 mock-boolean-condition = { path = "../mock-boolean-condition", version = "0.8.8", default_features = false }
@@ -38,4 +39,5 @@ std = [
 	"pallet-balances/std",
 	"pallet-timestamp/std",
 	"mock-numeric-condition/std",
+	"celer-pay-module-rpc-runtime-api/std",
 ]

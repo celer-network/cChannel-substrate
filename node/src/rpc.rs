@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use celer_runtime::{opaque::Block, AccountId, Balance, Index};
+use celer_runtime::{opaque::Block, AccountId, Balance, Hash, BlockNumber, Index};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderMetadata, HeaderBackend};
 use sp_block_builder::BlockBuilder;
@@ -33,11 +33,13 @@ pub fn create_full<C, P>(
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	C::Api: celer_pay_module_rpc::CelerPayModuleRuntimeApi<Block, AccountId, Hash, Balance, BlockNumber>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
 	use substrate_frame_rpc_system::{FullSystem, SystemApi};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+	use celer_pay_module_rpc::{CelerPayModule, CelerPayModuleApi};
 
 	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps {
@@ -54,10 +56,9 @@ pub fn create_full<C, P>(
 		TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
 	);
 
-	// Extend this RPC with a custom API by using the following syntax.
-	// `YourRpcStruct` should have a reference to a client, which is needed
-	// to call into the runtime.
-	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
+	io.extend_with(
+		CelerPayModuleApi::to_delegate(CelerPayModule::new(client.clone()))
+	);
 
 	io
 }
