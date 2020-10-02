@@ -17,7 +17,7 @@ pub trait CelerPayModuleApi<BlockHash, AccountId, Hash, Balance, BlockNumber> {
     #[rpc(name = "celerPayModule_getCelerLedgerId")]
     fn get_celer_ledger_id(&self, at: Option<BlockHash>) -> Result<AccountId>;
 
-    #[rpc(name = "celerPaymodule_getSettleFinalizedTime")]
+    #[rpc(name = "celerPayModule_getSettleFinalizedTime")]
     fn get_settle_finalized_time(&self, channel_id: Hash, at: Option<BlockHash>) -> Result<Option<BlockNumber>>;
 
     #[rpc(name = "celerPayModule_getChannelStatus")]
@@ -68,16 +68,16 @@ pub trait CelerPayModuleApi<BlockHash, AccountId, Hash, Balance, BlockNumber> {
     #[rpc(name = "celerPayModule_getWalletOwners")]
     fn get_wallet_owners(&self, wallet_id: Hash, at: Option<BlockHash>) -> Result<Option<Vec<AccountId>>>;
 
-    #[rpc(name = "celerPayModule_getBalance")]
+    #[rpc(name = "celerPayModule_getWalletBalance")]
     fn get_wallet_balance(&self, wallet_id: Hash, at: Option<BlockHash>) -> Result<Option<Balance>>;
 
     #[rpc(name = "celerPayModule_getPoolId")]
     fn get_pool_id(&self, at: Option<BlockHash>) -> Result<AccountId>;
 
-    #[rpc(name = "celerPayModule_balanceOf")]
+    #[rpc(name = "celerPayModule_getPoolBalance")]
     fn get_pool_balance(&self, owner: AccountId, at: Option<BlockHash>) -> Result<Option<Balance>>;
 
-    #[rpc(name = "celerPayModule_allowance")]
+    #[rpc(name = "celerPayModule_getallowance")]
     fn get_allowance(&self, owner: AccountId, spender: AccountId, at: Option<BlockHash>) -> Result<Option<Balance>>;
 
     #[rpc(name = "celerPayModule_getPayResolverId")]
