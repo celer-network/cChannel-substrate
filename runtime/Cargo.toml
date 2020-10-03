@@ -40,6 +40,7 @@ mock-numeric-condition = { path = "../pallets/mock-numeric-condition", default-f
 # Used for rpc
 frame-system-rpc-runtime-api = { version = "2.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "2.0.0", default-features = false }
+celer-pay-module-rpc-runtime-api = { path = "../pallets/celer-pay/rpc/runtime-api", default-features = false }
 
 # Used for runtime benchmarking
 frame-benchmarking = { version = "2.0.0", default-features = false, optional = true }

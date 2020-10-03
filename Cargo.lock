@@ -644,6 +644,7 @@ dependencies = [
 name = "celer-network"
 version = "0.8.8"
 dependencies = [
+ "celer-pay-module-rpc",
  "celer-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -679,6 +680,7 @@ dependencies = [
 name = "celer-pay-module"
 version = "0.8.8"
 dependencies = [
+ "celer-pay-module-rpc-runtime-api",
  "frame-support",
  "frame-system",
  "mock-boolean-condition",
@@ -694,10 +696,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "celer-pay-module-rpc"
+version = "0.8.8"
+dependencies = [
+ "celer-pay-module-rpc-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "parity-scale-codec",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "celer-pay-module-rpc-runtime-api"
+version = "0.8.8"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "celer-runtime"
 version = "0.8.8"
 dependencies = [
  "celer-pay-module",
+ "celer-pay-module-rpc-runtime-api",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",

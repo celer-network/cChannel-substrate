@@ -1102,7 +1102,7 @@ impl<T: Trait> LedgerOperation<T> {
         ];
         let total_settle_balance = settle_balance[0]
                 .checked_add(&settle_balance[1]).ok_or(Error::<T>::OverFlow)?;
-        let total_balance = CelerPayModule::<T>::get_total_balance(channel_id)?;
+        let total_balance = get_total_balance::<T>(channel_id)?;
         ensure!(
             total_settle_balance == total_balance,
             "Balance sum mismatch"
@@ -1138,6 +1138,23 @@ fn get_peer_id<T: Trait>(
     } else {
         Err(Error::<T>::NotChannelPeer)?
     }
+}
+
+fn get_total_balance<T: Trait>(
+    channel_id: T::Hash
+) -> Result<BalanceOf<T>, DispatchError> {
+    let c = match ChannelMap::<T>::get(&channel_id) {
+        Some(_channel) => _channel,
+        None => Err(Error::<T>::ChannelNotExist)?,
+    };
+    let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
+    balance = balance.checked_add(&c.peer_profiles[1].deposit)
+        .ok_or(Error::<T>::OverFlow)?;
+    balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()))
+        .ok_or(Error::<T>::UnderFlow)?;
+    balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()))
+        .ok_or(Error::<T>::UnderFlow)?;
+    return Ok(balance);
 }
 
 // create a wallet for a new channel
@@ -1193,7 +1210,7 @@ fn add_deposit<T: Trait>(
     ensure!(c.status == ChannelStatus::Operable, "Channel status errror");
 
     if c.balance_limits_enabled == true {
-        let total_balance = CelerPayModule::<T>::get_total_balance(channel_id.clone())?;
+        let total_balance = get_total_balance::<T>(channel_id.clone())?;
         let added_amount = amount.checked_add(&total_balance).ok_or(Error::<T>::OverFlow)?;
         let limits = match c.balance_limits {
             Some(limits) => limits,

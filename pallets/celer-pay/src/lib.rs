@@ -1296,12 +1296,12 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_channel_status(channel_id: T::Hash) -> ChannelStatus {
+    pub fn get_channel_status(channel_id: T::Hash) -> u8 {
         let c = match Self::channel_map(channel_id) {
             Some(channel) => channel,
-            None => return ChannelStatus::Uninitialized,
+            None => return 0 as u8,
         };
-        return c.status;
+        return c.status as u8;
     }
 
     /// Return cooperative withdraw seq_num
@@ -1320,16 +1320,13 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_total_balance(channel_id: T::Hash) -> Result<BalanceOf<T>, DispatchError> {
+    pub fn get_total_balance(channel_id: T::Hash) -> BalanceOf<T> {
         let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
         let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
-        balance = balance.checked_add(&c.peer_profiles[1].deposit)
-            .ok_or(Error::<T>::OverFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()))
-            .ok_or(Error::<T>::UnderFlow)?;
-        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()))
-            .ok_or(Error::<T>::UnderFlow)?;
-        return Ok(balance);
+        balance = balance.checked_add(&c.peer_profiles[1].deposit).unwrap();
+        balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())).unwrap();
+        balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())).unwrap();
+        return balance;
     }
 
     /// Return 

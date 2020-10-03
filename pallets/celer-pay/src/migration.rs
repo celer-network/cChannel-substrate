@@ -158,7 +158,7 @@ pub mod test {
             migration_test(channel_id, channel_peers.clone());
 
             let new_status = CelerPayModule::get_channel_status(channel_id);
-            assert_eq!(new_status, ChannelStatus::Operable);
+            assert_eq!(new_status, 1);
 
             assert_eq!(<CelerPayModule as Store>::StorageVersion::get(), Releases::V2_0_0);
         })
@@ -306,7 +306,7 @@ pub mod test {
         assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
         let status = CelerPayModule::get_channel_status(channel_id);
-        assert_eq!(status, ChannelStatus::Settling);
+        assert_eq!(status, 2);
 
         let amounts = vec![1, 2, 5, 6];
         for i in 0..2 {
@@ -348,6 +348,6 @@ pub mod test {
         let status = CelerPayModule::get_channel_status(channel_id);
 
         assert_eq!(settle_balance, [126, 174]);
-        assert_eq!(status, ChannelStatus::Closed);
+        assert_eq!(status, 3);
     }
 }
