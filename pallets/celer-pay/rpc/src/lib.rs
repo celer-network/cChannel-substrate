@@ -77,7 +77,7 @@ pub trait CelerPayModuleApi<BlockHash, AccountId, Hash, Balance, BlockNumber> {
     #[rpc(name = "celerPayModule_getPoolBalance")]
     fn get_pool_balance(&self, owner: AccountId, at: Option<BlockHash>) -> Result<Option<Balance>>;
 
-    #[rpc(name = "celerPayModule_getallowance")]
+    #[rpc(name = "celerPayModule_getAllowance")]
     fn get_allowance(&self, owner: AccountId, spender: AccountId, at: Option<BlockHash>) -> Result<Option<Balance>>;
 
     #[rpc(name = "celerPayModule_getPayResolverId")]
