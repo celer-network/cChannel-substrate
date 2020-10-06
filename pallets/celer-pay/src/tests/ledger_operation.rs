@@ -226,8 +226,8 @@ pub mod test_ledger_operation {
                 channel_id,
                 300
             ));
-            let amount = CelerPayModule::get_balance_limits(channel_id).unwrap();
-            assert_eq!(amount, 300);
+            let amount = CelerPayModule::get_balance_limits(channel_id);
+            assert_eq!(amount.amount, 300);
         })
     }
 
@@ -892,8 +892,8 @@ pub mod test_ledger_operation {
 
             let (_, _deposits, _withdrawals)
                 = CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(_deposits, vec![300, 0]);
-            assert_eq!(_withdrawals, vec![0, 200]);
+            assert_eq!(vec![_deposits[0].amount, _deposits[1].amount], vec![300, 0]);
+            assert_eq!(vec![_withdrawals[0].amount, _withdrawals[1].amount], vec![0, 200]);
         })
     }
 
@@ -946,21 +946,18 @@ pub mod test_ledger_operation {
             ) = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap();
 
             let balance_amt = CelerPayModule::get_total_balance(channel_id);
-            let (_channel_peer, _deposits, _withdrawals): (
-                Vec<AccountId>,
-                Vec<Balance>,
-                Vec<Balance>,
-            ) = CelerPayModule::get_balance_map(channel_id);
+            let (_channel_peer, _deposits, _withdrawals)
+                = CelerPayModule::get_balance_map(channel_id);
 
             assert_eq!(_channel_id, channel_id);
             assert_eq!(_withdrawn_amount, 200);
             assert_eq!(_receiver, channel_peers[0]);
             assert_eq!(_recipient_channel_id, zero_channel_id);
             assert_eq!(_withdraw_info_seq_num, 1);
-            assert_eq!(balance_amt, 0);
+            assert_eq!(balance_amt.amount, 0);
             assert_eq!(_channel_peer, channel_peers);
-            assert_eq!(_deposits, [160, 40]);
-            assert_eq!(_withdrawals, [200, 0]);
+            assert_eq!(vec![_deposits[0].amount, _deposits[1].amount], [160, 40]);
+            assert_eq!(vec![_withdrawals[0].amount, _withdrawals[1].amount], [200, 0]);
         })
     }
 
@@ -1014,10 +1011,10 @@ pub mod test_ledger_operation {
             ) = LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap();
 
             let _balance_amt_1 = CelerPayModule::get_total_balance(channel_id_1);
-            let (_channel_peer_1, _deposits_1, _withdrawals_1): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) 
+            let (_channel_peer_1, _deposits_1, _withdrawals_1)
                 = CelerPayModule::get_balance_map(channel_id_1);
             let _balance_amt_2 = CelerPayModule::get_total_balance(channel_id_2);
-            let (_channel_peer_2, _deposits_2, _withdrawals_2): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) 
+            let (_channel_peer_2, _deposits_2, _withdrawals_2)
                 = CelerPayModule::get_balance_map(channel_id_2);
 
             assert!(
@@ -1036,14 +1033,14 @@ pub mod test_ledger_operation {
             assert_eq!(_receiver, channel_peers_1[0]);
             assert_eq!(_recipient_channel_id, channel_id_2);
             assert_eq!(_withdraw_info_seq_num, 1);
-            assert_eq!(_balance_amt_1, 0);
+            assert_eq!(_balance_amt_1.amount, 0);
             assert_eq!(_channel_peer_1, channel_peers_1);
-            assert_eq!(_deposits_1, expected_deposits);
-            assert_eq!(_withdrawals_1, [200, 0]);
-            assert_eq!(_balance_amt_2, 200);
+            assert_eq!(vec![_deposits_1[0].amount, _deposits_1[1].amount], expected_deposits);
+            assert_eq!(vec![_withdrawals_1[0].amount, _withdrawals_1[1].amount], [200, 0]);
+            assert_eq!(_balance_amt_2.amount, 200);
             assert_eq!(_channel_peer_2, channel_peers_2);
-            assert_eq!(_deposits_2, expected_deposits);
-            assert_eq!(_withdrawals_2, [0, 0]);
+            assert_eq!(vec![_deposits_2[0].amount, _deposits_2[1].amount], expected_deposits);
+            assert_eq!(vec![_withdrawals_2[0].amount, _withdrawals_2[1].amount], [0, 0]);
         })
     }
 
@@ -1246,15 +1243,15 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             assert_eq!(settle_finalized_time, System::block_number() + 10);
 
             let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, 2);
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
-            assert_eq!(peers_migration_info.4, vec![13, 31]);
-            assert_eq!(peers_migration_info.5, vec![7, 15]);
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], vec![13, 31]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], vec![7, 15]);
 
             let amounts = vec![1, 2, 5, 6];
             for i in 0..2 {
@@ -1537,7 +1534,7 @@ pub mod test_ledger_operation {
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
             assert_eq!(err, DispatchError::Other("Settle is not finalized"));
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             assert!(System::block_number() <= settle_finalized_time);
         })
     }
@@ -1617,16 +1614,14 @@ pub mod test_ledger_operation {
                 ));
             }
 
-            let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerPayModule::get_balance_map(channel_id);
+            let (_, deposits, withdrawals) = CelerPayModule::get_balance_map(channel_id);
+            assert_eq!(vec![deposits[0].amount, deposits[1].amount], [5, 0]);
+            assert_eq!(vec![withdrawals[0].amount, withdrawals[1].amount], [0, 0]);
 
-            assert_eq!(deposits, [5, 0]);
-            assert_eq!(withdrawals, [0, 0]);
+            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [20, 46]);
 
-            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id).unwrap();
-            assert_eq!(transfer_out, [20, 46]);
-
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             let err = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap_err();
@@ -1709,7 +1704,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             // pass after settleFinalizedTime
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             let pay_id_list_array = global_result.4;
@@ -1811,7 +1806,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array.clone(),
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             let pay_id_list_array = global_result_1.4;
@@ -1926,16 +1921,15 @@ pub mod test_ledger_operation {
                 ));
             }
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
-            let (_, deposits, withdrawals): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(deposits, [500, 500]);
-            assert_eq!(withdrawals, [0, 0]);
+            let (_, deposits, withdrawals) = CelerPayModule::get_balance_map(channel_id);
+            assert_eq!(vec![deposits[0].amount, deposits[1].amount], [500, 500]);
+            assert_eq!(vec![withdrawals[0].amount, withdrawals[1].amount], [0, 0]);
 
-            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id).unwrap();
-            assert_eq!(transfer_out, [20, 46]);
+            let (_, transfer_out) = CelerPayModule::get_transfer_out_map(channel_id);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [20, 46]);
 
             let (_, settle_balance) =
                 LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
@@ -1968,9 +1962,8 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
 
-            let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(deposits, [100, 200]);
+            let (_, deposits, _) = CelerPayModule::get_balance_map(channel_id);
+            assert_eq!(vec![deposits[0].amount, deposits[1].amount], [100, 200]);
         })
     }
 
@@ -1997,9 +1990,8 @@ pub mod test_ledger_operation {
                 200,
             ).unwrap();
 
-            let (_, deposits, _): (Vec<AccountId>, Vec<Balance>, Vec<Balance>) =
-                CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(deposits, [100, 200]);
+            let (_, deposits, _) = CelerPayModule::get_balance_map(channel_id);
+            assert_eq!(vec![deposits[0].amount, deposits[1].amount], [100, 200]);
         })
     }
 
@@ -2067,7 +2059,7 @@ pub mod test_ledger_operation {
             );
 
             let total_balance = CelerPayModule::get_total_balance(channel_id);
-            assert_eq!(total_balance, 200);
+            assert_eq!(total_balance.amount, 200);
 
             let (channel_id, settle_balance): (H256, Vec<Balance>) =
                 LedgerOperation::<TestRuntime>::cooperative_settle(cooperative_settle_request).unwrap();
@@ -2140,7 +2132,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             //System::set_block_number(System::block_number() + settle_finalized_time);
             let expected_settle_finalized_time = System::block_number() + 10;
             assert_eq!(settle_finalized_time, expected_settle_finalized_time);
@@ -2165,10 +2157,10 @@ pub mod test_ledger_operation {
                 }
             }
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
             // updated transfer_out map with cleared pays in the head PayIdList
-            assert_eq!(peers_migration_info.4, [10, 20]);
-            assert_eq!(peers_migration_info.5, [10, 26]);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [10, 20]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], [10, 26]);
         })
     }
 
@@ -2234,7 +2226,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(System::block_number() + settle_finalized_time);
 
             let (_, settle_balance) =
@@ -2280,18 +2272,18 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             let expected_single_settle_finalized_time = 10 as BlockNumber + System::block_number();
             assert!(settle_finalized_time == expected_single_settle_finalized_time);
 
             let status = CelerPayModule::get_channel_status(channel_id);
             assert_eq!(status, 2);
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
             // updated transfer_out map with cleared pays in the head PayIdList
-            assert_eq!(peers_migration_info.4, [0, 0]);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [0, 0]);
             // updated pending_pay_out map without cleared pays in the head PayIdList
-            assert_eq!(peers_migration_info.5, [0, 0]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], [0, 0]);
         })
     }
 
@@ -2371,7 +2363,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array.clone(),
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             let (_, settle_balance) = LedgerOperation::<TestRuntime>::confirm_settle(channel_id).unwrap();
@@ -2453,7 +2445,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             let expected_single_settle_finalized_time = 10 + System::block_number();
             assert_eq!(settle_finalized_time, expected_single_settle_finalized_time);
 
@@ -2475,9 +2467,9 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
-            assert_eq!(peers_migration_info.4, [13, 0]);
-            assert_eq!(peers_migration_info.5, [0, 0]);
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [13, 0]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], [0, 0]);
         })
     }
 
@@ -2552,7 +2544,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             let (_, settle_balance) =
@@ -2700,7 +2692,7 @@ pub mod test_ledger_operation {
 
             let expected_settle_finalized_time = 10 + System::block_number();
             for i in 0..3 {
-                let settle_finalized_time = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let settle_finalized_time = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]);
                 assert_eq!(expected_settle_finalized_time, settle_finalized_time);
                 let status = CelerPayModule::get_channel_status(unique_channel_ids[i]);
                 assert_eq!(status, 2);
@@ -2872,7 +2864,7 @@ pub mod test_ledger_operation {
 
             let mut settle_finalized_time: BlockNumber = 0;
             for i in 0..3 {
-                let tmp = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]).unwrap();
+                let tmp = CelerPayModule::get_settle_finalized_time(unique_channel_ids[i]);
                 if tmp > settle_finalized_time {
                     settle_finalized_time = tmp;
                 }
@@ -3001,14 +2993,14 @@ pub mod test_ledger_operation {
 
             // get total balance
             let balance_amt = CelerPayModule::get_total_balance(channel_id);
-            assert_eq!(balance_amt, 200);
+            assert_eq!(balance_amt.amount, 200);
 
             // get balance map
             let (_channel_peers, _deposits, _withdrawals) =
                 CelerPayModule::get_balance_map(channel_id);
             assert_eq!(_channel_peers, channel_peers);
-            assert_eq!(_deposits, [100, 200]);
-            assert_eq!(_withdrawals, [100, 0]);
+            assert_eq!(vec![_deposits[0].amount, _deposits[1].amount], [100, 200]);
+            assert_eq!(vec![_withdrawals[0].amount, _withdrawals[1].amount], [100, 0]);
         })
     }
 
@@ -3100,8 +3092,8 @@ pub mod test_ledger_operation {
             assert_eq!(amount, 50);
 
             let (_, _deposits, _withdrawals) = CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(_deposits, [50, 150]);
-            assert_eq!(_withdrawals, [50, 0]);
+            assert_eq!(vec![_deposits[0].amount, _deposits[1].amount], [50, 150]);
+            assert_eq!(vec![_withdrawals[0].amount, _withdrawals[1].amount], [50, 0]);
         })
     }
 
@@ -3247,7 +3239,7 @@ pub mod test_ledger_operation {
                 local_signed_simplex_state_array
             ));
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             let expected_settle_finalized_time = 10 + System::block_number();
             assert_eq!(settle_finalized_time, expected_settle_finalized_time);
 
@@ -3269,10 +3261,10 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
             // updated transferOut map with clreared pays in the head PayIdList
-            assert_eq!(peers_migration_info.4, vec![0, 13]);
-            assert_eq!(peers_migration_info.5, vec![0, 0]);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], vec![0, 13]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], vec![0, 0]);
         })
     }
 
@@ -3508,8 +3500,8 @@ pub mod test_ledger_operation {
 
             let (_, deposits_1, _) = CelerPayModule::get_balance_map(channel_ids[0].clone());
             let (_, deposits_2, _) = CelerPayModule::get_balance_map(channel_ids[1].clone());
-            assert_eq!(deposits_1, [100, 0]);
-            assert_eq!(deposits_2, [0, 200]);
+            assert_eq!(vec![deposits_1[0].amount, deposits_1[1].amount], [100, 0]);
+            assert_eq!(vec![deposits_2[0].amount, deposits_2[1].amount], [0, 200]);
         })
     }
 
@@ -3697,8 +3689,8 @@ pub mod test_ledger_operation {
             assert_eq!(amount, 60);
 
             let (_, _deposits, _withdrawals) = CelerPayModule::get_balance_map(channel_id);
-            assert_eq!(_deposits, [50, 150]);
-            assert_eq!(_withdrawals, [60, 0]);
+            assert_eq!(vec![_deposits[0].amount, _deposits[1].amount], [50, 150]);
+            assert_eq!(vec![_withdrawals[0].amount, _withdrawals[1].amount], [60, 0]);
         })
     }
 
@@ -3831,7 +3823,7 @@ pub mod test_ledger_operation {
             ).unwrap();
 
             let expected_single_settle_finalized_time = 10 + System::block_number();
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             assert_eq!(expected_single_settle_finalized_time, settle_finalized_time);
 
             for i in 0..2 {
@@ -3848,11 +3840,11 @@ pub mod test_ledger_operation {
                 assert!(System::events().iter().any(|a| a.event == expected_event));
             }
 
-            let peers_migration_info = CelerPayModule::get_peers_migration_info(channel_id).unwrap();
+            let (_, _, _, _, transfer_out, pending_pay_out) = CelerPayModule::get_peers_migration_info(channel_id);
             // updated  transferOut  map  which  cleared pays in the head PayIdList
-            assert_eq!(peers_migration_info.4, [10, 0]);
+            assert_eq!(vec![transfer_out[0].amount, transfer_out[1].amount], [10, 0]);
             // updated pendingPayOut map without cleared  pays  in the head PayIdList
-            assert_eq!(peers_migration_info.5, [0, 0]);
+            assert_eq!(vec![pending_pay_out[0].amount, pending_pay_out[1].amount], [0, 0]);
         })
     }
 

@@ -711,6 +711,7 @@ dependencies = [
  "sp-core",
  "sp-rpc",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -718,6 +719,7 @@ name = "celer-pay-module-rpc-runtime-api"
 version = "0.8.8"
 dependencies = [
  "parity-scale-codec",
+ "serde",
  "sp-api",
  "sp-runtime",
  "sp-std",

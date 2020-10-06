@@ -460,7 +460,7 @@ impl_runtime_apis! {
 			CelerPayModule::get_celer_ledger_id()
 		}
 
-		fn get_settle_finalized_time(channel_id: Hash) -> Option<BlockNumber> {
+		fn get_settle_finalized_time(channel_id: Hash) -> BlockNumber {
 			CelerPayModule::get_settle_finalized_time(channel_id)
 		} 
 
@@ -468,66 +468,66 @@ impl_runtime_apis! {
 			CelerPayModule::get_channel_status(channel_id)
 		}
 
-		fn get_cooperative_withdraw_seq_num(channel_id: Hash) -> Option<u128> {
+		fn get_cooperative_withdraw_seq_num(channel_id: Hash) -> celer_pay_module_rpc_runtime_api::SeqNumInfo {
 			CelerPayModule::get_cooperative_withdraw_seq_num(channel_id)
 		}
 
-		fn get_total_balance(channel_id: Hash) -> Balance {
+		fn get_total_balance(channel_id: Hash) -> celer_pay_module_rpc_runtime_api::BalanceInfo<Balance> {
 			CelerPayModule::get_total_balance(channel_id)
 		}
 
-		fn get_balance_map(channel_id: Hash) -> (Vec<AccountId>, Vec<Balance>, Vec<Balance>) {
+		fn get_balance_map(channel_id: Hash) -> (Vec<AccountId>, Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>, Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>) {
 			CelerPayModule::get_balance_map(channel_id)
 		}
 
-		fn get_dispute_time_out(channel_id: Hash) -> Option<BlockNumber> {
+		fn get_dispute_time_out(channel_id: Hash) -> BlockNumber {
 			CelerPayModule::get_dispute_time_out(channel_id)
 		}
 
-		fn get_state_seq_num_map(channel_id: Hash) -> Option<(Vec<AccountId>, Vec<u128>)> {
+		fn get_state_seq_num_map(channel_id: Hash) -> (Vec<AccountId>, Vec<celer_pay_module_rpc_runtime_api::SeqNumInfo>) {
 			CelerPayModule::get_state_seq_num_map(channel_id)
 		}
 
-		fn get_transfer_out_map(channel_id: Hash) -> Option<(Vec<AccountId>, Vec<Balance>)> {
+		fn get_transfer_out_map(channel_id: Hash) -> (Vec<AccountId>, Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>) {
 			CelerPayModule::get_transfer_out_map(channel_id)
 		}
 
-		fn get_next_pay_id_list_hash_map(channel_id: Hash) -> Option<(Vec<AccountId>, Vec<Hash>)> {
+		fn get_next_pay_id_list_hash_map(channel_id: Hash) -> (Vec<AccountId>, Vec<Hash>) {
 			CelerPayModule::get_next_pay_id_list_hash_map(channel_id)
 		}
 
-		fn get_last_pay_resolve_deadline_map(channel_id: Hash) -> Option<(Vec<AccountId>, Vec<BlockNumber>)> {
+		fn get_last_pay_resolve_deadline_map(channel_id: Hash) -> (Vec<AccountId>, Vec<BlockNumber>) {
 			CelerPayModule::get_last_pay_resolve_deadline_map(channel_id)
 		}
 
-		fn get_pending_pay_out_map(channel_id: Hash) -> Option<(Vec<AccountId>, Vec<Balance>)> {
+		fn get_pending_pay_out_map(channel_id: Hash) -> (Vec<AccountId>, Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>) {
 			CelerPayModule::get_pending_pay_out_map(channel_id)
 		}
 
-		fn get_withdraw_intent(channel_id: Hash) -> Option<(AccountId, Balance, BlockNumber, Hash)> {
+		fn get_withdraw_intent(channel_id: Hash) -> (AccountId, celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>, BlockNumber, Hash) {
 			CelerPayModule::get_withdraw_intent(channel_id)
 		}
 
-		fn get_channel_status_num(channel_status: u8) -> Option<u8> {
+		fn get_channel_status_num(channel_status: u8) -> u8 {
 			CelerPayModule::get_channel_status_num(channel_status)
 		}
 
-		fn get_balance_limits(channel_id: Hash) -> Option<Balance> {
+		fn get_balance_limits(channel_id: Hash) -> celer_pay_module_rpc_runtime_api::BalanceInfo<Balance> {
 			CelerPayModule::get_balance_limits(channel_id)
 		}
 
-		fn get_balance_limits_enabled(channel_id: Hash) -> Option<bool> {
+		fn get_balance_limits_enabled(channel_id: Hash) -> bool {
 			CelerPayModule::get_balance_limits_enabled(channel_id)
 		}
 
-		fn get_peers_migration_info(channel_id: Hash) -> Option<(
+		fn get_peers_migration_info(channel_id: Hash) -> (
             Vec<AccountId>,
-            Vec<Balance>,
-            Vec<Balance>,
-            Vec<u128>,
-            Vec<Balance>,
-            Vec<Balance>
-        )> {
+            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            Vec<celer_pay_module_rpc_runtime_api::SeqNumInfo>,
+            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>
+        ) {
 			CelerPayModule::get_peers_migration_info(channel_id)
 		}
 
@@ -535,11 +535,11 @@ impl_runtime_apis! {
 			CelerPayModule::get_celer_wallet_id()
 		}
 
-		fn get_wallet_owners(wallet_id: Hash) -> Option<Vec<AccountId>> {
+		fn get_wallet_owners(wallet_id: Hash) -> Vec<AccountId> {
 			CelerPayModule::get_wallet_owners(wallet_id)
 		}
 
-		fn get_wallet_balance(wallet_id: Hash) -> Option<Balance> {
+		fn get_wallet_balance(wallet_id: Hash) -> celer_pay_module_rpc_runtime_api::BalanceInfo<Balance> {
 			CelerPayModule::get_wallet_balance(wallet_id)
 		}
 
@@ -547,11 +547,11 @@ impl_runtime_apis! {
 			CelerPayModule::get_pool_id()
 		}
 
-		fn get_pool_balance(owner: AccountId) -> Option<Balance> {
+		fn get_pool_balance(owner: AccountId) -> celer_pay_module_rpc_runtime_api::BalanceInfo<Balance> {
 			CelerPayModule::get_pool_balance(owner)
 		}
 
-		fn get_allowance(owner: AccountId, spender: AccountId) -> Option<Balance> {
+		fn get_allowance(owner: AccountId, spender: AccountId) -> celer_pay_module_rpc_runtime_api::BalanceInfo<Balance> {
 			CelerPayModule::get_allowance(owner, spender)
 		}
 

@@ -14,6 +14,7 @@ use frame_system::{self as system, ensure_signed};
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 use sp_std::{vec, vec::Vec};
+use celer_pay_module_rpc_runtime_api::BalanceInfo;
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ChannelStatus {
@@ -698,7 +699,7 @@ impl<T: Trait> LedgerOperation<T> {
             recipient_channel_id,
         )?;
         
-        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>)
+        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceInfo<BalanceOf<T>>>, Vec<BalanceInfo<BalanceOf<T>>>)
             = CelerPayModule::<T>::get_balance_map(channel_id);
         // Emit Confirmwithdraw event
         CelerPayModule::<T>::deposit_event(RawEvent::ConfirmWithdraw(
@@ -706,8 +707,8 @@ impl<T: Trait> LedgerOperation<T> {
             amount,
             receiver.clone(),
             recipient_channel_id,
-            deposits,
-            withdrawals
+            vec![deposits[0].amount, deposits[1].amount],
+            vec![withdrawals[0].amount, withdrawals[1].amount]
         ));
         return Ok((amount, receiver, recipient_channel_id));
     }
@@ -794,7 +795,7 @@ impl<T: Trait> LedgerOperation<T> {
             recipient_channel_id,
         )?;       
 
-        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>)
+        let (_, deposits, withdrawals): (Vec<T::AccountId>, Vec<BalanceInfo<BalanceOf<T>>>, Vec<BalanceInfo<BalanceOf<T>>>)
             = CelerPayModule::<T>::get_balance_map(channel_id);
         // Emit CooperativeWithdraw event
         CelerPayModule::<T>::deposit_event(RawEvent::CooperativeWithdraw(
@@ -802,8 +803,8 @@ impl<T: Trait> LedgerOperation<T> {
             amount,
             receiver.clone(),
             recipient_channel_id,
-            deposits,
-            withdrawals,
+            vec![deposits[0].amount, deposits[1].amount],
+            vec![withdrawals[0].amount, withdrawals[1].amount],
             withdraw_info.seq_num
         ));
 
