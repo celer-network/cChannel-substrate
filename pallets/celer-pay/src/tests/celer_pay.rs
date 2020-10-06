@@ -593,7 +593,7 @@ pub mod tests_celer {
                 ));
             }
 
-            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id).unwrap();
+            let settle_finalized_time = CelerPayModule::get_settle_finalized_time(channel_id);
             System::set_block_number(settle_finalized_time);
 
             assert_ok!(CelerPayModule::confirm_settle(

@@ -7,7 +7,6 @@ mod mock;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
-mod migration;
 mod numeric_condition_caller;
 pub mod traits;
 
@@ -24,7 +23,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use ledger_operation::{
-    ChannelOf, ChannelStatus, CooperativeSettleRequestOf, CooperativeWithdrawRequestOf,
+    ChannelOf, CooperativeSettleRequestOf, CooperativeWithdrawRequestOf,
     LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf, CELER_LEDGER_ID,
 };
 use celer_wallet::{WalletOf, WALLET_ID};
@@ -35,6 +34,7 @@ pub use traits::Trait;
 use sp_runtime::traits::{AccountIdConversion, CheckedAdd, CheckedSub, Hash, Zero, Verify};
 use sp_runtime::{RuntimeDebug, DispatchResult, DispatchError};
 use sp_std::{prelude::*, vec, vec::Vec};
+use celer_pay_module_rpc_runtime_api::{BalanceInfo, SeqNumInfo};
 
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
@@ -1107,7 +1107,7 @@ decl_module! {
         }
 
         fn on_runtime_upgrade() -> Weight {
-            migration::on_runtime_upgrade::<T>();
+            //migration::on_runtime_upgrade::<T>();
             500_000
         }
     }
@@ -1274,7 +1274,7 @@ decl_error! {
 }
 
 impl<T: Trait> Module<T> {
-/// ============================== Celer Ledger Operation =======================================
+/// ============================== Celer Ledger Operation =======================================    
     /// Return AccountId of Ledger Operation module
     pub fn get_celer_ledger_id() -> T::AccountId {
         return CELER_LEDGER_ID.into_account();
@@ -1284,12 +1284,9 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_settle_finalized_time(channel_id: T::Hash) -> Option<T::BlockNumber> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return c.settle_finalized_time;
+    pub fn get_settle_finalized_time(channel_id: T::Hash) -> T::BlockNumber {
+        let c = Self::channel_map(channel_id).unwrap();
+        return c.settle_finalized_time.unwrap_or(Zero::zero());
     }
 
     /// Return channel status
@@ -1308,25 +1305,23 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_cooperative_withdraw_seq_num(channel_id: T::Hash) -> Option<u128> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return c.cooperative_withdraw_seq_num;
+    pub fn get_cooperative_withdraw_seq_num(channel_id: T::Hash) -> SeqNumInfo {
+        let c = Self::channel_map(channel_id).unwrap();
+        return SeqNumInfo { number: c.cooperative_withdraw_seq_num.unwrap_or(0) };
     }
 
     /// Return one channel's total balance amount
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_total_balance(channel_id: T::Hash) -> BalanceOf<T> {
+    pub fn get_total_balance(channel_id: T::Hash) -> BalanceInfo<BalanceOf<T>> {
         let c: ChannelOf<T> = Self::channel_map(channel_id).unwrap();
         let mut balance: BalanceOf<T> = c.peer_profiles[0].deposit;
         balance = balance.checked_add(&c.peer_profiles[1].deposit).unwrap();
         balance = balance.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())).unwrap();
         balance = balance.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())).unwrap();
-        return balance;
+
+        return BalanceInfo { amount: balance };
     }
 
     /// Return 
@@ -1335,17 +1330,20 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_balance_map(
         channel_id: T::Hash,
-    ) -> (Vec<T::AccountId>, Vec<BalanceOf<T>>, Vec<BalanceOf<T>>) {
+    ) -> (Vec<T::AccountId>, Vec<BalanceInfo<BalanceOf<T>>>, Vec<BalanceInfo<BalanceOf<T>>>) {
         let c = Self::channel_map(channel_id).unwrap();
         return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
-            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
             vec![
-                c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()),
-                c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()),
+                BalanceInfo { amount: c.peer_profiles[0].deposit }, 
+                BalanceInfo { amount: c.peer_profiles[1].deposit }
+            ],
+            vec![
+                BalanceInfo { amount: c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero()) },
+                BalanceInfo { amount: c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero()) }
             ],
         );
     }
@@ -1354,33 +1352,27 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `channel_id: Id of channel
-    pub fn get_dispute_time_out(channel_id: T::Hash) -> Option<T::BlockNumber> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some(c.dispute_timeout);
+    pub fn get_dispute_time_out(channel_id: T::Hash) -> T::BlockNumber {
+        let c = Self::channel_map(channel_id).unwrap();
+        return c.dispute_timeout;
     }
 
     /// Return state seq_num map of a duplex channel
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_state_seq_num_map(channel_id: T::Hash) -> Option<(Vec<T::AccountId>, Vec<u128>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some((
+    pub fn get_state_seq_num_map(channel_id: T::Hash) -> (Vec<T::AccountId>, Vec<SeqNumInfo>) {
+        let c = Self::channel_map(channel_id).unwrap();
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
             vec![
-                c.peer_profiles[0].state.seq_num,
-                c.peer_profiles[1].state.seq_num,
+                SeqNumInfo { number: c.peer_profiles[0].state.seq_num },
+                SeqNumInfo { number: c.peer_profiles[1].state.seq_num },
             ],
-        ));
+        );
     }
 
     /// Return transfer_out map of a duplex channel
@@ -1389,21 +1381,18 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_transfer_out_map(
         channel_id: T::Hash,
-    ) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some((
+    ) -> (Vec<T::AccountId>, Vec<BalanceInfo<BalanceOf<T>>>) {
+        let c = Self::channel_map(channel_id).unwrap();
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
             vec![
-                c.peer_profiles[0].state.transfer_out,
-                c.peer_profiles[1].state.transfer_out,
+                BalanceInfo { amount: c.peer_profiles[0].state.transfer_out },
+                BalanceInfo { amount: c.peer_profiles[1].state.transfer_out },
             ],
-        ));
+        );
     }
 
     /// Return next_pay_id_list_hash map of a duplex channel
@@ -1412,14 +1401,11 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_next_pay_id_list_hash_map(
         channel_id: T::Hash,
-    ) -> Option<(Vec<T::AccountId>, Vec<T::Hash>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
+    ) -> (Vec<T::AccountId>, Vec<T::Hash>) {
+        let c = Self::channel_map(channel_id).unwrap();
 
         let zero_hash = Self::get_zero_hash();
-        return Some((
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
@@ -1428,7 +1414,7 @@ impl<T: Trait> Module<T> {
                 c.peer_profiles[0].state.next_pay_id_list_hash.unwrap_or(zero_hash),
                 c.peer_profiles[1].state.next_pay_id_list_hash.unwrap_or(zero_hash),
             ],
-        ));
+        );
     }
 
     /// Return last_pay_resolve_deadline map of a duplex channel
@@ -1437,12 +1423,10 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_last_pay_resolve_deadline_map(
         channel_id: T::Hash,
-    ) -> Option<(Vec<T::AccountId>, Vec<T::BlockNumber>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some((
+    ) -> (Vec<T::AccountId>, Vec<T::BlockNumber>) {
+        let c = Self::channel_map(channel_id).unwrap();
+
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
@@ -1451,7 +1435,7 @@ impl<T: Trait> Module<T> {
                 c.peer_profiles[0].state.last_pay_resolve_deadline,
                 c.peer_profiles[1].state.last_pay_resolve_deadline,
             ],
-        ));
+        );
     }
 
     /// Return pending_pay_out map of a duplex channel
@@ -1460,21 +1444,19 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_pending_pay_out_map(
         channel_id: T::Hash,
-    ) -> Option<(Vec<T::AccountId>, Vec<BalanceOf<T>>)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some((
+    ) -> (Vec<T::AccountId>, Vec<BalanceInfo<BalanceOf<T>>>) {
+        let c = Self::channel_map(channel_id).unwrap();
+
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
             vec![
-                c.peer_profiles[0].state.pending_pay_out,
-                c.peer_profiles[1].state.pending_pay_out,
+                BalanceInfo { amount: c.peer_profiles[0].state.pending_pay_out },
+                BalanceInfo { amount: c.peer_profiles[1].state.pending_pay_out },
             ],
-        ));
+        );
     }
 
     /// Return the withdraw intent info of the channel
@@ -1483,52 +1465,47 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_withdraw_intent(
         channel_id: T::Hash,
-    ) -> Option<(T::AccountId, BalanceOf<T>, T::BlockNumber, T::Hash)> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
+    ) -> (T::AccountId, BalanceInfo<BalanceOf<T>>, T::BlockNumber, T::Hash) {
+        let c = Self::channel_map(channel_id).unwrap();
 
-        let zero_channel_id: T::Hash = Self::get_zero_hash();
-        let withdraw_intent = c.withdraw_intent;
-        return Some((
-            withdraw_intent.receiver,
-            withdraw_intent.amount.unwrap_or(Zero::zero()),
-            withdraw_intent.request_time.unwrap_or(Zero::zero()),
-            withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id),
-        ));
+        let zero_channel_id: T::Hash = Module::<T>::get_zero_hash();
+        return (
+            c.withdraw_intent.receiver,
+            BalanceInfo { amount: c.withdraw_intent.amount.unwrap_or(Zero::zero()) },
+            c.withdraw_intent.request_time.unwrap_or(Zero::zero()),
+            c.withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id),
+        );
     }
 
     /// Return the channel number of given status
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_channel_status_num(channel_status: u8) -> Option<u8> {
-        return <ChannelStatusNums>::get(channel_status);
+    pub fn get_channel_status_num(channel_status: u8) -> u8 {
+        let nums = match Self::channel_status_nums(channel_status) {
+            Some(_nums) => _nums,
+            None => return 0
+        };
+        
+        return nums;
     }
 
     /// Return balance limits
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_balance_limits(channel_id: T::Hash) -> Option<BalanceOf<T>> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return c.balance_limits;
+    pub fn get_balance_limits(channel_id: T::Hash) -> BalanceInfo<BalanceOf<T>> {
+        let c = Self::channel_map(channel_id).unwrap();
+        return BalanceInfo { amount: c.balance_limits.unwrap_or(Zero::zero()) };
     }
 
     /// Whether balance limits is enable.
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
-    pub fn get_balance_limits_enabled(channel_id: T::Hash) -> Option<bool> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
-        return Some(c.balance_limits_enabled);
+    pub fn get_balance_limits_enabled(channel_id: T::Hash) -> bool {
+        let c = Self::channel_map(channel_id).unwrap();
+        return c.balance_limits_enabled;
     }
 
     /// Return migration info of the peers in the channel
@@ -1537,42 +1514,42 @@ impl<T: Trait> Module<T> {
     /// `channel_id`: Id of channel
     pub fn get_peers_migration_info(
         channel_id: T::Hash,
-    ) -> Option<(
+    ) -> (
         Vec<T::AccountId>,
-        Vec<BalanceOf<T>>,
-        Vec<BalanceOf<T>>,
-        Vec<u128>,
-        Vec<BalanceOf<T>>,
-        Vec<BalanceOf<T>>,
-    )> {
-        let c = match Self::channel_map(channel_id) {
-            Some(channel) => channel,
-            None => return None,
-        };
+        Vec<BalanceInfo<BalanceOf<T>>>,
+        Vec<BalanceInfo<BalanceOf<T>>>,
+        Vec<SeqNumInfo>,
+        Vec<BalanceInfo<BalanceOf<T>>>,
+        Vec<BalanceInfo<BalanceOf<T>>>,
+    ) {
+        let c = Self::channel_map(channel_id).unwrap();
 
-        return Some((
+        return (
             vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ],
-            vec![c.peer_profiles[0].deposit, c.peer_profiles[1].deposit],
             vec![
-                c.peer_profiles[0].withdrawal.unwrap_or(Zero::zero()),
-                c.peer_profiles[1].withdrawal.unwrap_or(Zero::zero()),
+                BalanceInfo { amount: c.peer_profiles[0].deposit }, 
+                BalanceInfo { amount: c.peer_profiles[1].deposit }
             ],
             vec![
-                c.peer_profiles[0].state.seq_num,
-                c.peer_profiles[1].state.seq_num,
+                BalanceInfo { amount: c.peer_profiles[0].withdrawal.unwrap_or(Zero::zero()) },
+                BalanceInfo { amount: c.peer_profiles[1].withdrawal.unwrap_or(Zero::zero()) },
             ],
             vec![
-                c.peer_profiles[0].state.transfer_out,
-                c.peer_profiles[1].state.transfer_out,
+                SeqNumInfo { number: c.peer_profiles[0].state.seq_num },
+                SeqNumInfo { number: c.peer_profiles[1].state.seq_num },
             ],
             vec![
-                c.peer_profiles[0].state.pending_pay_out,
-                c.peer_profiles[1].state.pending_pay_out,
+                BalanceInfo { amount: c.peer_profiles[0].state.transfer_out },
+                BalanceInfo { amount: c.peer_profiles[1].state.transfer_out },
             ],
-        ));
+            vec![
+                BalanceInfo { amount: c.peer_profiles[0].state.pending_pay_out },
+                BalanceInfo { amount: c.peer_profiles[1].state.pending_pay_out },
+            ],
+        );
     }
 
 /// ================================= Celer Wallet =================================
@@ -1585,28 +1562,18 @@ impl<T: Trait> Module<T> {
     ///
     /// Parameter:
     /// `wallet_id`: Id of the wallet
-    pub fn get_wallet_owners(wallet_id: T::Hash) -> Option<Vec<T::AccountId>> {
-        let w: WalletOf<T> = match Self::wallet(wallet_id) {
-            Some(wallet) => wallet,
-            None => return None,
-        };
-
-        let owners = w.owners;
-        return Some(owners);
+    pub fn get_wallet_owners(wallet_id: T::Hash) -> Vec<T::AccountId> {
+        let w: WalletOf<T> = Self::wallet(wallet_id).unwrap();
+        return w.owners;
     }
 
     /// Return amount of funds which is deposited into specified wallet
     ///
     /// Parameter:
     /// `wallet_id`: Id of the wallet
-    pub fn get_wallet_balance(wallet_id: T::Hash) -> Option<BalanceOf<T>> {
-        let w: WalletOf<T> = match Self::wallet(wallet_id) {
-            Some(wallet) => wallet,
-            None => return None,
-        };
-
-        let balance = w.balance;
-        return Some(balance);
+    pub fn get_wallet_balance(wallet_id: T::Hash) -> BalanceInfo<BalanceOf<T>> {
+        let w: WalletOf<T> = Self::wallet(wallet_id).unwrap();
+        return BalanceInfo { amount: w.balance };
     }
 
 /// =================================== Pool ===================================================
@@ -1619,8 +1586,8 @@ impl<T: Trait> Module<T> {
     ///
     /// Prameter:
     /// `owner`: the address of query balance of
-    pub fn get_pool_balance(owner: T::AccountId) -> Option<BalanceOf<T>> {
-        return Self::balances(owner);
+    pub fn get_pool_balance(owner: T::AccountId) -> BalanceInfo<BalanceOf<T>> {
+        return BalanceInfo { amount: Self::balances(owner).unwrap_or(Zero::zero()) };
     }
 
     /// Return amount of funds which owner allowed to a spender
@@ -1628,8 +1595,8 @@ impl<T: Trait> Module<T> {
     /// Parameters:
     /// `owner`: the address which owns the funds
     /// `spender`: the address which will spend the funds
-    pub fn get_allowance(owner: T::AccountId, spender: T::AccountId) -> Option<BalanceOf<T>> {
-        return Self::allowed(owner, spender);
+    pub fn get_allowance(owner: T::AccountId, spender: T::AccountId) -> BalanceInfo<BalanceOf<T>> {
+        return BalanceInfo { amount: Self::allowed(owner, spender).unwrap_or(Zero::zero()) };
     }
 
 /// ================================ PayResolver =============================================
