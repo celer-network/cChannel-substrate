@@ -129,7 +129,6 @@ impl<T: Trait> PayRegistry<T> {
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
             pay_id = Self::calculate_pay_id(pay_hashes[i]);
-
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
@@ -173,7 +172,6 @@ impl<T: Trait> PayRegistry<T> {
         let mut pay_id: T::Hash;
         for i in 0..pay_hash_len {
             pay_id = Self::calculate_pay_id(pay_hashes[i]);
-
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
@@ -247,14 +245,12 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_id_len {
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
                 pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
-
                 if pay_info.resolve_deadline.unwrap_or(Zero::zero()) == Zero::zero() {
                     // should pass last pay resolve deadline if never resolved
                     ensure!(
                         frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
                         "Payment is not finalized"
-                    );
-                    
+                    );  
                 } else {
                     // should pass resolve deadline if resolved
                     ensure!(

@@ -335,15 +335,15 @@ impl<T: Trait> LedgerOperation<T> {
             channel_initializer.init_distribution.distribution[1].amt.clone(),
         ];
 
-        let account_0 = match channel_initializer.init_distribution.distribution[0].account.clone() {
-            Some(account) => account,
+        let mut peer_addrs: Vec<T::AccountId> = vec![];
+        match channel_initializer.init_distribution.distribution[0].account.clone() {
+            Some(account) => peer_addrs.push(account),
             None => return Err(Error::<T>::PeerNotExist)?,
         };
-        let account_1 = match channel_initializer.init_distribution.distribution[1].account.clone() {
-            Some(account) => account,
+        match channel_initializer.init_distribution.distribution[1].account.clone() {
+            Some(account) => peer_addrs.push(account),
             None => return Err(Error::<T>::PeerNotExist)?,
         };
-        let peer_addrs: Vec<T::AccountId> = vec![account_0, account_1];
 
         // Enforce asceding order of peer's addresses to simplyfy contract code
         ensure!(
@@ -359,34 +359,23 @@ impl<T: Trait> LedgerOperation<T> {
         let h = T::Hashing::hash(&encoded);
         let channel_id = create_wallet::<T>(owners, h)?;
 
-        // Insert new Channel to ChannelMap.
-        let peer_state = PeerStateOf::<T> {
-            seq_num: 0,
-            transfer_out: Zero::zero(),
-            next_pay_id_list_hash: None,
-            last_pay_resolve_deadline: Zero::zero(),
-            pending_pay_out: Zero::zero(),
-        };
-        let peer_profiles_0 = PeerProfileOf::<T> {
-            peer_addr: peer_addrs[0].clone(),
-            deposit: amounts[0],
-            withdrawal: None,
-            state: peer_state.clone(),
-        };
-        let peer_profiles_1 = PeerProfileOf::<T> {
-            peer_addr: peer_addrs[1].clone(),
-            deposit: amounts[1],
-            withdrawal: None,
-            state: peer_state,
-        };
+        let mut peer_profiles: Vec<PeerProfileOf<T>> = vec![];
+        for i in 0..2 {
+            peer_profiles.push(PeerProfileOf::<T> {
+                peer_addr: peer_addrs[i].clone(),
+                deposit: amounts[i],
+                withdrawal: None,
+                state: PeerStateOf::<T> {
+                    seq_num: 0,
+                    transfer_out: Zero::zero(),
+                    next_pay_id_list_hash: None,
+                    last_pay_resolve_deadline: Zero::zero(),
+                    pending_pay_out: Zero::zero(),
+                },
+            });
+        }
 
         let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
-        let withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: celer_ledger_account,
-            amount: None,
-            request_time: None,
-            recipient_channel_id: None,
-        };
         let channel = ChannelOf::<T> {
             balance_limits_enabled: channel_initializer.balance_limits_enabled,
             balance_limits: channel_initializer.balance_limits,
@@ -394,9 +383,14 @@ impl<T: Trait> LedgerOperation<T> {
             dispute_timeout: channel_initializer.dispute_timeout,
             token: token.clone(),
             status: ChannelStatus::Operable,
-            peer_profiles: vec![peer_profiles_0, peer_profiles_1],
+            peer_profiles: peer_profiles,
             cooperative_withdraw_seq_num: None,
-            withdraw_intent: withdraw_intent,
+            withdraw_intent: WithdrawIntentOf::<T> {
+                receiver: celer_ledger_account,
+                amount: None,
+                request_time: None,
+                recipient_channel_id: None,
+            },
         };
 
         let amt_sum: BalanceOf<T> = amounts[0].checked_add(&amounts[1]).ok_or(Error::<T>::OverFlow)?;
@@ -652,26 +646,22 @@ impl<T: Trait> LedgerOperation<T> {
         let receiver = withdraw_intent.receiver;
         let amount = withdraw_intent.amount.unwrap_or(Zero::zero());
         let recipient_channel_id = withdraw_intent.recipient_channel_id.unwrap_or(zero_channel_id);
-
         let rid = get_peer_id::<T>(c.clone(), receiver.clone())?;
-
-        let state_0 = c.peer_profiles[0].state.clone();
-        let state_1 = c.peer_profiles[1].state.clone();
 
         // check withdraw limit
         let mut withdraw_limit: BalanceOf<T> = Zero::zero();
         if rid == 0 {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[0].deposit).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_add(&state_1.transfer_out).ok_or(Error::<T>::OverFlow)?;
+            withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[1].state.transfer_out).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].clone().withdrawal.unwrap_or(Zero::zero())).ok_or(Error::<T>::UnderFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_0.transfer_out).ok_or(Error::<T>::UnderFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_0.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].state.transfer_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[0].state.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         } else {
             withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[1].deposit).ok_or(Error::<T>::OverFlow)?;
-            withdraw_limit = withdraw_limit.checked_add(&state_0.transfer_out).ok_or(Error::<T>::OverFlow)?;
+            withdraw_limit = withdraw_limit.checked_add(&c.peer_profiles[0].state.transfer_out).ok_or(Error::<T>::OverFlow)?;
             withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].clone().withdrawal.unwrap_or(Zero::zero())).ok_or(Error::<T>::UnderFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_1.transfer_out).ok_or(Error::<T>::UnderFlow)?;
-            withdraw_limit = withdraw_limit.checked_sub(&state_1.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].state.transfer_out).ok_or(Error::<T>::UnderFlow)?;
+            withdraw_limit = withdraw_limit.checked_sub(&c.peer_profiles[1].state.pending_pay_out).ok_or(Error::<T>::UnderFlow)?;
         }
         ensure!(amount <= withdraw_limit, "Exceed withdraw limit");
 

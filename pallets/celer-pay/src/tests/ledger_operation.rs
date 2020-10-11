@@ -120,8 +120,7 @@ pub mod test_ledger_operation {
                 0,
             ).unwrap();
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(channel_id, 1, 100, channel_peers[1], 10, zero_channel_id, peers_pair,);
             let err =LedgerOperation::<TestRuntime>::cooperative_withdraw(cooperative_withdraw_request).unwrap_err();
             assert_eq!(
@@ -482,8 +481,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let (_channel_id, _receiver, _amount) =
                 LedgerOperation::<TestRuntime>::intend_withdraw(
                     Origin::signed(channel_peers[0]),
@@ -518,8 +516,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -558,8 +555,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -593,8 +589,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -642,8 +637,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -682,8 +676,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -724,8 +717,7 @@ pub mod test_ledger_operation {
             ));
 
             System::set_block_number(2);
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 1,
@@ -762,8 +754,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 1,
@@ -804,8 +795,7 @@ pub mod test_ledger_operation {
             ));
 
             // smaller seq_num than expected one
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 0,
@@ -872,8 +862,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
                 1,
@@ -904,8 +893,7 @@ pub mod test_ledger_operation {
             let alice_pair = account_pair("Alice");
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let open_channel_request = get_open_channel_request(true, 800, 500001, 10, true, channel_peers.clone(), 1, peers_pair.clone());
             let channel_id = LedgerOperation::<TestRuntime>::open_channel(
                 Origin::signed(channel_peers[1]),
@@ -2911,8 +2899,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -2969,8 +2956,7 @@ pub mod test_ledger_operation {
             ));
 
             // intend withdraw
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let (_channel_id, _receiver_1, _amount_1) =
                 LedgerOperation::<TestRuntime>::intend_withdraw(
                     Origin::signed(channel_peers[0]),
@@ -3033,8 +3019,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -3077,8 +3062,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -3343,8 +3327,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             // intend withdraw
             let err = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
@@ -3431,8 +3414,7 @@ pub mod test_ledger_operation {
                 signed_simplex_state_array,
             ).unwrap();
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             // cooperative withdraw
             let cooperative_withdraw_request = get_cooperative_withdraw_request(
                 channel_id,
@@ -3534,8 +3516,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -3591,8 +3572,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -3655,8 +3635,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -3724,8 +3703,7 @@ pub mod test_ledger_operation {
                 0
             ));
 
-            let zero_vec = vec![0 as u8];
-            let zero_channel_id = hashing::blake2_256(&zero_vec).into();
+            let zero_channel_id = CelerPayModule::get_zero_hash();
             let _ = LedgerOperation::<TestRuntime>::intend_withdraw(
                 Origin::signed(channel_peers[0]),
                 channel_id,
@@ -4130,40 +4108,40 @@ pub mod test_ledger_operation {
         channel_peers: Vec<AccountId>,
         msg_value_receiver: u8,
     ) -> PaymentChannelInitializer<AccountId, BlockNumber, Balance> {
+        let account_amt_pair_0: AccountAmtPair<AccountId, Balance>;
         let account_amt_pair_1: AccountAmtPair<AccountId, Balance>;
-        let account_amt_pair_2: AccountAmtPair<AccountId, Balance>;
         let token_distribution: TokenDistribution<AccountId, Balance>;
         let token_info = TokenInfo {
             token_type: TokenType::Celer,
         };
 
         if zero_total_deposit == true {
-            account_amt_pair_1 = AccountAmtPair {
+            account_amt_pair_0 = AccountAmtPair {
                 account: Some(channel_peers[0]),
                 amt: 0,
             };
-            account_amt_pair_2 = AccountAmtPair {
+            account_amt_pair_1 = AccountAmtPair {
                 account: Some(channel_peers[1]),
                 amt: 0,
             };
 
             token_distribution = TokenDistribution {
                 token: token_info,
-                distribution: vec![account_amt_pair_1, account_amt_pair_2],
+                distribution: vec![account_amt_pair_0, account_amt_pair_1],
             };
         } else {
-            account_amt_pair_1 = AccountAmtPair {
+            account_amt_pair_0 = AccountAmtPair {
                 account: Some(channel_peers[0]),
                 amt: 100,
             };
-            account_amt_pair_2 = AccountAmtPair {
+            account_amt_pair_1 = AccountAmtPair {
                 account: Some(channel_peers[1]),
                 amt: 200,
             };
 
             token_distribution = TokenDistribution {
                 token: token_info,
-                distribution: vec![account_amt_pair_1, account_amt_pair_2],
+                distribution: vec![account_amt_pair_0, account_amt_pair_1],
             };
         }
 
@@ -4675,18 +4653,18 @@ pub mod test_ledger_operation {
         settle_deadline: BlockNumber,
         peers_pairs: Vec<sr25519::Pair>,
     ) -> CooperativeSettleRequest<H256, BlockNumber, AccountId, Balance, Signature> {
-        let account_amt_pair_1 = AccountAmtPair {
+        let account_amt_pair_0 = AccountAmtPair {
             account: Some(channel_peers[0]),
             amt: settle_amounts[0],
         };
-        let account_amt_pair_2 = AccountAmtPair {
+        let account_amt_pair_1 = AccountAmtPair {
             account: Some(channel_peers[1]),
             amt: settle_amounts[1],
         };
         let settle_info = CooperativeSettleInfo {
             channel_id: channel_id,
             seq_num: seq_num,
-            settle_balance: vec![account_amt_pair_1, account_amt_pair_2],
+            settle_balance: vec![account_amt_pair_0, account_amt_pair_1],
             settle_deadline: settle_deadline,
         };
 
