@@ -55,23 +55,30 @@ impl Default for Releases {
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
         /// Celer Ledger
+        /// Mapping channel status to number of channel which is corresponding to status
         pub ChannelStatusNums get(fn channel_status_nums):
             map hasher(blake2_128_concat) u8 => Option<u8>;
 
+        /// Mapping the channel id to Channel
         pub ChannelMap get(fn channel_map):
                 map hasher(blake2_128_concat) T::Hash => Option<ChannelOf<T>>;
 
         /// Celer Wallet
+        /// Number of wallet
         pub WalletNum get(fn wallet_num): u128;
+        /// Mapping the wallet id(channel id) to Wallet
         pub Wallets get(fn wallet): map hasher(blake2_128_concat) T::Hash => Option<WalletOf<T>>;
 
         /// Pool
+        /// Mapping owner to amount of funds in Pool
         pub PoolBalances get(fn balances):
                 map hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
+        /// Mapping (owner, spender) to amount of funds to be allowed by owner
         pub Allowed get(fn allowed):
                 double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
 
         // PayRegistry
+        /// Mapping pay id to PayInfo
         pub PayInfoMap get(fn info_map):
                 map hasher(blake2_128_concat) T::Hash => Option<PayInfoOf<T>>;
 
@@ -250,8 +257,8 @@ decl_module! {
         ///   - 1 storage mutation `ChannelMap`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
-        ///   - 1 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 1 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
@@ -284,8 +291,8 @@ decl_module! {
         //    - N storage mutation `ChannelMap`
         ///   - 2*N storage reads `Wallets`
         ///   - 2*N storage mutation `Wallets`
-        ///   - N storage reads `Balances`
-        ///   - N storage mutation `Balances`
+        ///   - N storage reads `PoolBalances`
+        ///   - N storage mutation `PoolBalances`
         ///   - 2*N storage reads `Allowed`
         ///   - N storage mutation `Allowed`
         /// # </weight
