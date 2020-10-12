@@ -19,7 +19,6 @@ pub enum ConditionType {
     NumericRuntimeModule, 
 }
 
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Condition<Hash, Call> {
     pub condition_type: ConditionType,

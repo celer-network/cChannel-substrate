@@ -125,10 +125,8 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
-        let pay_hash_len = pay_hashes.len();
-        let mut pay_id: T::Hash;
-        for i in 0..pay_hash_len {
-            pay_id = Self::calculate_pay_id(pay_hashes[i]);
+        for i in 0..pay_hashes.len() {
+            let pay_id = Self::calculate_pay_id(pay_hashes[i]);
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
@@ -168,10 +166,8 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == deadlines.len(), "Lengths do not match");
 
-        let pay_hash_len = pay_hashes.len();
-        let mut pay_id: T::Hash;
-        for i in 0..pay_hash_len {
-            pay_id = Self::calculate_pay_id(pay_hashes[i]);
+        for i in 0..pay_hashes.len() {
+            let pay_id = Self::calculate_pay_id(pay_hashes[i]);
             if PayInfoMap::<T>::contains_key(&pay_id) {
                 let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
                 let new_pay_info = PayInfoOf::<T> {
@@ -212,10 +208,8 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         ensure!(pay_hashes.len() == amts.len(), "Lengths do not match");
 
-        let pay_hash_len = pay_hashes.len();
-        let mut pay_id: T::Hash;
-        for i in 0..pay_hash_len {
-            pay_id = Self::calculate_pay_id(pay_hashes[i]);
+        for i in 0..pay_hashes.len() {
+            let pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
             let new_pay_info = PayInfoOf::<T> {
                 amount: Some(amts[i]),
@@ -239,12 +233,9 @@ impl<T: Trait> PayRegistry<T> {
         last_pay_resolve_deadline: T::BlockNumber,
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
         let mut amounts: Vec<BalanceOf<T>> = vec![];
-        let pay_id_len = pay_ids.len();
-
-        let mut pay_info: PayInfoOf<T>;
-        for i in 0..pay_id_len {
+        for i in 0..pay_ids.len() {
             if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
-                pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
+                let pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
                 if pay_info.resolve_deadline.unwrap_or(Zero::zero()) == Zero::zero() {
                     // should pass last pay resolve deadline if never resolved
                     ensure!(

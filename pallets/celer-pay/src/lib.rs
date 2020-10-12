@@ -946,7 +946,7 @@ impl<T: Trait> Module<T> {
         return BalanceInfo { amount: balance };
     }
 
-    /// Return 
+    /// Return one channel's balance map
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1265,8 +1265,6 @@ impl<T: Trait> Module<T> {
     }
 
     pub fn get_zero_hash() -> T::Hash {
-        //let zero_vec = vec![0 as u8];
-        let get_zero_hash = T::Hashing::hash_of(&0);
-        return get_zero_hash;
+        T::Hashing::hash_of(&0)
     }
 }
