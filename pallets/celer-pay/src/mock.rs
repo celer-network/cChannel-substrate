@@ -57,45 +57,45 @@ parameter_types! {
 }
 
 impl frame_system::Trait for TestRuntime {
-    /// The basic call filter to use in dispatchable.
+    	/// The basic call filter to use in dispatchable.
 	type BaseCallFilter = ();
-    /// The identifier used to distinguish between accounts.
+    	/// The identifier used to distinguish between accounts.
 	type AccountId = sr25519::Public;
-    /// The aggregated dispatch type that is available for extrinsics.
+    	/// The aggregated dispatch type that is available for extrinsics.
 	type Call = Call;
-    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
+    	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = IdentityLookup<AccountId>;
-    /// The index type for storing how many extrinsics an account has signed.
+    	/// The index type for storing how many extrinsics an account has signed.
 	type Index = u64;
-    /// The index type for blocks.
+    	/// The index type for blocks.
 	type BlockNumber = u64;
-    /// The type for hashing blocks and tries.
+   	/// The type for hashing blocks and tries.
 	type Hash = H256;
-    /// The hashing algorithm used.
+    	/// The hashing algorithm used.
 	type Hashing = BlakeTwo256;
-    /// The header type.
+    	/// The header type.
 	type Header = Header;
-    /// The ubiquitous event type.
+    	/// The ubiquitous event type.
 	type Event = TestEvent;
-    /// The ubiquitous origin type.
+    	/// The ubiquitous origin type.
 	type Origin = Origin;
-    /// Maximum number of block number to block hash mappings to keep (oldest pruned first).
+    	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
 	type BlockHashCount = BlockHashCount;
 	/// Maximum weight of each block.
 	type MaximumBlockWeight = MaximumBlockWeight;
-    /// The weight of database operations that the runtime can invoke.
+    	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = ();
-    /// The weight of the overhead invoked on the block import process, independent of the
+    	/// The weight of the overhead invoked on the block import process, independent of the
 	/// extrinsics included in that block.
 	type BlockExecutionWeight = ();
-    /// The base weight of any extrinsic processed by the runtime, independent of the
+    	/// The base weight of any extrinsic processed by the runtime, independent of the
 	/// logic of that extrinsic. (Signature verification, nonce increment, fee, etc...)
 	type ExtrinsicBaseWeight = ();
-    /// The maximum weight that a single extrinsic of `Normal` dispatch class can have,
+    	/// The maximum weight that a single extrinsic of `Normal` dispatch class can have,
 	/// idependent of the logic of that extrinsics. (Roughly max block weight - average on
 	/// initialize cost).
 	type MaximumExtrinsicWeight = MaximumBlockWeight;
-    /// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
+    	/// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
 	type MaximumBlockLength = MaximumBlockLength;
 	/// Portion of the block weight that is available to all normal transactions.
 	type AvailableBlockRatio = AvailableBlockRatio;
