@@ -559,8 +559,11 @@ impl_runtime_apis! {
 			CelerPayModule::get_pay_resolver_id()
 		}
 
-		fn calculate_pay_id(pay_hash: Hash) -> Hash {
-			CelerPayModule::calculate_pay_id(pay_hash)
+		fn get_pay_info(pay_id: Hash) -> (
+			celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>,
+			BlockNumber
+		) {
+			CelerPayModule::get_pay_info(pay_id)
 		}
 	}
 

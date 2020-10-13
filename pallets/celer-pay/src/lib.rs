@@ -11,7 +11,7 @@ mod numeric_condition_caller;
 pub mod traits;
 
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 use codec::{Decode, Encode};
 use frame_support::{
@@ -26,7 +26,7 @@ use ledger_operation::{
     LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf, CELER_LEDGER_ID,
 };
 use celer_wallet::{WalletOf, WALLET_ID};
-use pay_registry::{PayInfoOf, PayRegistry};
+use pay_registry::{PayInfoOf};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, PAY_RESOLVER_ID};
 use pool::{Pool, POOL_ID};
 pub use traits::Trait;
@@ -1229,19 +1229,29 @@ impl<T: Trait> Module<T> {
     }
 
 /// ================================ PayResolver =============================================
-    /// Retun AccountId of PayResolver module
+    /// Return AccountId of PayResolver module
     pub fn get_pay_resolver_id() -> T::AccountId {
         return PAY_RESOLVER_ID.into_account();
     }
 
 /// ================================= PayRegistry ============================================
-    /// Calculate pay id
+    /// Return PayInfo corresponding to pay_id
     ///
     /// Parameter:
-    /// `pay_hash`: hash of serialized cond_pay
-    pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
-        let pay_id = PayRegistry::<T>::calculate_pay_id(pay_hash);
-        return pay_id;
+    /// `pay_id`: Id of payment
+    pub fn get_pay_info(pay_id: T::Hash) -> (BalanceInfo<BalanceOf<T>>, T::BlockNumber) {
+        if PayInfoMap::<T>::contains_key(&pay_id) {
+            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
+            return (
+                BalanceInfo { amount: pay_info.amount.unwrap_or(Zero::zero()) }, 
+                pay_info.resolve_deadline.unwrap_or(Zero::zero())
+            );
+        } else {
+            return (
+                BalanceInfo { amount: Zero::zero() }, 
+                Zero::zero()
+            );
+        }
     }
 
 /// =================================== Helper ===============================================
