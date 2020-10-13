@@ -521,13 +521,13 @@ impl_runtime_apis! {
 		}
 
 		fn get_peers_migration_info(channel_id: Hash) -> (
-            Vec<AccountId>,
-            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
-            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
-            Vec<celer_pay_module_rpc_runtime_api::SeqNumInfo>,
-            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
-            Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>
-        ) {
+            		Vec<AccountId>,
+            		Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            		Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            		Vec<celer_pay_module_rpc_runtime_api::SeqNumInfo>,
+            		Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>,
+            		Vec<celer_pay_module_rpc_runtime_api::BalanceInfo<Balance>>
+        	) {
 			CelerPayModule::get_peers_migration_info(channel_id)
 		}
 
