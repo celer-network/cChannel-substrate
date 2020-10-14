@@ -4685,7 +4685,7 @@ pub mod test_ledger_operation {
 
         return cooperative_settle_request;
     }
-
+    
     pub fn get_token_transfer(
         account: AccountId,
         amount: Balance,

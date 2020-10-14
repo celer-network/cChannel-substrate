@@ -102,6 +102,6 @@ sp_api::decl_runtime_apis! {
 
         fn get_pay_resolver_id() -> AccountId;
 
-        fn calculate_pay_id(pay_hash: Hash) -> Hash;
+        fn get_pay_info(pay_id: Hash) -> (BalanceInfo<Balance>, BlockNumber);
     }
 }

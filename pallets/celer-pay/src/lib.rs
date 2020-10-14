@@ -11,7 +11,7 @@ mod numeric_condition_caller;
 pub mod traits;
 
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 use codec::{Decode, Encode};
 use frame_support::{
@@ -26,7 +26,7 @@ use ledger_operation::{
     LedgerOperation, OpenChannelRequestOf, PayIdList, SignedSimplexStateArrayOf, CELER_LEDGER_ID,
 };
 use celer_wallet::{WalletOf, WALLET_ID};
-use pay_registry::{PayInfoOf, PayRegistry};
+use pay_registry::{PayInfoOf};
 use pay_resolver::{PayResolver, ResolvePaymentConditionsRequestOf, VouchedCondPayResultOf, PAY_RESOLVER_ID};
 use pool::{Pool, POOL_ID};
 pub use traits::Trait;
@@ -55,23 +55,30 @@ impl Default for Releases {
 decl_storage! {
     trait Store for Module<T: Trait> as CelerLedger {
         /// Celer Ledger
+        /// Mapping channel status to number of channel which is corresponding to status
         pub ChannelStatusNums get(fn channel_status_nums):
             map hasher(blake2_128_concat) u8 => Option<u8>;
 
+        /// Mapping the channel id to Channel
         pub ChannelMap get(fn channel_map):
                 map hasher(blake2_128_concat) T::Hash => Option<ChannelOf<T>>;
 
         /// Celer Wallet
+        /// Number of wallet
         pub WalletNum get(fn wallet_num): u128;
+        /// Mapping the wallet id(channel id) to Wallet
         pub Wallets get(fn wallet): map hasher(blake2_128_concat) T::Hash => Option<WalletOf<T>>;
 
         /// Pool
+        /// Mapping owner to amount of funds in Pool
         pub PoolBalances get(fn balances):
                 map hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
+        /// Mapping (owner, spender) to amount of funds to be allowed by owner
         pub Allowed get(fn allowed):
                 double_map hasher(blake2_128_concat) T::AccountId, hasher(blake2_128_concat) T::AccountId => Option<BalanceOf<T>>;
 
         // PayRegistry
+        /// Mapping pay id to PayInfo
         pub PayInfoMap get(fn info_map):
                 map hasher(blake2_128_concat) T::Hash => Option<PayInfoOf<T>>;
 
@@ -250,8 +257,8 @@ decl_module! {
         ///   - 1 storage mutation `ChannelMap`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
-        ///   - 1 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 1 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
@@ -284,8 +291,8 @@ decl_module! {
         //    - N storage mutation `ChannelMap`
         ///   - 2*N storage reads `Wallets`
         ///   - 2*N storage mutation `Wallets`
-        ///   - N storage reads `Balances`
-        ///   - N storage mutation `Balances`
+        ///   - N storage reads `PoolBalances`
+        ///   - N storage mutation `PoolBalances`
         ///   - 2*N storage reads `Allowed`
         ///   - N storage mutation `Allowed`
         /// # </weight
@@ -946,7 +953,7 @@ impl<T: Trait> Module<T> {
         return BalanceInfo { amount: balance };
     }
 
-    /// Return 
+    /// Return one channel's balance map
     ///
     /// Parameter:
     /// `channel_id`: Id of channel
@@ -1222,19 +1229,29 @@ impl<T: Trait> Module<T> {
     }
 
 /// ================================ PayResolver =============================================
-    /// Retun AccountId of PayResolver module
+    /// Return AccountId of PayResolver module
     pub fn get_pay_resolver_id() -> T::AccountId {
         return PAY_RESOLVER_ID.into_account();
     }
 
 /// ================================= PayRegistry ============================================
-    /// Calculate pay id
+    /// Return PayInfo corresponding to pay_id
     ///
     /// Parameter:
-    /// `pay_hash`: hash of serialized cond_pay
-    pub fn calculate_pay_id(pay_hash: T::Hash) -> T::Hash {
-        let pay_id = PayRegistry::<T>::calculate_pay_id(pay_hash);
-        return pay_id;
+    /// `pay_id`: Id of payment
+    pub fn get_pay_info(pay_id: T::Hash) -> (BalanceInfo<BalanceOf<T>>, T::BlockNumber) {
+        if PayInfoMap::<T>::contains_key(&pay_id) {
+            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
+            return (
+                BalanceInfo { amount: pay_info.amount.unwrap_or(Zero::zero()) }, 
+                pay_info.resolve_deadline.unwrap_or(Zero::zero())
+            );
+        } else {
+            return (
+                BalanceInfo { amount: Zero::zero() }, 
+                Zero::zero()
+            );
+        }
     }
 
 /// =================================== Helper ===============================================
@@ -1265,8 +1282,6 @@ impl<T: Trait> Module<T> {
     }
 
     pub fn get_zero_hash() -> T::Hash {
-        //let zero_vec = vec![0 as u8];
-        let get_zero_hash = T::Hashing::hash_of(&0);
-        return get_zero_hash;
+        T::Hashing::hash_of(&0)
     }
 }

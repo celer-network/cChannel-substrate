@@ -33,6 +33,7 @@ pub trait CelerPayModuleApi<
     PendingPayOutMapType,
     WithdrawIntentType,
     PeersMigrationInfoType,
+    PayInfoType,
 > 
 where Balance: std::str::FromStr,
 {
@@ -105,8 +106,8 @@ where Balance: std::str::FromStr,
     #[rpc(name = "celerPayModule_getPayResolverId")]
     fn get_pay_resolver_id(&self, at: Option<BlockHash>) -> Result<AccountId>;
 
-    #[rpc(name = "celerPayModule_calculatePayId")]
-    fn calculate_pay_id(&self, pay_hash: Hash, at: Option<BlockHash>) -> Result<Hash>;
+    #[rpc(name = "celerPayModule_getPayInfo")]
+    fn get_pay_info(&self, pay_id: Hash, at: Option<BlockHash>) -> Result<PayInfoType>;
 }
 
 /// A struct that implements the `CelerPayModuleApi'
@@ -139,6 +140,7 @@ impl<C, Block, AccountId, Hash, Balance, BlockNumber>
         (Vec<AccountId>, Vec<BalanceInfo<Balance>>),
         (AccountId, BalanceInfo<Balance>, BlockNumber, Hash),
         (Vec<AccountId>, Vec<BalanceInfo<Balance>>, Vec<BalanceInfo<Balance>>, Vec<SeqNumInfo>, Vec<BalanceInfo<Balance>>, Vec<BalanceInfo<Balance>>),
+        (BalanceInfo<Balance>, BlockNumber),
     > for CelerPayModule<C, Block>
 where
     Block: BlockT,
@@ -472,16 +474,16 @@ where
         })
     }
 
-    fn calculate_pay_id(&self, pay_hash: Hash, at: Option<<Block as BlockT>::Hash>) -> Result<Hash> {
+    fn get_pay_info(&self, pay_id: Hash, at: Option<<Block as BlockT>::Hash>) -> Result<(BalanceInfo<Balance>, BlockNumber)> {
         let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-        let runtime_api_result = api.calculate_pay_id(&at, pay_hash);
+        let runtime_api_result = api.get_pay_info(&at, pay_id);
         runtime_api_result.map_err(|e| RpcError {
             code: ErrorCode::ServerError(9876),
-            message: "Can't calculate pay id".into(),
+            message: "Can't get pay info".into(),
             data: Some(format!("{:?}", e).into()),
         })
     }
