@@ -2,10 +2,11 @@
 authors = ['Celer']
 build = 'build.rs'
 edition = '2018'
-license = 'MIT License'
 name = 'celer-network'
 repository = 'https://github.com/celer-network/cChannel-substrate/'
 version = '0.8.8'
+license = "MIT"
+description = "Substrate Node which is integrated celer-pay-module"
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']

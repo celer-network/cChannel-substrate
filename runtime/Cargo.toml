@@ -1,10 +1,11 @@
 [package]
 authors = ['Celer']
 edition = '2018'
-license = 'MIT'
 name = 'celer-runtime'
 repository = 'https://github.com/celer-network/cChannel-substrate'
 version = '0.8.8'
+license = "MIT"
+description = "Configure of substrate runtime modules"
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
