@@ -123,7 +123,7 @@ mod weight_for {
     pub(crate) fn resolve_payment_by_conditions<T: Trait>(
         conditions_len: Weight
     ) -> Weight {
-        T::DbWeight::get().reads_writes(2, 1)
+        T::DbWeight::get().reads_writes(1, 1)
             .saturating_add(100_000_000)
             .saturating_add(conditions_len.saturating_mul(50_000_000))
     }
@@ -132,7 +132,7 @@ mod weight_for {
     pub(crate) fn resolve_payment_by_vouched_result<T: Trait>(
         conditions_len: Weight
     ) -> Weight {
-        T::DbWeight::get().reads_writes(2, 1)
+        T::DbWeight::get().reads_writes(1, 1)
             .saturating_add(100_000_000)
             .saturating_add(conditions_len.saturating_mul(50_000_000))
     }
@@ -599,10 +599,10 @@ decl_module! {
         /// ## Weight
         /// - Complexity: `O(1)`
         /// - DB:
-        ///   - 2 storage reads `PoolBalances`
+        ///   - 1 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
         /// #</weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(2, 1)]
+        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
@@ -743,7 +743,7 @@ decl_module! {
         /// - Complexity: `O(N)`
         ///     - N: condtions-len
         /// - DB:
-        ///   - 2 storage reads `PayRegistry`
+        ///   - 1 storage reads `PayRegistry`
         ///   - 1 storage mutation `PayRegistry`
         /// # </weight>
         #[weight = (
@@ -774,7 +774,7 @@ decl_module! {
         /// - Complexity: `O(N)`
         ///     - N: conditions-len
         /// - DB:
-        ///   - 2 storage reads `PayRegistry`
+        ///   - 1 storage reads `PayRegistry`
         ///   - 1 storage mutation `PayRegistry`
         /// # </weight>
         #[weight = (

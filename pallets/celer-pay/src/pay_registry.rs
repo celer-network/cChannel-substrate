@@ -264,16 +264,18 @@ impl<T: Trait> PayRegistry<T> {
     }
 
     pub fn get_pay_info(pay_id: T::Hash) -> Result<(BalanceOf<T>, T::BlockNumber), DispatchError> {
-        if PayInfoMap::<T>::contains_key(&pay_id) {
-            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-            return Ok((pay_info.amount.unwrap_or(Zero::zero()), pay_info.resolve_deadline.unwrap_or(Zero::zero())));
-        } else {
-            let pay_info = PayInfoOf::<T> {
-                amount: Some(Zero::zero()),
-                resolve_deadline: Some(Zero::zero()),
-            };
-            PayInfoMap::<T>::insert(&pay_id, &pay_info);
-            return Ok((Zero::zero(), Zero::zero()));
+        match PayInfoMap::<T>::get(&pay_id) {
+            Some(pay_info) => {
+                return Ok((pay_info.amount.unwrap_or(Zero::zero()), pay_info.resolve_deadline.unwrap_or(Zero::zero())));
+            },
+            None => {
+                let pay_info = PayInfoOf::<T> {
+                    amount: Some(Zero::zero()),
+                    resolve_deadline: Some(Zero::zero()),
+                };
+                PayInfoMap::<T>::insert(&pay_id, &pay_info);
+                return Ok((Zero::zero(), Zero::zero()));
+            }
         }
     }
 }
