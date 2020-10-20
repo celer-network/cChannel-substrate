@@ -34,12 +34,12 @@ impl<T: Trait> Pool<T> {
         let pool_account = CelerPayModule::<T>::get_pool_id();
         ensure!(receiver != pool_account, "receiver address is pool account");
 
-        if PoolBalances::<T>::contains_key(&receiver) == false {
-            PoolBalances::<T>::insert(&receiver, &msg_value);
-        } else {
-            let balances = PoolBalances::<T>::get(&receiver).unwrap();
-            let new_balances = balances.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
-            PoolBalances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
+        match PoolBalances::<T>::get(&receiver) {
+            Some(pool_balances) => {
+                let new_balances = pool_balances.checked_add(&msg_value).ok_or(Error::<T>::OverFlow)?;
+                PoolBalances::<T>::mutate(&receiver, |balances| *balances = Some(new_balances));
+            },
+            None => PoolBalances::<T>::insert(&receiver, &msg_value),
         }
 
         T::Currency::transfer(
