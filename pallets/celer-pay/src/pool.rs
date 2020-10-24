@@ -27,7 +27,7 @@ impl<T: Trait> Pool<T> {
         let caller = ensure_signed(origin)?;
 
         ensure!(
-            T::Currency::free_balance(&caller) >= msg_value,
+            <T as Trait>::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances"
         );
 
@@ -42,7 +42,7 @@ impl<T: Trait> Pool<T> {
             None => PoolBalances::<T>::insert(&receiver, &msg_value),
         }
 
-        T::Currency::transfer(
+        <T as Trait>::Currency::transfer(
             &caller,
             &pool_account,
             msg_value,
@@ -75,7 +75,7 @@ impl<T: Trait> Pool<T> {
         PoolBalances::<T>::mutate(&caller, |balance| *balance = Some(new_balances));
 
         let pool_account = CelerPayModule::<T>::get_pool_id();
-        T::Currency::transfer(
+        <T as Trait>::Currency::transfer(
             &pool_account,
             &caller,
             value,
@@ -217,7 +217,7 @@ impl<T: Trait> Pool<T> {
 
         let pool_account = CelerPayModule::<T>::get_pool_id();
         let celer_wallet_account = CelerPayModule::<T>::get_celer_wallet_id();
-        T::Currency::transfer(
+        <T as Trait>::Currency::transfer(
             &pool_account,
             &celer_wallet_account,
             amount,
@@ -295,7 +295,7 @@ fn _transfer<T: Trait>(
     PoolBalances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 
     let pool_account = CelerPayModule::<T>::get_pool_id();
-    T::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
+    <T as Trait>::Currency::transfer(&pool_account, &to, value, ExistenceRequirement::AllowDeath)?;
 
     Ok(())
 }
