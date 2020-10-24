@@ -10,7 +10,7 @@ use sp_std::prelude::*;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	MultiSigner, ApplyExtrinsicResult, generic, create_runtime_str, impl_opaque_keys, MultiSignature,
-	transaction_validity::{TransactionValidity, TransactionSource},
+	transaction_validity::{TransactionValidity, TransactionSource}, Perquintill, FixedPointNumber,
 };
 use sp_runtime::traits::{
 	BlakeTwo256, Block as BlockT, IdentityLookup, Verify, IdentifyAccount, NumberFor, Saturating,
@@ -19,6 +19,7 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_grandpa::fg_primitives;
+use pallet_transaction_payment::{Multiplier, TargetedFeeAdjustment};
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -28,6 +29,7 @@ use sp_version::NativeVersion;
 pub use sp_runtime::BuildStorage;
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_balances::Call as BalancesCall;
+use pallet_contracts_rpc_runtime_api::ContractExecResult;
 pub use sp_runtime::{Permill, Perbill};
 pub use frame_support::{
 	construct_runtime, parameter_types, StorageValue,
@@ -115,6 +117,12 @@ pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
+
+// Money
+pub const MILLICENTS: Balance = 1_000_000_000;
+pub const CENTS: Balance = 1_000 * MILLICENTS;
+pub const DOLLARS: Balance = 100 * CENTS;
+pub const CANS: Balance = CENTS;
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -249,7 +257,11 @@ impl pallet_balances::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const TransactionByteFee: Balance = 1;
+	/// 1 CAN = 1 Megabyte
+	pub const TransactionByteFee: Balance = CANS / (1024 * 1024);
+	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
 impl pallet_transaction_payment::Trait for Runtime {
@@ -257,12 +269,39 @@ impl pallet_transaction_payment::Trait for Runtime {
 	type OnTransactionPayment = ();
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = IdentityFee<Balance>;
-	type FeeMultiplierUpdate = ();
+	type FeeMultiplierUpdate =
+		TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 impl pallet_sudo::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
+}
+
+parameter_types! {
+	pub const TombstoneDeposit: Balance = 16 * MILLICENTS;
+	pub const RentByteFee: Balance = 4 * MILLICENTS;
+	pub const RentDepositOffset: Balance = 1000 * MILLICENTS;
+	pub const SurchargeReward: Balance = 150 * MILLICENTS;
+}
+
+impl pallet_contracts::Trait for Runtime {
+	type Time = Timestamp;
+	type Randomness = RandomnessCollectiveFlip;
+	type Currency = Balances;
+	type Event = Event;
+	type DetermineContractAddress = pallet_contracts::SimpleAddressDeterminer<Runtime>;
+	type TrieIdGenerator = pallet_contracts::TrieIdFromParentCounter<Runtime>;
+	type RentPayment = ();
+	type SignedClaimHandicap = pallet_contracts::DefaultSignedClaimHandicap;
+	type TombstoneDeposit = TombstoneDeposit;
+	type StorageSizeOffset = pallet_contracts::DefaultStorageSizeOffset;
+	type RentByteFee = RentByteFee;
+	type RentDepositOffset = RentDepositOffset;
+	type SurchargeReward = SurchargeReward;
+	type MaxDepth = pallet_contracts::DefaultMaxDepth;
+	type MaxValueSize = pallet_contracts::DefaultMaxValueSize;
+	type WeightPrice = pallet_transaction_payment::Module<Self>;
 }
 
 impl celer_pay_module::Trait for Runtime {
@@ -292,6 +331,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
+		Contracts: pallet_contracts::{Module, Call, Storage, Event<T>},
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
@@ -443,6 +483,42 @@ impl_runtime_apis! {
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {
 			System::account_nonce(account)
+		}
+	}
+
+	impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber>
+		for Runtime
+	{
+		fn call(
+			origin: AccountId,
+			dest: AccountId,
+			value: Balance,
+			gas_limit: u64,
+			input_data: Vec<u8>,
+		) -> ContractExecResult {
+			let (exec_result, gas_consumed) =
+				Contracts::bare_call(origin, dest.into(), value, gas_limit, input_data);
+			match exec_result {
+				Ok(v) => ContractExecResult::Success {
+					flags: v.flags.bits(),
+					data: v.data,
+					gas_consumed: gas_consumed,
+				},
+				Err(_) => ContractExecResult::Error,
+			}
+		}
+
+		fn get_storage(
+			address: AccountId,
+			key: [u8; 32],
+		) -> pallet_contracts_primitives::GetStorageResult {
+			Contracts::get_storage(address, key)
+		}
+
+		fn rent_projection(
+			address: AccountId,
+		) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
+			Contracts::rent_projection(address)
 		}
 	}
 

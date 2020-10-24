@@ -29,7 +29,7 @@ impl<T: Trait> CelerWallet<T> {
         let caller = ensure_signed(origin)?;
 
         ensure!(
-            T::Currency::free_balance(&caller) >= msg_value,
+            <T as Trait>::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances"
         );
 
@@ -66,7 +66,7 @@ fn update_balance<T: Trait>(
 
     Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-    T::Currency::transfer(
+    <T as Trait>::Currency::transfer(
         &caller,
         &celer_wallet_account,
         msg_value,

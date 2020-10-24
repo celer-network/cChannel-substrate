@@ -313,7 +313,7 @@ impl<T: Trait> LedgerOperation<T> {
     ) -> Result<T::Hash, DispatchError> {
         let caller = ensure_signed(origin.clone())?;
         ensure!(
-            T::Currency::free_balance(&caller) >= msg_value,
+            <T as Trait>::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances."
         );
 
@@ -464,7 +464,7 @@ impl<T: Trait> LedgerOperation<T> {
             None => Err(Error::<T>::ChannelNotExist)?,
         };
         ensure!(
-            T::Currency::free_balance(&caller) >= msg_value,
+            <T as Trait>::Currency::free_balance(&caller) >= msg_value,
             "caller does not have enough balances."
         );
         let deposit_amount: BalanceOf<T> = msg_value.checked_add(&transfer_from_amount).ok_or(Error::<T>::OverFlow)?;
@@ -1493,7 +1493,7 @@ fn update_balance<T: Trait>(
 
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-        T::Currency::transfer(
+        <T as Trait>::Currency::transfer(
             &celer_wallet_account,
             &caller,
             amount,
@@ -1501,7 +1501,7 @@ fn update_balance<T: Trait>(
         )?;
     } else if op == MathOperation::Add {
         ensure!(
-            T::Currency::free_balance(&caller) >= amount,
+            <T as Trait>::Currency::free_balance(&caller) >= amount,
             "caller does not have enough balances."
         );
         let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
@@ -1512,7 +1512,7 @@ fn update_balance<T: Trait>(
 
         Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
 
-        T::Currency::transfer(
+        <T as Trait>::Currency::transfer(
             &caller,
             &celer_wallet_account,
             amount,
