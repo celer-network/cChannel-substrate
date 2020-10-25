@@ -1,9 +1,9 @@
 use super::{
     Module as CelerPayModule, Allowed, BalanceOf, 
-    PoolBalances, Error, Wallets, RawEvent
+    PoolBalances, Error, RawEvent
 };
 use crate::traits::Trait;
-use crate::celer_wallet::{WalletOf, CelerWallet};
+use crate::celer_wallet::CelerWallet;
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
     ensure,
