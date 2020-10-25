@@ -1,14 +1,14 @@
 use super::{
     BalanceOf, ChannelMap, ChannelStatusNums, Error, 
-    Module as CelerPayModule, Wallets, RawEvent
+    Module as CelerPayModule, RawEvent
 };
 use crate::traits::Trait;
-use crate::celer_wallet::{CelerWallet, WalletOf};
+use crate::celer_wallet::CelerWallet;
 use crate::pay_registry::PayRegistry;
 use crate::pay_resolver::{AccountAmtPair, TokenInfo, TokenTransfer, TokenType};
 use crate::pool::Pool;
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, ExistenceRequirement};
+use frame_support::traits::Currency;
 use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero};
@@ -217,12 +217,6 @@ pub type CooperativeSettleRequestOf<T> = CooperativeSettleRequest<
     <T as Trait>::Signature,
 >;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub enum MathOperation {
-    Add,
-    Sub,
-}
-
 pub const CELER_LEDGER_ID: ModuleId = ModuleId(*b"_ledger_");
 
 pub struct LedgerOperation<T>(sp_std::marker::PhantomData<T>);
@@ -354,8 +348,13 @@ impl<T: Trait> LedgerOperation<T> {
         let encoded = encode_channel_initializer::<T>(channel_initializer.clone());
         CelerPayModule::<T>::valid_signers(open_request.sigs, &encoded, peer_addrs.clone())?;
 
+        let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
         let h = T::Hashing::hash(&encoded);
-        let channel_id = create_wallet::<T>(peer_addrs.clone(), h)?;
+        let channel_id = CelerWallet::<T>::create_wallet(
+            frame_system::RawOrigin::Signed(celer_ledger_account).into(),
+            peer_addrs.clone(),
+            h
+        )?;
 
         let mut peer_profiles: Vec<PeerProfileOf<T>> = vec![];
         for i in 0..2 {
@@ -421,7 +420,7 @@ impl<T: Trait> LedgerOperation<T> {
             let msg_value_receiver = channel_initializer.msg_value_receiver as usize;
             ensure!(msg_value == amounts[msg_value_receiver], "amount mismatch");
             if amounts[msg_value_receiver] > Zero::zero() {
-                CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
+                CelerWallet::<T>::deposit_native_token(caller, channel_id, msg_value)?;
             }
 
             // peer ID of non-msg_value_receiver
@@ -472,7 +471,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         if c.token.token_type == TokenType::Celer {
             if msg_value > Zero::zero() {
-                CelerWallet::<T>::deposit_native_token(origin, channel_id, msg_value)?;
+                CelerWallet::<T>::deposit_native_token(caller.clone(), channel_id, msg_value)?;
             }
             let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
             if transfer_from_amount > Zero::zero() {
@@ -1132,46 +1131,6 @@ fn get_total_balance<T: Trait>(
     return Ok(balance);
 }
 
-// create a wallet for a new channel
-fn create_wallet<T: Trait>(
-    peers: Vec<T::AccountId>,
-    nonce: T::Hash,
-) -> Result<T::Hash, DispatchError> {
-    let wallet_id: T::Hash = create_wallet_id::<T>(peers.clone(), nonce);
-
-    // Check wallet_id is not exist.
-    ensure!(
-        Wallets::<T>::contains_key(&wallet_id) == false,
-        "Occupied wallet id"
-    );
-
-    let new_balance = Zero::zero();
-    let wallet = WalletOf::<T> {
-        owners: peers,
-        balance: new_balance,
-    };
-
-    // create new wallet
-    Wallets::<T>::insert(&wallet_id, &wallet);
-
-    return Ok(wallet_id);
-}
-
-// create wallet id
-fn create_wallet_id<T: Trait>(peers: Vec<T::AccountId>, nonce: T::Hash) -> T::Hash {
-    let mut encoded = peers[0].clone().encode();
-    encoded.extend(peers[1].encode());
-    encoded.extend(nonce.encode());
-    let wallet_id = T::Hashing::hash(&encoded);
-
-    // Emit CreateWallet event
-    CelerPayModule::<T>::deposit_event(RawEvent::CreateWallet(
-        wallet_id,
-        vec![peers[0].clone(), peers[1].clone()]
-    ));
-    return wallet_id;
-}
-
 // Internal function to add deposit of a channel
 fn add_deposit<T: Trait>(
     channel_id: T::Hash,
@@ -1226,11 +1185,17 @@ fn batch_transfer_out<T: Trait>(
     receivers: Vec<T::AccountId>,
     amounts: Vec<BalanceOf<T>>,
 ) -> Result<(), DispatchError> {
+    let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
     for i in 0..2 {
         if amounts[i] == Zero::zero() {
             continue;
         }
-        withdraw::<T>(channel_id, receivers[i].clone(), amounts[i])?;
+        CelerWallet::<T>::withdraw(
+            frame_system::RawOrigin::Signed(celer_ledger_account.clone()).into(),
+            channel_id, 
+            receivers[i].clone(), 
+            amounts[i]
+        )?;
     }
 
     Ok(())
@@ -1248,9 +1213,15 @@ fn withdraw_funds<T: Trait>(
         return Ok(());
     }
 
+    let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
     let zero_channel_id: T::Hash = CelerPayModule::<T>::get_zero_hash();
     if recipient_channel_id == zero_channel_id {
-        withdraw::<T>(channel_id, receiver, amount)?;
+        CelerWallet::<T>::withdraw(
+            frame_system::RawOrigin::Signed(celer_ledger_account).into(),
+            channel_id, 
+            receiver,
+            amount,
+        )?;
     } else {
         let recipient_channel = ChannelMap::<T>::get(recipient_channel_id).unwrap();
         ensure!(
@@ -1260,7 +1231,13 @@ fn withdraw_funds<T: Trait>(
         add_deposit::<T>(recipient_channel_id, receiver.clone(), amount)?;
 
         // move funds from one channel's wallet to another channel's wallet
-        transfer_to_wallet::<T>(channel_id, recipient_channel_id, receiver, amount)?;
+        CelerWallet::<T>::transfer_to_wallet(
+            frame_system::RawOrigin::Signed(celer_ledger_account).into(),
+            channel_id, 
+            recipient_channel_id, 
+            receiver, 
+            amount
+        )?;
     }
 
     Ok(())
@@ -1298,8 +1275,7 @@ fn _clear_pays<T: Trait>(
         state.last_pay_resolve_deadline,
     )?;
     let mut total_amt_out: BalanceOf<T> = Zero::zero();
-    let out_amts_len = out_amts.len();
-    for i in 0..out_amts_len {
+    for i in 0..out_amts.len() {
         total_amt_out = total_amt_out.checked_add(&out_amts[i])
             .ok_or(Error::<T>::OverFlow)?;
         // Emit ClearOnePay event
@@ -1441,128 +1417,6 @@ fn get_state_seq_nums<T: Trait>(channel_id: T::Hash) -> Vec<u128> {
         c.peer_profiles[0].clone().state.seq_num,
         c.peer_profiles[1].state.seq_num
     ];
-}
-
-// Celer Wallet
-// function which modifier is onlyOperator
-fn withdraw<T: Trait>(
-    wallet_id: T::Hash,
-    receiver: T::AccountId,
-    amount: BalanceOf<T>,
-) -> Result<(), DispatchError> {
-    update_balance::<T>(receiver.clone(), wallet_id, MathOperation::Sub, amount)?;
-    // Emit WithdrawFromWallet Event
-    CelerPayModule::<T>::deposit_event(RawEvent::WithdrawFromWallet(
-        wallet_id, 
-        receiver, 
-        amount
-    ));
-    Ok(())
-}
-
-fn is_wallet_owner<T: Trait>(wallet_id: T::Hash, addr: T::AccountId) -> bool {
-    let w: WalletOf<T> = Wallets::<T>::get(wallet_id).unwrap();
-    for i in 0..w.owners.len() {
-        if addr == w.owners[i] {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn update_balance<T: Trait>(
-    caller: T::AccountId,
-    wallet_id: T::Hash,
-    op: MathOperation,
-    amount: BalanceOf<T>,
-) -> Result<(), DispatchError> {
-    let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
-        Some(_w) => _w,
-        None => Err(Error::<T>::WalletNotExist)?,
-    };
-
-    let celer_wallet_account = CelerPayModule::<T>::get_celer_wallet_id();
-
-    if op == MathOperation::Sub {
-        ensure!(w.balance >= amount, "balance of amount is not deposited");
-        let new_amount = w.balance.checked_sub(&amount).ok_or(Error::<T>::UnderFlow)?;
-        let new_wallet = WalletOf::<T> {
-            owners: w.owners,
-            balance: new_amount,
-        };
-
-        Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
-
-        <T as Trait>::Currency::transfer(
-            &celer_wallet_account,
-            &caller,
-            amount,
-            ExistenceRequirement::AllowDeath,
-        )?;
-    } else if op == MathOperation::Add {
-        ensure!(
-            <T as Trait>::Currency::free_balance(&caller) >= amount,
-            "caller does not have enough balances."
-        );
-        let new_amount = w.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
-        let new_wallet = WalletOf::<T> {
-            owners: w.owners,
-            balance: new_amount,
-        };
-
-        Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
-
-        <T as Trait>::Currency::transfer(
-            &caller,
-            &celer_wallet_account,
-            amount,
-            ExistenceRequirement::AllowDeath,
-        )?;
-    } else {
-        Err(Error::<T>::Error)?
-    }
-
-    Ok(())
-}
-
-// Transfer funds from one wallet to another wallet with a same owner (as the receriver)
-fn transfer_to_wallet<T: Trait>(
-    from_wallet_id: T::Hash,
-    to_wallet_id: T::Hash,
-    receiver: T::AccountId,
-    amount: BalanceOf<T>,
-) -> Result<(), DispatchError> {
-    ensure!(
-        is_wallet_owner::<T>(from_wallet_id, receiver.clone())
-            && is_wallet_owner::<T>(to_wallet_id, receiver),
-        "receiver is not wallet owner"
-    );
-
-    let from_wallet = match Wallets::<T>::get(from_wallet_id) {
-        Some(w) => w,
-        None => Err(Error::<T>::WalletNotExist)?,
-    };
-    let to_wallet = match Wallets::<T>::get(to_wallet_id) {
-        Some(w) => w,
-        None => Err(Error::<T>::WalletNotExist)?,
-    };
-
-    let from_wallet_amount = from_wallet.balance.checked_sub(&amount).ok_or(Error::<T>::OverFlow)?;
-    let new_from_wallet = WalletOf::<T> {
-        owners: from_wallet.owners,
-        balance: from_wallet_amount,
-    };
-
-    let to_wallet_amount = to_wallet.balance.checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
-    let new_to_wallet = WalletOf::<T> {
-        owners: to_wallet.owners,
-        balance: to_wallet_amount,
-    };
-
-    Wallets::<T>::mutate(&from_wallet_id, |wallet| *wallet = Some(new_from_wallet));
-    Wallets::<T>::mutate(&to_wallet_id, |wallet| *wallet = Some(new_to_wallet));
-
-    Ok(())
 }
 
 pub fn encode_channel_initializer<T: Trait>(

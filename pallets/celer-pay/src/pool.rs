@@ -1,9 +1,9 @@
 use super::{
     Module as CelerPayModule, Allowed, BalanceOf, 
-    PoolBalances, Error, Wallets, RawEvent
+    PoolBalances, Error, RawEvent
 };
 use crate::traits::Trait;
-use crate::celer_wallet::WalletOf;
+use crate::celer_wallet::CelerWallet;
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{
     ensure,
@@ -163,14 +163,9 @@ impl<T: Trait> Pool<T> {
         wallet_id: T::Hash,
         amount: BalanceOf<T>,
     ) -> Result<(T::Hash, T::AccountId, BalanceOf<T>), DispatchError> {
-        let caller = ensure_signed(origin)?;
+        let caller = ensure_signed(origin.clone())?;
         let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
         ensure!(caller == celer_ledger_account, "Caler is not Celer Ledger module",);
-
-        let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
-            Some(_w) => _w,
-            None => return Err(Error::<T>::WalletNotExist)?,
-        };
 
         let pool_balances = match PoolBalances::<T>::get(&from) {
             Some(_balance) => _balance,
@@ -203,12 +198,12 @@ impl<T: Trait> Pool<T> {
             new_allowed_balances
         ));
 
-        let new_wallet_balance_amount = w.balance + amount;
-        let new_wallet = WalletOf::<T> {
-            owners: w.owners,
-            balance: new_wallet_balance_amount,
-        };
-        Wallets::<T>::mutate(&wallet_id, |wallet| *wallet = Some(new_wallet));
+        // Deposit native token to CelerWallet
+        CelerWallet::<T>::deposit_native_token(
+            from.clone(),
+            wallet_id,
+            amount
+        )?;
 
         // Decrease Pool Balances
         let new_pool_balances = pool_balances

@@ -15,7 +15,7 @@ use sp_runtime::traits::{BlakeTwo256, IdentityLookup, Convert};
 use sp_runtime::Perbill;
 use pallet_contracts::{
     ContractAddressFor, TrieIdGenerator, 
-    TrieId, AccountCounter, CodeHash
+    TrieId, AccountCounter
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
