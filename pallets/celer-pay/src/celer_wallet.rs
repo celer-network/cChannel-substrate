@@ -4,7 +4,7 @@ use codec::{Decode, Encode};
 use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{ensure, storage::StorageMap};
 use frame_system::{self as system, ensure_signed};
-use sp_std::vec::Vec;
+use sp_std::{vec::Vec, vec};
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Hash, Zero};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
 
