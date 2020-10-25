@@ -58,7 +58,6 @@ decl_storage! {
         /// Mapping channel status to number of channel which is corresponding to status
         pub ChannelStatusNums get(fn channel_status_nums):
             map hasher(blake2_128_concat) u8 => Option<u8>;
-
         /// Mapping the channel id to Channel
         pub ChannelMap get(fn channel_map):
                 map hasher(blake2_128_concat) T::Hash => Option<ChannelOf<T>>;
@@ -222,8 +221,8 @@ decl_module! {
         ///   - 1 storage write `ChannelMap`
         ///   - 1 storage reads `Wallets`
         ///   - 1 storage mutation `Wallets`
-        ///   - 1 storage reads `Balances`
-        ///   - 1 storage mutation `Balances`
+        ///   - 1 storage reads `PoolBalances`
+        ///   - 1 storage mutation `PoolBalances`
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         ///   - 1 storage write `WalletNum`
