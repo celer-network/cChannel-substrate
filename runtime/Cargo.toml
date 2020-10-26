@@ -22,9 +22,6 @@ pallet-sudo = { version = "2.0.0", default-features = false }
 frame-system = { version = "2.0.0", default-features = false }
 pallet-timestamp = { version = "2.0.0", default-features = false }
 pallet-transaction-payment = { version = "2.0.0", default-features = false }
-pallet-contracts = { version = "2.0.0", default-features = false }
-pallet-contracts-primitives = { version = "2.0.0", default-features = false }
-pallet-contracts-rpc-runtime-api = { version = "0.8.0", default-features = false }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 sp-api = { version = "2.0.0", default-features = false }
 sp-block-builder = { version = "2.0.0", default-features = false }
@@ -40,11 +37,14 @@ sp-version = { version = "2.0.0", default-features = false }
 celer-pay-module = { path = "../pallets/celer-pay", default-features = false }
 mock-boolean-condition = { path = "../pallets/mock-boolean-condition", default-features = false }
 mock-numeric-condition = { path = "../pallets/mock-numeric-condition", default-features = false }
+celer-contracts = { path = "../pallets/celer-contracts", version = "0.8.8", default-features = false }
+celer-contracts-primitives = { path = "../pallets/celer-contracts/common", version = "0.8.8", default-features = false }
 
 # Used for rpc
 frame-system-rpc-runtime-api = { version = "2.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "2.0.0", default-features = false }
 celer-pay-module-rpc-runtime-api = { path = "../pallets/celer-pay/rpc/runtime-api", default-features = false }
+celer-contracts-rpc-runtime-api = { path = "../pallets/celer-contracts/rpc/runtime-api", version = "0.8.8", default-features = false }
 
 # Used for runtime benchmarking
 frame-benchmarking = { version = "2.0.0", default-features = false, optional = true }
@@ -68,9 +68,6 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
-	"pallet-contracts/std",
-	"pallet-contracts-primitives/std",
-	"pallet-contracts-rpc-runtime-api/std",
 	"serde",
 	"sp-api/std",
 	"sp-block-builder/std",
@@ -88,6 +85,9 @@ std = [
 	"celer-pay-module/std",
     "mock-boolean-condition/std",
     "mock-numeric-condition/std",
+	"celer-contracts/std",
+	"celer-contracts-primitives/std",
+	"celer-contracts-rpc-runtime-api/std",
 ]
 runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
