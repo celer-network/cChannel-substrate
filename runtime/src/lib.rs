@@ -29,7 +29,7 @@ use sp_version::NativeVersion;
 pub use sp_runtime::BuildStorage;
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_balances::Call as BalancesCall;
-use pallet_contracts_rpc_runtime_api::ContractExecResult;
+use celer_contracts_rpc_runtime_api::ContractExecResult;
 pub use sp_runtime::{Permill, Perbill};
 pub use frame_support::{
 	construct_runtime, parameter_types, StorageValue,
@@ -285,22 +285,22 @@ parameter_types! {
 	pub const SurchargeReward: Balance = 150 * MILLICENTS;
 }
 
-impl pallet_contracts::Trait for Runtime {
+impl celer_contracts::Trait for Runtime {
 	type Time = Timestamp;
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
 	type Event = Event;
-	type DetermineContractAddress = pallet_contracts::SimpleAddressDeterminer<Runtime>;
-	type TrieIdGenerator = pallet_contracts::TrieIdFromParentCounter<Runtime>;
+	type DetermineContractAddress = celer_contracts::SimpleAddressDeterminer<Runtime>;
+	type TrieIdGenerator = celer_contracts::TrieIdFromParentCounter<Runtime>;
 	type RentPayment = ();
-	type SignedClaimHandicap = pallet_contracts::DefaultSignedClaimHandicap;
+	type SignedClaimHandicap = celer_contracts::DefaultSignedClaimHandicap;
 	type TombstoneDeposit = TombstoneDeposit;
-	type StorageSizeOffset = pallet_contracts::DefaultStorageSizeOffset;
+	type StorageSizeOffset = celer_contracts::DefaultStorageSizeOffset;
 	type RentByteFee = RentByteFee;
 	type RentDepositOffset = RentDepositOffset;
 	type SurchargeReward = SurchargeReward;
-	type MaxDepth = pallet_contracts::DefaultMaxDepth;
-	type MaxValueSize = pallet_contracts::DefaultMaxValueSize;
+	type MaxDepth = celer_contracts::DefaultMaxDepth;
+	type MaxValueSize = celer_contracts::DefaultMaxValueSize;
 	type WeightPrice = pallet_transaction_payment::Module<Self>;
 }
 
@@ -331,7 +331,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		Contracts: pallet_contracts::{Module, Call, Storage, Event<T>},
+		CelerContracts: celer_contracts::{Module, Call, Storage, Event<T>},
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
@@ -486,7 +486,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber>
+	impl celer_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash>
 		for Runtime
 	{
 		fn call(
@@ -497,7 +497,7 @@ impl_runtime_apis! {
 			input_data: Vec<u8>,
 		) -> ContractExecResult {
 			let (exec_result, gas_consumed) =
-				Contracts::bare_call(origin, dest.into(), value, gas_limit, input_data);
+				CelerContracts::bare_call(origin, dest.into(), value, gas_limit, input_data);
 			match exec_result {
 				Ok(v) => ContractExecResult::Success {
 					flags: v.flags.bits(),
@@ -508,17 +508,30 @@ impl_runtime_apis! {
 			}
 		}
 
+		fn resolve(
+			virt_addr: Hash,
+		) -> celer_contracts_primitives::ResolveResult<AccountId> {
+			CelerContracts::resolve(virt_addr)
+		}
+
+		fn generate_offchain_address(
+			code_hash: Hash,
+			nonce: u128
+		) -> Hash {
+			CelerContracts::generate_offchain_address(code_hash, nonce)
+		}
+
 		fn get_storage(
 			address: AccountId,
 			key: [u8; 32],
-		) -> pallet_contracts_primitives::GetStorageResult {
-			Contracts::get_storage(address, key)
+		) -> celer_contracts_primitives::GetStorageResult {
+			CelerContracts::get_storage(address, key)
 		}
 
 		fn rent_projection(
 			address: AccountId,
-		) -> pallet_contracts_primitives::RentProjectionResult<BlockNumber> {
-			Contracts::rent_projection(address)
+		) -> celer_contracts_primitives::RentProjectionResult<BlockNumber> {
+			CelerContracts::rent_projection(address)
 		}
 	}
 

@@ -12,7 +12,7 @@ use mock_numeric_condition;
 use super::Event;
 use crate::Call;
 
-pub trait Trait: system::Trait + pallet_timestamp::Trait + pallet_contracts::Trait + mock_numeric_condition::Trait {
+pub trait Trait: system::Trait + pallet_timestamp::Trait + mock_numeric_condition::Trait {
     type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type Public: IdentifyAccount<AccountId = Self::AccountId>;
