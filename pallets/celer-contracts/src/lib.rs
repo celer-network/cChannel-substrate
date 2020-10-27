@@ -553,15 +553,35 @@ decl_module! {
 			#[compact] endowment: BalanceOf<T>,
 			#[compact] gas_limit: Gas,
 			code_hash: CodeHash<T>,
-			data: Vec<u8>
+			data: Vec<u8>,
+			nonce: u128,
 		) -> DispatchResultWithPostInfo {
 			let origin = ensure_signed(origin)?;
 			let mut gas_meter = GasMeter::new(gas_limit);
 
-			let result = Self::execute_wasm(origin, &mut gas_meter, |ctx, gas_meter| {
-				ctx.instantiate(endowment, gas_meter, &code_hash, data)
+			let result = Self::execute_wasm(origin.clone(), &mut gas_meter, |ctx, gas_meter| {
+				ctx.instantiate(endowment, gas_meter, &code_hash, data.clone())
 					.map(|(_address, output)| output)
 			});
+
+			// Calculate on-chain address
+			let deployed_address = T::DetermineContractAddress::contract_address_for(
+				&code_hash,
+				&data,
+				&origin,
+			);
+
+			// Calculate off-chain address
+			let off_chain_address = crate::Module::<T>::generate_offchain_address(
+				code_hash, 
+				nonce
+			);
+			// Mapping off-chain address to an on-chain address
+			<VirtToRealMap<T>>::insert(&off_chain_address, deployed_address.clone());
+
+			// Deposit an celer-app deployed event.
+			Self::deposit_event(RawEvent::CelerAppDeployed(off_chain_address, deployed_address));
+
 			gas_meter.into_dispatch_result(result)
 		}
 
@@ -631,6 +651,14 @@ impl<T: Trait> Module<T> {
 		Ok(deployed_address)
 	}
 
+	/// Calculate the offchain address 
+	pub fn generate_offchain_address(code_hash: CodeHash<T>, nonce: u128) -> T::Hash {
+		T::Hashing::hash_of(&(
+			T::Hashing::hash_of(&code_hash),
+			T::Hashing::hash_of(&nonce)
+		))
+	}
+
 	/// Query storage of a specified contract under a specified key.
 	pub fn get_storage(
 		address: T::AccountId,
@@ -680,6 +708,9 @@ decl_event! {
 		/// Contract deployed by address at the specified address. \[owner, contract\]
 		Instantiated(AccountId, AccountId),
 
+		/// Offchain address mapped to Onchain address. \[off-chain address, on-chain address\]
+		CelerAppDeployed(Hash, AccountId),
+
 		/// Contract has been evicted and is now in tombstone state.
 		/// \[contract, tombstone\]
 		/// 
@@ -728,6 +759,7 @@ decl_storage! {
 		/// TWOX-NOTE: SAFE since `AccountId` is a secure hash.
 		pub ContractInfoOf: map hasher(twox_64_concat) T::AccountId => Option<ContractInfo<T>>;
 		/// A mapping between off-chain address(hash(code_hash, input_data)) between on-chain address
+		/// app nonce is contained in input_data
 		pub VirtToRealMap: map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 	}
 }

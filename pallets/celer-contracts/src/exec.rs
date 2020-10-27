@@ -1,11 +1,11 @@
 use crate::{
 	CodeHash, Config, ContractAddressFor, Event, RawEvent, Trait,
 	TrieId, BalanceOf, ContractInfo, TrieIdGenerator,
-	gas::{Gas, GasMeter, Token}, rent, storage, Error, ContractInfoOf, VirtToRealMap,
+	gas::{Gas, GasMeter, Token}, rent, storage, Error, ContractInfoOf,
 };
 use bitflags::bitflags;
 use sp_std::prelude::*;
-use sp_runtime::traits::{Bounded, Zero, Convert, Saturating, Hash};
+use sp_runtime::traits::{Bounded, Zero, Convert, Saturating};
 use frame_support::{
 	dispatch::DispatchError,
 	traits::{ExistenceRequirement, Currency, Time, Randomness},
@@ -443,13 +443,6 @@ where
 			if T::Currency::total_balance(&dest) < nested.config.subsistence_threshold() {
 				Err(Error::<T>::NewContractNotFunded)?
 			}
-
-			// Mapping off-chain address to an on-chain address
-			let hash = T::Hashing::hash_of(&(
-				&code_hash,
-				&input_data,
-			));
-			<VirtToRealMap<T>>::insert(&hash, &dest);
 
 			// Deposit an instantiation event.
 			deposit_event::<T>(vec![], RawEvent::Instantiated(caller.clone(), dest.clone()));

@@ -127,6 +127,15 @@ pub trait ContractsApi<BlockHash, BlockNumber, AccountId, Balance, Hash> {
 		at: Option<BlockHash>
 	) -> Result<AccountId>;
 
+	/// Calculate off-chain address
+	#[rpc(name = "contracts_generate_offchain_address")]
+	fn generate_offchain_address(
+		&self,
+		code_hash: Hash,
+		nonce: u128,
+		at: Option<BlockHash>
+	) -> Result<Hash>;
+
 	/// Returns the value under a specified storage `key` in a contract given by `address` param,
 	/// or `None` if it is not set.
 	#[rpc(name = "contracts_getStorage")]
@@ -246,6 +255,24 @@ where
 			.resolve(&at, virt_addr)
 			.map_err(|e| runtime_error_into_rpc_err(e))?
 			.map_err(ContractAccessError)?;
+
+		Ok(result)
+	}
+
+	fn generate_offchain_address(
+		&self,
+		code_hash: Hash,
+		nonce: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Hash> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+		
+		let result = api
+			.generate_offchain_address(&at, code_hash, nonce)
+			.map_err(|e| runtime_error_into_rpc_err(e))?;
 
 		Ok(result)
 	}

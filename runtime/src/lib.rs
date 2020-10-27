@@ -514,6 +514,13 @@ impl_runtime_apis! {
 			CelerContracts::resolve(virt_addr)
 		}
 
+		fn generate_offchain_address(
+			code_hash: Hash,
+			nonce: u128
+		) -> Hash {
+			CelerContracts::generate_offchain_address(code_hash, nonce)
+		}
+
 		fn get_storage(
 			address: AccountId,
 			key: [u8; 32],

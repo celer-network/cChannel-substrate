@@ -56,6 +56,9 @@ sp_api::decl_runtime_apis! {
 		/// specifed off-chain address and `Ok(None)` if it doesn't. 
 		fn resolve(virt_addr: Hash) -> ResolveResult<AccountId>;
 
+		/// Calculate the offchain address
+		fn generate_offchain_address(code_hash: Hash, nonce: u128) -> Hash;
+
 		/// Query a given storage key in a given contract.
 		///
 		/// Returns `Ok(Some(Vec<u8>))` if the storage value exists under the given key in the

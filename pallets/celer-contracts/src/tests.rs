@@ -406,8 +406,10 @@ fn instantiate_and_call_and_deposit_event() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			);
 
+			let offchain_address = Module::<Test>::generate_offchain_address(code_hash, 0);
 			pretty_assertions::assert_eq!(System::events(), vec![
 				EventRecord {
 					phase: Phase::Initialization,
@@ -452,6 +454,11 @@ fn instantiate_and_call_and_deposit_event() {
 					phase: Phase::Initialization,
 					event: MetaEvent::contracts(RawEvent::Instantiated(ALICE, BOB)),
 					topics: vec![],
+				},
+				EventRecord {
+					phase: Phase::Initialization,
+					event: MetaEvent::contracts(RawEvent::CelerAppDeployed(offchain_address, BOB)),
+					topics: vec![],
 				}
 			]);
 
@@ -478,6 +485,7 @@ fn run_out_of_gas() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Call the contract with a fixed gas limit. It must run out of gas because it just
@@ -560,7 +568,8 @@ fn storage_size() {
 				30_000,
 				GAS_LIMIT,
 				code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 			let bob_contract = ContractInfoOf::<Test>::get(BOB)
 				.unwrap()
@@ -644,6 +653,7 @@ fn empty_kv_pairs() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 			let bob_contract = ContractInfoOf::<Test>::get(BOB)
 				.unwrap()
@@ -690,7 +700,8 @@ fn deduct_blocks() {
 				Origin::signed(ALICE),
 				30_000,
 				GAS_LIMIT, code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 
 			// Check creation
@@ -787,7 +798,8 @@ fn claim_surcharge(blocks: u64, trigger_call: impl Fn() -> bool, removes: bool) 
 				Origin::signed(ALICE),
 				100,
 				GAS_LIMIT, code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 
 			// Advance blocks
@@ -824,7 +836,8 @@ fn removals(trigger_call: impl Fn() -> bool) {
 				Origin::signed(ALICE),
 				100,
 				GAS_LIMIT, code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 
 			let subsistence_threshold = 50 /*existential_deposit*/ + 16 /*tombstone_deposit*/;
@@ -864,7 +877,8 @@ fn removals(trigger_call: impl Fn() -> bool) {
 				1_000,
 				GAS_LIMIT,
 				code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(100u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(100u32).encode(), // rent allowance
+				0
 			));
 
 			// Trigger rent must have no effect
@@ -918,7 +932,8 @@ fn removals(trigger_call: impl Fn() -> bool) {
 				50 + subsistence_threshold,
 				GAS_LIMIT,
 				code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 
 			// Trigger rent must have no effect
@@ -988,7 +1003,8 @@ fn call_removed_contract() {
 				Origin::signed(ALICE),
 				100,
 				GAS_LIMIT, code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode() // rent allowance
+				<Test as pallet_balances::Trait>::Balance::from(1_000u32).encode(), // rent allowance
+				0
 			));
 
 			// Calling contract should succeed.
@@ -1036,6 +1052,7 @@ fn default_rent_allowance_on_instantiate() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Check creation
@@ -1118,7 +1135,8 @@ fn restoration(test_different_storage: bool, test_restore_to_with_dirty_storage:
 				30_000,
 				GAS_LIMIT,
 				set_rent_code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(0u32).encode()
+				<Test as pallet_balances::Trait>::Balance::from(0u32).encode(),
+				0
 			));
 
 			// Check if `BOB` was created successfully and that the rent allowance is
@@ -1164,7 +1182,8 @@ fn restoration(test_different_storage: bool, test_restore_to_with_dirty_storage:
 				30_000,
 				GAS_LIMIT,
 				restoration_code_hash.into(),
-				<Test as pallet_balances::Trait>::Balance::from(0u32).encode()
+				<Test as pallet_balances::Trait>::Balance::from(0u32).encode(),
+				0
 			));
 
 			// Before performing a call to `DJANGO` save its original trie id.
@@ -1203,6 +1222,8 @@ fn restoration(test_different_storage: bool, test_restore_to_with_dirty_storage:
 				assert_eq!(django_contract.storage_size, 8);
 				assert_eq!(django_contract.trie_id, django_trie_id);
 				assert_eq!(django_contract.deduct_block, System::block_number());
+				
+				let offchain_address = Module::<Test>::generate_offchain_address(restoration_code_hash, 0);
 				match (test_different_storage, test_restore_to_with_dirty_storage) {
 					(true, false) => {
 						assert_eq!(System::events(), vec![]);
@@ -1245,6 +1266,11 @@ fn restoration(test_different_storage: bool, test_restore_to_with_dirty_storage:
 								phase: Phase::Initialization,
 								event: MetaEvent::contracts(RawEvent::Instantiated(CHARLIE, DJANGO)),
 								topics: vec![],
+							},
+							EventRecord {
+							phase: Phase::Initialization,
+							event: MetaEvent::contracts(RawEvent::CelerAppDeployed(offchain_address, DJANGO)),
+							topics: vec![],
 							},
 						]);
 					}
@@ -1298,6 +1324,7 @@ fn storage_max_value_limit() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Check creation
@@ -1343,10 +1370,11 @@ fn deploy_and_call_other_contract() {
 
 			assert_ok!(Contracts::instantiate(
 				Origin::signed(ALICE),
-				100_000,
-				GAS_LIMIT,
+				900_000,
+				GAS_LIMIT*2,
 				caller_code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Call BOB contract, which attempts to instantiate and call the callee contract and
@@ -1378,6 +1406,7 @@ fn cannot_self_destruct_through_draning() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Check that the BOB contract has been instantiated.
@@ -1417,6 +1446,7 @@ fn cannot_self_destruct_while_live() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Check that the BOB contract has been instantiated.
@@ -1463,6 +1493,7 @@ fn self_destruct_works() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 
 			// Check that the BOB contract has been instantiated.
@@ -1515,6 +1546,7 @@ fn destroy_contract_and_transfer_funds() {
 				GAS_LIMIT,
 				caller_code_hash.into(),
 				callee_code_hash.as_ref().to_vec(),
+				0
 			));
 
 			// Check that the CHARLIE contract has been instantiated.
@@ -1555,6 +1587,7 @@ fn cannot_self_destruct_in_constructor() {
 					GAS_LIMIT,
 					code_hash.into(),
 					vec![],
+					0
 				),
 				Error::<Test>::NewContractNotFunded,
 			);
@@ -1579,6 +1612,7 @@ fn crypto_hashes() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			));
 			// Perform the call.
 			let input = b"_DEAD_BEEF";
@@ -1630,6 +1664,7 @@ fn transfer_return_code() {
 				GAS_LIMIT,
 				code_hash.into(),
 				vec![],
+				0
 			),
 		);
 
@@ -1677,6 +1712,7 @@ fn call_return_code() {
 				GAS_LIMIT,
 				caller_hash.into(),
 				vec![0],
+				0
 			),
 		);
 
@@ -1697,6 +1733,7 @@ fn call_return_code() {
 				GAS_LIMIT,
 				callee_hash.into(),
 				vec![0],
+				0
 			),
 		);
 
@@ -1767,6 +1804,7 @@ fn instantiate_return_code() {
 				GAS_LIMIT,
 				caller_hash.into(),
 				vec![],
+				0
 			),
 		);
 
