@@ -22,7 +22,6 @@ pub mod tests_celer {
             let bob_pair = account_pair("Bob");
             let (channel_peers, peers_pair) = get_sorted_peer(alice_pair.clone(), bob_pair.clone());
 
-            
             assert_ok!(Pool::<TestRuntime>::deposit_pool(
                 Origin::signed(channel_peers[0]),
                 channel_peers[0],

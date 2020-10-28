@@ -876,6 +876,10 @@ decl_error! {
         PeerNotExist,
         // balance_limits is not exist
         BalanceLimitsNotExist,
+        // signed_simplex_state_array is invalid
+        InvalidSignedSimplexStateArray,
+        // cooperative_settle_info is invalid
+        InvalidCooperativeSettle,
         // channel is not exist
         ChannelNotExist,
         // withdrraw_intent is not exist
@@ -896,8 +900,14 @@ decl_error! {
         HashLockNotExist,
         // condition_address is not exit
         ConditionAddressNotExist,
-        // numeric app is not exist
-        NumericAppNotExit
+        // call_is_finalized is not exist
+        CallIsFinalizedNotExist,
+        // call_get_outcome is not exist
+        CallGetOutcomeNotExist,
+        // numeric_app is not exist
+        NumericAppNotExist,
+        // numeric_session_id is not exist
+        NumericSessionIdNotExist
     }
 }
 

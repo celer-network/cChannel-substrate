@@ -1079,7 +1079,7 @@ pub mod test_ledger_operation {
                 err,
                 DispatchError::Module {
                     index: 0,
-                    error: 7,
+                    error: 9,
                     message: Some("NotChannelPeer")
                 }
             );
@@ -1617,7 +1617,7 @@ pub mod test_ledger_operation {
                 err,
                 DispatchError::Module {
                     index: 0,
-                    error: 8,
+                    error: 10,
                     message: Some("ConfirmSettleFail")
                 }
             );

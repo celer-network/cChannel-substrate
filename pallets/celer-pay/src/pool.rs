@@ -327,7 +327,7 @@ pub mod tests {
             let err = Pool::<TestRuntime>::withdraw(Origin::signed(alice), 10).unwrap_err();
             assert_eq!(
                 err,
-                DispatchError::Module { index: 0, error: 9, message: Some("PoolBalancesNotExist") }
+                DispatchError::Module { index: 0, error: 11, message: Some("PoolBalancesNotExist") }
             );
         })
     }

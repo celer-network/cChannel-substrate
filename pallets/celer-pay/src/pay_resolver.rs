@@ -292,7 +292,10 @@ fn calculate_boolean_and_payment<T: Trait>(
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean condition
-            let call_is_finalized = cond.call_is_finalized.unwrap();
+            let call_is_finalized = match cond.call_is_finalized {
+                Some(call) => call,
+                None => Err(Error::<T>::CallIsFinalizedNotExist)?,
+            };
             let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
@@ -300,7 +303,10 @@ fn calculate_boolean_and_payment<T: Trait>(
             );
 
             // call get_outcome of boolean condition
-            let call_get_outcome = cond.call_get_outcome.unwrap();
+            let call_get_outcome = match cond.call_get_outcome {
+                Some(call) => call,
+                None => Err(Error::<T>::CallGetOutcomeNotExist)?,
+            };
             let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if (!outcome.is_ok()) && (outcome.unwrap_err().error == DispatchError::Other("FalseOutcome")) {
                 has_false_contract_cond = true;
@@ -339,7 +345,10 @@ fn calculate_boolean_or_payment<T: Trait>(
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
             // call is_finalized of boolean_condition
-            let call_is_finalized = cond.call_is_finalized.unwrap();
+            let call_is_finalized = match cond.call_is_finalized {
+                Some(call) => call,
+                None => Err(Error::<T>::CallIsFinalizedNotExist)?,
+            };
             let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
@@ -348,7 +357,10 @@ fn calculate_boolean_or_payment<T: Trait>(
             has_contract_cond = true;
 
             // call get_outcome of boolean_condition
-            let call_get_outcome = cond.call_get_outcome.unwrap();
+            let call_get_outcome = match cond.call_get_outcome {
+                Some(call) => call,
+                None => Err(Error::<T>::CallGetOutcomeNotExist)?,
+            };
             let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if outcome.is_ok() {
                 has_true_contract_cond = true;
@@ -385,16 +397,28 @@ fn calculate_numeric_logic_payment<T: Trait>(
             j = j + 1;
         } else if cond.condition_type == ConditionType::NumericRuntimeModule {
             // the number of registered numeric app
-            let numeric_app_number = cond.numeric_app_num.unwrap();
+            let numeric_app_number = match cond.numeric_app_num {
+                Some(app_num) => app_num,
+                None => Err(Error::<T>::NumericAppNotExist)?,
+            };
             // session id of numeric condition
-            let session_id = cond.numeric_session_id.unwrap();
+            let session_id = match cond.numeric_session_id {
+                Some(id) => id,
+                None => Err(Error::<T>::NumericSessionIdNotExist)?,
+            };
 
-            let is_finalized: bool = 
-                NumericConditionCaller::<T>::call_is_finalized(numeric_app_number, &session_id, cond.args_query_finalzation)?;
+            let is_finalized: bool = NumericConditionCaller::<T>::call_is_finalized(
+                numeric_app_number, 
+                &session_id, 
+                cond.args_query_finalzation
+            )?;
             ensure!(is_finalized == true, "Condition is not finalized");
 
-            let outcome: BalanceOf<T> = 
-                NumericConditionCaller::<T>::call_get_outcome(numeric_app_number, &session_id, cond.args_query_outcome)?;
+            let outcome: BalanceOf<T> = NumericConditionCaller::<T>::call_get_outcome(
+                numeric_app_number, 
+                &session_id, 
+                cond.args_query_outcome
+            )?;
             if func_type == TransferFunctionType::NumericAdd {
                 amount = amount + outcome;
             } else if func_type == TransferFunctionType::NumericMax {
