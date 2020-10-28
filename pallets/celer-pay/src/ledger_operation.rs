@@ -1376,21 +1376,21 @@ fn update_channel_status<T: Trait>(
             None => 0 as u8,
         };
 
-        let new_nums_1: u8;
+        let nums: u8;
         if status_nums == 0 {
-            new_nums_1 = 0;
+            nums = 0;
         } else {
-            new_nums_1 = status_nums - 1;
+            nums = status_nums - 1;
         }
-        ChannelStatusNums::mutate(c.status.clone() as u8, |num| *num = Some(new_nums_1));
+        ChannelStatusNums::mutate(c.status.clone() as u8, |num| *num = Some(nums));
     }
 
     let new_status_nums = match CelerPayModule::<T>::channel_status_nums(new_status.clone() as u8) {
         Some(num) => num as u8,
         None => 0 as u8,
     };
-    let new_nums_2 = new_status_nums + 1;
-    ChannelStatusNums::mutate(new_status.clone() as u8, |num| *num = Some(new_nums_2));
+    let new_nums = new_status_nums + 1;
+    ChannelStatusNums::mutate(new_status.clone() as u8, |num| *num = Some(new_nums));
 
     c.status = new_status;
     ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(c));

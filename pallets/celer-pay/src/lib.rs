@@ -485,7 +485,7 @@ decl_module! {
         /// - DB:
         ///   - N storage reads `ChannelMap`
         ///   - N storage mutation `ChannelMap`
-        ///   - 2 * M storage reads `PayInfoMap`
+        ///   - M storage reads `PayInfoMap`
         /// # </weight>
         #[weight = (
             weight_for::intend_settle::<T>(
@@ -1249,18 +1249,18 @@ impl<T: Trait> Module<T> {
     /// Parameter:
     /// `pay_id`: Id of payment
     pub fn get_pay_info(pay_id: T::Hash) -> (BalanceInfo<BalanceOf<T>>, T::BlockNumber) {
-        if PayInfoMap::<T>::contains_key(&pay_id) {
-            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-            return (
-                BalanceInfo { amount: pay_info.amount.unwrap_or(Zero::zero()) }, 
-                pay_info.resolve_deadline.unwrap_or(Zero::zero())
-            );
-        } else {
-            return (
+        match PayInfoMap::<T>::get(&pay_id) {
+            Some(pay_info) => {
+                return (
+                    BalanceInfo { amount: pay_info.amount.unwrap_or(Zero::zero()) },
+                    pay_info.resolve_deadline.unwrap_or(Zero::zero())
+                );
+            },
+            None => return (
                 BalanceInfo { amount: Zero::zero() }, 
                 Zero::zero()
-            );
-        }
+            )
+        };
     }
 
 /// =================================== Helper ===============================================
