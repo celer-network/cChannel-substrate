@@ -28,33 +28,35 @@ impl<T: Trait> PayRegistry<T> {
 
     pub fn set_pay_amount(pay_hash: T::Hash, amt: BalanceOf<T>) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
-        if PayInfoMap::<T>::contains_key(&pay_id) {
-            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-            let new_pay_info = PayInfoOf::<T> {
-                amount: Some(amt),
-                resolve_deadline: pay_info.resolve_deadline,
-            };
-            PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+        match PayInfoMap::<T>::get(&pay_id) {
+            Some(pay_info) => {
+                let new_pay_info = PayInfoOf::<T> {
+                    amount: Some(amt),
+                    resolve_deadline: pay_info.resolve_deadline,
+                };
+                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             
-            // Emit PayInfoUpdate event
-            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                pay_id, 
-                amt, 
-                pay_info.resolve_deadline.unwrap_or(Zero::zero())
-            ));
-        } else {
-            let new_pay_info = PayInfoOf::<T> {
-                amount: Some(amt),
-                resolve_deadline: None,
-            };
-            PayInfoMap::<T>::insert(pay_id, new_pay_info);
+                // Emit PayInfoUpdate event
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id, 
+                    amt, 
+                    pay_info.resolve_deadline.unwrap_or(Zero::zero())
+                ));
+            },
+            None => {
+                let new_pay_info = PayInfoOf::<T> {
+                    amount: Some(amt),
+                    resolve_deadline: None,
+                };
+                PayInfoMap::<T>::insert(pay_id, new_pay_info);
             
-            // Emit PayInfoUpdate event
-            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                pay_id,
-                amt,
-                Zero::zero(),
-            ));
+                // Emit PayInfoUpdate event
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    amt,
+                    Zero::zero(),
+                ));
+            }
         }
 
         Ok(())
@@ -65,33 +67,35 @@ impl<T: Trait> PayRegistry<T> {
         deadline: T::BlockNumber,
     ) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
-        if PayInfoMap::<T>::contains_key(&pay_id) {
-            let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-            let new_pay_info = PayInfoOf::<T> {
-                amount: pay_info.amount,
-                resolve_deadline: Some(deadline),
-            };
-            PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+        match PayInfoMap::<T>::get(&pay_id) {
+            Some(pay_info) => {
+                let new_pay_info = PayInfoOf::<T> {
+                    amount: pay_info.amount,
+                    resolve_deadline: Some(deadline),
+                };
+                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
             
-            // Emit PayInfoUpdate event
-            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                pay_id,
-                pay_info.amount.unwrap_or(Zero::zero()),
-                deadline,
-            ));
-        } else {
-            let new_pay_info = PayInfoOf::<T> {
-                amount: None,
-                resolve_deadline: Some(deadline),
-            };
-            PayInfoMap::<T>::insert(pay_id, new_pay_info);
-            
-            // Emit PayInfoUpdate event
-            CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                pay_id,
-                Zero::zero(),
-                deadline
-            ));
+                // Emit PayInfoUpdate event
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    pay_info.amount.unwrap_or(Zero::zero()),
+                    deadline,
+                ));
+            },
+            None => {
+                let new_pay_info = PayInfoOf::<T> {
+                    amount: None,
+                    resolve_deadline: Some(deadline),
+                };
+                PayInfoMap::<T>::insert(pay_id, new_pay_info);
+
+                // Emit PayInfoUpdate event
+                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                    pay_id,
+                    Zero::zero(),
+                    deadline
+                ));
+            }
         }
 
         Ok(())
@@ -127,33 +131,35 @@ impl<T: Trait> PayRegistry<T> {
 
         for i in 0..pay_hashes.len() {
             let pay_id = Self::calculate_pay_id(pay_hashes[i]);
-            if PayInfoMap::<T>::contains_key(&pay_id) {
-                let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: Some(amts[i]),
-                    resolve_deadline: pay_info.resolve_deadline,
-                };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            match PayInfoMap::<T>::get(&pay_id) {
+                Some(pay_info) => {
+                    let new_pay_info = PayInfoOf::<T> {
+                        amount: Some(amts[i]),
+                        resolve_deadline: pay_info.resolve_deadline,
+                    };
+                    PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 
-                // Emit PayInfoUpdate event
-                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                    pay_id,
-                    amts[i],
-                    pay_info.resolve_deadline.unwrap()
-                ));
-            } else {
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: Some(amts[i]),
-                    resolve_deadline: None,
-                };
-                PayInfoMap::<T>::insert(pay_id, new_pay_info);
+                    // Emit PayInfoUpdate event
+                    CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                        pay_id,
+                        amts[i],
+                        pay_info.resolve_deadline.unwrap()
+                    ));
+                }, 
+                None => {
+                    let new_pay_info = PayInfoOf::<T> {
+                        amount: Some(amts[i]),
+                        resolve_deadline: None,
+                    };
+                    PayInfoMap::<T>::insert(pay_id, new_pay_info);
 
-                // Emit PayInfoUpdate event
-                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                    pay_id,
-                    amts[i],
-                    Zero::zero(),
-                ));
+                    // Emit PayInfoUpdate event
+                    CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                        pay_id,
+                        amts[i],
+                        Zero::zero(),
+                    ));
+                }
             }
         }
 
@@ -168,34 +174,36 @@ impl<T: Trait> PayRegistry<T> {
 
         for i in 0..pay_hashes.len() {
             let pay_id = Self::calculate_pay_id(pay_hashes[i]);
-            if PayInfoMap::<T>::contains_key(&pay_id) {
-                let pay_info = PayInfoMap::<T>::get(pay_id).unwrap();
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: pay_info.amount,
-                    resolve_deadline: Some(deadlines[i]),
-                };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            match PayInfoMap::<T>::get(&pay_id) {
+                Some(pay_info) => {
+                    let new_pay_info = PayInfoOf::<T> {
+                        amount: pay_info.amount,
+                        resolve_deadline: Some(deadlines[i]),
+                    };
+                    PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
                 
-                // Emit PayInfoUpdate event
-                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                    pay_id,
-                    pay_info.amount.unwrap(),
-                    deadlines[i],
-                ));
-            } else {
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: None,
-                    resolve_deadline: Some(deadlines[i]),
-                };
-                PayInfoMap::<T>::insert(pay_id, new_pay_info);
+                    // Emit PayInfoUpdate event
+                    CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                        pay_id,
+                        pay_info.amount.unwrap(),
+                        deadlines[i],
+                    ));
+                },
+                None => {
+                    let new_pay_info = PayInfoOf::<T> {
+                        amount: None,
+                        resolve_deadline: Some(deadlines[i]),
+                    };
+                    PayInfoMap::<T>::insert(pay_id, new_pay_info);
                 
-                // Emit PayInfoUpdate event
-                CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
-                    pay_id,
-                    Zero::zero(),
-                    deadlines[i],
-                ));
-            }
+                    // Emit PayInfoUpdate event
+                    CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
+                        pay_id,
+                        Zero::zero(),
+                        deadlines[i],
+                    ));
+                }
+            } 
         }
 
         Ok(())
@@ -234,29 +242,31 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<Vec<BalanceOf<T>>, DispatchError> {
         let mut amounts: Vec<BalanceOf<T>> = vec![];
         for i in 0..pay_ids.len() {
-            if PayInfoMap::<T>::contains_key(&pay_ids[i]) {
-                let pay_info = PayInfoMap::<T>::get(&pay_ids[i]).unwrap();
-                if pay_info.resolve_deadline.unwrap_or(Zero::zero()) == Zero::zero() {
+            match PayInfoMap::<T>::get(&pay_ids[i]) {
+                Some(pay_info) => {
+                    if pay_info.resolve_deadline.unwrap_or(Zero::zero()) == Zero::zero() {
+                        // should pass last pay resolve deadline if never resolved
+                        ensure!(
+                            frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
+                            "Payment is not finalized"
+                        );  
+                    } else {
+                        // should pass resolve deadline if resolved
+                        ensure!(
+                            frame_system::Module::<T>::block_number() > pay_info.resolve_deadline.unwrap(),
+                            "Payment is not finalized"
+                        );
+                    }
+                    amounts.push(pay_info.amount.unwrap_or(Zero::zero()));
+                },
+                None => {
                     // should pass last pay resolve deadline if never resolved
                     ensure!(
                         frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
                         "Payment is not finalized"
-                    );  
-                } else {
-                    // should pass resolve deadline if resolved
-                    ensure!(
-                        frame_system::Module::<T>::block_number() > pay_info.resolve_deadline.unwrap(),
-                        "Payment is not finalized"
                     );
+                    amounts.push(Zero::zero());
                 }
-                amounts.push(pay_info.amount.unwrap_or(Zero::zero()));
-            } else {
-                // should pass last pay resolve deadline if never resolved
-                ensure!(
-                    frame_system::Module::<T>::block_number() > last_pay_resolve_deadline,
-                    "Payment is not finalized"
-                );
-                amounts.push(Zero::zero());
             }
         }
 

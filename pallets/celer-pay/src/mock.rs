@@ -11,12 +11,8 @@ use frame_system as system;
 use pallet_balances;
 use sp_core::{sr25519, Pair, H256};
 use sp_runtime::testing::Header;
-use sp_runtime::traits::{BlakeTwo256, IdentityLookup, Convert};
+use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
 use sp_runtime::Perbill;
-use pallet_contracts::{
-    ContractAddressFor, TrieIdGenerator, 
-    TrieId, AccountCounter
-};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRuntime;
@@ -37,7 +33,6 @@ impl_outer_event! {
         celer<T>,
         pallet_balances<T>,
         system<T>,
-        pallet_contracts<T>,
     }
 }
 
@@ -141,46 +136,6 @@ impl pallet_timestamp::Trait for TestRuntime {
     type WeightInfo = ();
 }
 
-parameter_types! {
-	pub const SignedClaimHandicap: u64 = 2;
-	pub const TombstoneDeposit: u64 = 16;
-	pub const StorageSizeOffset: u32 = 8;
-	pub const RentByteFee: u64 = 4;
-	pub const RentDepositOffset: u64 = 10_000;
-	pub const SurchargeReward: u64 = 150;
-	pub const MaxDepth: u32 = 100;
-	pub const MaxValueSize: u32 = 16_384;
-}
-
-parameter_types! {
-	pub const TransactionByteFee: u64 = 0;
-}
-
-impl Convert<Weight, BalanceOf<Self>> for TestRuntime {
-	fn convert(w: Weight) -> BalanceOf<Self> {
-		w
-	}
-}
-
-impl pallet_contracts::Trait for TestRuntime {
-	type Time = Timestamp;
-	type Randomness = Randomness;
-	type Currency = Balances;
-	type DetermineContractAddress =  DummyContractAddressFor;
-	type Event = TestEvent;
-	type TrieIdGenerator = DummyTrieIdGenerator;
-	type RentPayment = ();
-	type SignedClaimHandicap = SignedClaimHandicap;
-	type TombstoneDeposit = TombstoneDeposit;
-	type StorageSizeOffset = StorageSizeOffset;
-	type RentByteFee = RentByteFee;
-	type RentDepositOffset = RentDepositOffset;
-	type SurchargeReward = SurchargeReward;
-	type MaxDepth = MaxDepth;
-	type MaxValueSize = MaxValueSize;
-	type WeightPrice = Self;
-}
-
 impl mock_boolean_condition::Trait for TestRuntime {}
 
 impl mock_numeric_condition::Trait for TestRuntime {}
@@ -197,30 +152,6 @@ pub type CelerPayModule = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
 pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
 type MockBooleanCondition = mock_boolean_condition::Module<TestRuntime>;
-type Balances = pallet_balances::Module<TestRuntime>;
-type Randomness = pallet_randomness_collective_flip::Module<TestRuntime>;
-
-pub struct DummyContractAddressFor;
-impl ContractAddressFor<H256, sr25519::Public> for DummyContractAddressFor {
-	fn contract_address_for(_code_hash: &H256, _data: &[u8], origin: &sr25519::Public) -> sr25519::Public {
-		*origin
-	}
-}
-
-pub struct DummyTrieIdGenerator;
-impl TrieIdGenerator<sr25519::Public> for DummyTrieIdGenerator {
-	fn trie_id(account_id: &sr25519::Public) -> TrieId {
-		let new_seed = AccountCounter::mutate(|v| {
-			*v = v.wrapping_add(1);
-			*v
-		});
-
-		let mut res = vec![];
-		res.extend_from_slice(&new_seed.to_le_bytes());
-		//res.extend_from_slice(&account_id.to_le_bytes());
-		res
-	}
-}
 
 pub struct ExtBuilder;
 impl ExtBuilder {

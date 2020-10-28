@@ -16,7 +16,7 @@ impl<T: Trait> NumericConditionCaller<T> {
                 = mock_numeric_condition::Module::<T>::is_finalized(session_id, args_query_finalization)?;
             return Ok(is_finalized);
         } else {
-            return Err(Error::<T>::NumericAppNotExit)?;
+            return Err(Error::<T>::NumericAppNotExist)?;
         }
     }
 
@@ -30,7 +30,7 @@ impl<T: Trait> NumericConditionCaller<T> {
                 = mock_numeric_condition::Module::<T>::get_outcome(session_id, args_query_outcome).unwrap().into();
             return Ok(outcome);
         } else {
-            return Err(Error::<T>::NumericAppNotExit)?;
+            return Err(Error::<T>::NumericAppNotExist)?;
         }
     }
 }

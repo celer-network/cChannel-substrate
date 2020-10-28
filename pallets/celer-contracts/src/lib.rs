@@ -570,7 +570,6 @@ decl_module! {
 				&data,
 				&origin,
 			);
-
 			// Calculate off-chain address
 			let off_chain_address = crate::Module::<T>::generate_offchain_address(
 				code_hash, 
@@ -759,7 +758,6 @@ decl_storage! {
 		/// TWOX-NOTE: SAFE since `AccountId` is a secure hash.
 		pub ContractInfoOf: map hasher(twox_64_concat) T::AccountId => Option<ContractInfo<T>>;
 		/// A mapping between off-chain address(hash(code_hash, input_data)) between on-chain address
-		/// app nonce is contained in input_data
 		pub VirtToRealMap: map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 	}
 }
