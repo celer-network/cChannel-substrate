@@ -876,8 +876,8 @@ decl_error! {
         PeerNotExist,
         // balance_limits is not exist
         BalanceLimitsNotExist,
-        // signed_simplex_state_array is invalid
-        InvalidSignedSimplexStateArray,
+        // simplex_state is invalid
+        InvalidSimplexState,
         // cooperative_settle_info is invalid
         InvalidCooperativeSettle,
         // channel is not exist

@@ -513,9 +513,9 @@ impl<T: Trait> LedgerOperation<T> {
             ensure!(c.status == ChannelStatus::Operable, "Channel status error");
 
             // Check whether simplex_state contains all data
-            check_signed_simplex_state_array::<T>(simplex_state.clone())?;
+            check_simplex_state::<T>(simplex_state.clone())?;
             // Check Co-Signatures.
-            let encoded = encode_signed_simplex_state_array::<T>(simplex_state.clone());
+            let encoded = encode_simplex_state::<T>(simplex_state.clone());
             let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
             let channel_peer = vec![
                 c.peer_profiles[0].peer_addr.clone(),
@@ -823,10 +823,10 @@ impl<T: Trait> LedgerOperation<T> {
             );
 
             if simplex_state.seq_num > 0 {
-                // Check whether signed_simplex_state_array contains all data
-                check_signed_simplex_state_array::<T>(simplex_state.clone())?;
+                // Check whether simplex_state contains all data
+                check_simplex_state::<T>(simplex_state.clone())?;
                 // Check signatures
-                let encoded = encode_signed_simplex_state_array::<T>(simplex_state.clone());
+                let encoded = encode_simplex_state::<T>(simplex_state.clone());
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
                 let channel_peer = vec![
                     c.peer_profiles[0].peer_addr.clone(),
@@ -881,7 +881,7 @@ impl<T: Trait> LedgerOperation<T> {
             } else if simplex_state.seq_num == 0 {
                 // null state
                 // Check signautre
-                let encoded = encode_signed_simplex_null_state::<T>(
+                let encoded = encode_simplex_null_state::<T>(
                     simplex_state.clone()
                 );
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
@@ -1447,20 +1447,20 @@ pub fn encode_channel_initializer<T: Trait>(
     return encoded;
 }
 
-pub fn check_signed_simplex_state_array<T: Trait>(
+pub fn check_simplex_state<T: Trait>(
     simplex_state: SimplexPaymentChannelOf<T>,
 ) -> Result<(), DispatchError> {
     ensure!(
         simplex_state.peer_from.is_some()
         && simplex_state.transfer_to_peer.is_some()
         && simplex_state.pending_pay_ids.is_some(),
-        Error::<T>::InvalidSignedSimplexStateArray
+        Error::<T>::InvalidSimplexState
     );
 
     Ok(())
 }
 
-pub fn encode_signed_simplex_state_array<T: Trait>(
+pub fn encode_simplex_state<T: Trait>(
     simplex_state: SimplexPaymentChannelOf<T>
 ) -> Vec<u8> {
     let mut encoded = simplex_state.channel_id.encode();
@@ -1479,7 +1479,7 @@ pub fn encode_signed_simplex_state_array<T: Trait>(
     return encoded;
 }
 
-pub fn encode_signed_simplex_null_state<T: Trait>(
+pub fn encode_simplex_null_state<T: Trait>(
      simplex_state: SimplexPaymentChannelOf<T>
 ) -> Vec<u8> {
     let mut encoded = simplex_state.channel_id.encode();
