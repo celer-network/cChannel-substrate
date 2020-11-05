@@ -331,7 +331,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		CelerContracts: celer_contracts::{Module, Call, Storage, Event<T>},
+		Contracts: celer_contracts::{Module, Call, Storage, Event<T>},
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
