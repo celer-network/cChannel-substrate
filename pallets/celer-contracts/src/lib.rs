@@ -88,9 +88,9 @@ use sp_std::{prelude::*, marker::PhantomData, fmt::Debug};
 use codec::{Codec, Encode, Decode};
 use sp_runtime::{
 	traits::{
-		Hash, StaticLookup, Zero, MaybeSerializeDeserialize, Member, Convert, Saturating, AccountIdConversion,
+		Hash, StaticLookup, Zero, MaybeSerializeDeserialize, Member, Convert, Saturating,
 	},
-	RuntimeDebug, ModuleId,
+	RuntimeDebug, 
 };
 use frame_support::{
 	decl_module, decl_event, decl_storage, decl_error, ensure,
@@ -101,8 +101,6 @@ use frame_support::{
 use frame_system::{ensure_signed, ensure_root};
 use celer_contracts_primitives::{RentProjection, ContractAccessError};
 use frame_support::weights::Weight;
-
-pub const MODULE_ID: ModuleId = ModuleId(*b"_module_");
 
 pub type CodeHash<T> = <T as frame_system::Trait>::Hash;
 pub type TrieId = Vec<u8>;
@@ -533,9 +531,7 @@ decl_module! {
 			let dest = T::Lookup::lookup(dest)?;
 			let mut gas_meter = GasMeter::new(gas_limit);
 
-			let caller = MODULE_ID.into_account();
-
-			let result = Self::execute_wasm(caller, &mut gas_meter, |ctx, gas_meter| {
+			let result = Self::execute_wasm(origin, &mut gas_meter, |ctx, gas_meter| {
 				ctx.call(dest, value, gas_meter, data)
 			});
 			gas_meter.into_dispatch_result(result)
