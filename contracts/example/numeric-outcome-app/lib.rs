@@ -85,6 +85,16 @@ mod numeirc_outcome_app {
         ) -> u32 {
             self.state
         }
+
+        /// Finalize in case of on-chain action timeout
+        /// If AppStatus will transition, return destination AppStatus(i8),
+        /// else return -1(i8).
+        #[ink(message)]
+        pub fn finalize_on_timeout(
+            &self
+        ) -> i8 {
+            AppStatus::Finalized as i8
+        }
     }
 
     #[derive(scale::Encode, scale::Decode, Clone, Copy, SpreadLayout, PackedLayout)]
