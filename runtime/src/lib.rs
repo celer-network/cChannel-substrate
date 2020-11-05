@@ -331,7 +331,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		CelerContracts: celer_contracts::{Module, Call, Storage, Event<T>},
+		Contracts: celer_contracts::{Module, Call, Storage, Event<T>},
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
@@ -497,7 +497,7 @@ impl_runtime_apis! {
 			input_data: Vec<u8>,
 		) -> ContractExecResult {
 			let (exec_result, gas_consumed) =
-				CelerContracts::bare_call(origin, dest.into(), value, gas_limit, input_data);
+				Contracts::bare_call(origin, dest.into(), value, gas_limit, input_data);
 			match exec_result {
 				Ok(v) => ContractExecResult::Success {
 					flags: v.flags.bits(),
@@ -511,27 +511,27 @@ impl_runtime_apis! {
 		fn resolve(
 			virt_addr: Hash,
 		) -> celer_contracts_primitives::ResolveResult<AccountId> {
-			CelerContracts::resolve(virt_addr)
+			Contracts::resolve(virt_addr)
 		}
 
 		fn generate_offchain_address(
 			code_hash: Hash,
 			nonce: u128
 		) -> Hash {
-			CelerContracts::generate_offchain_address(code_hash, nonce)
+			Contracts::generate_offchain_address(code_hash, nonce)
 		}
 
 		fn get_storage(
 			address: AccountId,
 			key: [u8; 32],
 		) -> celer_contracts_primitives::GetStorageResult {
-			CelerContracts::get_storage(address, key)
+			Contracts::get_storage(address, key)
 		}
 
 		fn rent_projection(
 			address: AccountId,
 		) -> celer_contracts_primitives::RentProjectionResult<BlockNumber> {
-			CelerContracts::rent_projection(address)
+			Contracts::rent_projection(address)
 		}
 	}
 
