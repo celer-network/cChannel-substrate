@@ -39,4 +39,4 @@ std = [
 ink-as-dependency = []
 
 [profile.release]
-over-flow-checks = false
+overflow-checks = false
