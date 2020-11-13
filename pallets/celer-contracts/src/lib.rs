@@ -564,22 +564,22 @@ decl_module! {
 					.map(|(_address, output)| output)
 			});
 
-			// Calculate on-chain address
-			let deployed_address = T::DetermineContractAddress::contract_address_for(
+			// Calculate deployed address
+			let deployed_addr = T::DetermineContractAddress::contract_address_for(
 				&code_hash,
 				&data,
 				&origin,
 			);
-			// Calculate off-chain address
-			let off_chain_address = crate::Module::<T>::generate_offchain_address(
+			// Calculate virtual address
+			let virt_addr = crate::Module::<T>::generate_offchain_address(
 				code_hash, 
 				nonce
 			);
-			// Mapping off-chain address to an on-chain address
-			<VirtToRealMap<T>>::insert(&off_chain_address, deployed_address.clone());
+			// Mapping off-chain address to an deployed address
+			<VirtToRealMap<T>>::insert(&virt_addr, deployed_addr.clone());
 
 			// Deposit an celer-app deployed event.
-			Self::deposit_event(RawEvent::CelerAppDeployed(off_chain_address, deployed_address));
+			Self::deposit_event(RawEvent::CelerAppDeployed(virt_addr, deployed_addr));
 
 			gas_meter.into_dispatch_result(result)
 		}
@@ -757,7 +757,7 @@ decl_storage! {
 		///
 		/// TWOX-NOTE: SAFE since `AccountId` is a secure hash.
 		pub ContractInfoOf: map hasher(twox_64_concat) T::AccountId => Option<ContractInfo<T>>;
-		/// A mapping between off-chain address(hash(code_hash, input_data)) between on-chain address
+		/// A mapping between virtual address(hash(code_hash, app nonce)) between deployed address
 		pub VirtToRealMap: map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 	}
 }
