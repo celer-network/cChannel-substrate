@@ -547,7 +547,7 @@ decl_module! {
 		///   after the execution is saved as the `code` of the account. That code will be invoked
 		///   upon any call received by this account.
 		/// - The contract is initialized.
-		#[weight = *gas_limit]
+		#[weight = T::DbWeight::get().writes(1).saturating_add(40_000_000).saturating_add(*gas_limit)]
 		pub fn instantiate(
 			origin,
 			#[compact] endowment: BalanceOf<T>,
