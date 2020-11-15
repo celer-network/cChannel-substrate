@@ -4685,28 +4685,7 @@ pub mod test_ledger_operation {
 
         return cooperative_settle_request;
     }
-    
-    pub fn get_token_transfer(
-        account: AccountId,
-        amount: Balance,
-    ) -> TokenTransfer<AccountId, Balance> {
-        let account_amt_pair = AccountAmtPair {
-            account: Some(account),
-            amt: amount,
-        };
-
-        let token_info = TokenInfo {
-            token_type: TokenType::Celer,
-        };
-
-        let token_transfer = TokenTransfer {
-            token: token_info,
-            receiver: account_amt_pair,
-        };
-
-        return token_transfer;
-    }
-
+   
     pub fn get_transfer_func_2(amount: Balance) -> TransferFunction<AccountId, Balance> {
         let account_amt_pair = AccountAmtPair {
             account: None,

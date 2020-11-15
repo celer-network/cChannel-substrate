@@ -12,23 +12,44 @@ use sp_std::{vec::Vec, boxed::Box};
 
 pub const PAY_RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 
+pub type Gas = frame_support::weights::Weight;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ConditionType {
     HashLock,
     BooleanRuntimeModule,
     NumericRuntimeModule, 
+    SmartContract,
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
+pub struct BooleanModuleCallData<Call> {
+    pub call_is_finalized: Box<Call>, // overarching call is_finalized of boolean runtime module
+    pub call_get_outcome: Box<Call>, // overarching call get_outcome of boolean runtime module
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
+pub struct NumericModuleCallData<Hash> {
+    pub numeric_app_num: u32, // number of registered numeric app 
+    pub numeric_session_id: Hash, // session id of numeric condition
+    pub args_query_finalzation: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
+    pub args_query_outcome: Option<Vec<u8>>, // the encoded query outcome of numeric runtime module
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
+pub struct SmartContractCallData<Hash, Gas> {
+    pub virt_addr: Hash, // virtual address which is mapped to deployed address
+    pub gas_limit: Gas, 
+    pub input_data: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct Condition<Hash, Call> {
     pub condition_type: ConditionType,
     pub hash_lock: Option<Hash>,
-    pub call_is_finalized: Option<Box<Call>>, // overarching call is_finalized of boolean runtime module
-    pub call_get_outcome: Option<Box<Call>>, // overarching call get_outcome of boolean runtime module
-    pub numeric_app_num: Option<u32>, // number of registered numeric app 
-    pub numeric_session_id: Option<Hash>, // session id of numeric condition
-    pub args_query_finalzation: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
-    pub args_query_outcome: Option<Vec<u8>>, // the encoded query outcome of numeric runtime module
+    pub boolean_module_call_data: Option<BooleanModuleCallData<Call>>,
+    pub numeric_module_call_data: Option<NumericModuleCallData<Hash>>,
+    pub smart_contract_call_data: Option<SmartContractCallData<Hash, Gas>>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -291,23 +312,18 @@ fn calculate_boolean_and_payment<T: Trait>(
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
-            // call is_finalized of boolean condition
-            let call_is_finalized = match cond.call_is_finalized {
-                Some(call) => call,
-                None => Err(Error::<T>::CallIsFinalizedNotExist)?,
+            let boolean_module_call_data = match cond.boolean_module_call_data {
+                Some(call_data) => call_data,
+                None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
             };
-            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
+            // call is_finalized of boolean_condition
+            let is_finalized = boolean_module_call_data.call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
                 "Condition is not finalized"
             );
-
-            // call get_outcome of boolean condition
-            let call_get_outcome = match cond.call_get_outcome {
-                Some(call) => call,
-                None => Err(Error::<T>::CallGetOutcomeNotExist)?,
-            };
-            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
+            // call get_outcome of boolean_condition
+            let outcome = boolean_module_call_data.call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if (!outcome.is_ok()) && (outcome.unwrap_err().error == DispatchError::Other("FalseOutcome")) {
                 has_false_contract_cond = true;
             }
@@ -344,24 +360,19 @@ fn calculate_boolean_or_payment<T: Trait>(
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             
-            // call is_finalized of boolean_condition
-            let call_is_finalized = match cond.call_is_finalized {
-                Some(call) => call,
-                None => Err(Error::<T>::CallIsFinalizedNotExist)?,
+            let boolean_module_call_data = match cond.boolean_module_call_data {
+                Some(call_data) => call_data,
+                None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
             };
-            let is_finalized = call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
+            // call is_finalized of boolean_condition
+            let is_finalized = boolean_module_call_data.call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
                 is_finalized.is_ok(),
                 "Condition is not finalized"
             );
             has_contract_cond = true;
-
             // call get_outcome of boolean_condition
-            let call_get_outcome = match cond.call_get_outcome {
-                Some(call) => call,
-                None => Err(Error::<T>::CallGetOutcomeNotExist)?,
-            };
-            let outcome = call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
+            let outcome = boolean_module_call_data.call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
             if outcome.is_ok() {
                 has_true_contract_cond = true;
             }
@@ -396,28 +407,22 @@ fn calculate_numeric_logic_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::NumericRuntimeModule {
-            // the number of registered numeric app
-            let numeric_app_number = match cond.numeric_app_num {
-                Some(app_num) => app_num,
-                None => Err(Error::<T>::NumericAppNotExist)?,
+            let numeric_module_call_data = match cond.numeric_module_call_data {
+                Some(call_data) => call_data,
+                None => Err(Error::<T>::NumericModuleCallDataNotExist)?,
             };
-            // session id of numeric condition
-            let session_id = match cond.numeric_session_id {
-                Some(id) => id,
-                None => Err(Error::<T>::NumericSessionIdNotExist)?,
-            };
-
+            
             let is_finalized: bool = NumericConditionCaller::<T>::call_is_finalized(
-                numeric_app_number, 
-                &session_id, 
-                cond.args_query_finalzation
+                numeric_module_call_data.numeric_app_num, 
+                &numeric_module_call_data.numeric_session_id, 
+                numeric_module_call_data.args_query_finalzation,
             )?;
             ensure!(is_finalized == true, "Condition is not finalized");
 
             let outcome: BalanceOf<T> = NumericConditionCaller::<T>::call_get_outcome(
-                numeric_app_number, 
-                &session_id, 
-                cond.args_query_outcome
+                numeric_module_call_data.numeric_app_num, 
+                &numeric_module_call_data.numeric_session_id, 
+                numeric_module_call_data.args_query_outcome,
             )?;
             if func_type == TransferFunctionType::NumericAdd {
                 amount = amount + outcome;
@@ -475,13 +480,33 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
     encoded.extend(pay.dest.encode());
     pay.conditions.into_iter().for_each(|condition| {
         encoded.extend(condition.condition_type.encode());
-        encoded.extend(condition.hash_lock.encode());
-        encoded.extend(condition.call_is_finalized.encode());
-        encoded.extend(condition.call_get_outcome.encode());
-        encoded.extend(condition.numeric_app_num.encode());
-        encoded.extend(condition.numeric_session_id.encode());
-        encoded.extend(condition.args_query_finalzation.encode());
-        encoded.extend(condition.args_query_outcome.encode());
+        if condition.condition_type == ConditionType::HashLock {
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.clone().encode());
+            encoded.extend(condition.numeric_module_call_data.clone().encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else if condition.condition_type == ConditionType::BooleanRuntimeModule {
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.clone().unwrap().call_is_finalized.encode());
+            encoded.extend(condition.boolean_module_call_data.unwrap().call_get_outcome.encode());
+            encoded.extend(condition.numeric_module_call_data.encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else if condition.condition_type == ConditionType::NumericRuntimeModule {
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalzation.encode());
+            encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else { // ConditionType::SmartContract
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.encode());
+            encoded.extend(condition.numeric_module_call_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().virt_addr.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.unwrap().input_data.encode());
+        }
     });
     encoded.extend(pay.transfer_func.logic_type.encode());
     encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());

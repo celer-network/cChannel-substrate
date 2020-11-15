@@ -907,7 +907,9 @@ decl_error! {
         // numeric_app is not exist
         NumericAppNotExist,
         // numeric_session_id is not exist
-        NumericSessionIdNotExist
+        NumericSessionIdNotExist,
+        BooleanModuleCallDataNotExist,
+        NumericModuleCallDataNotExist,
     }
 }
 
