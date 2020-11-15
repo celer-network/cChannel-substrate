@@ -100,7 +100,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, ensure_root};
 use celer_contracts_primitives::{RentProjection, ContractAccessError};
-use frame_support::weights::Weight;
+use frame_support::{dispatch::DispatchError, weights::Weight};
 
 pub type CodeHash<T> = <T as frame_system::Trait>::Hash;
 pub type TrieId = Vec<u8>;
@@ -429,6 +429,12 @@ decl_error! {
 		DecodingFailed,
 		/// Contract trapped during execution.
 		ContractTrapped,
+		/// The given virtual address doesn't mapping to a deployed address.
+		DeployedAddrNotExist,
+		/// Smart contract reverted.
+		RevertedError,
+		/// A scale-codec encoded value is not decoded correctly
+		MustBeDecodable,
 	}
 }
 
@@ -645,9 +651,9 @@ impl<T: Trait> Module<T> {
 
 	/// Look up the deployed address of virtual address
 	pub fn resolve(virt_addr: T::Hash) -> sp_std::result::Result<T::AccountId, ContractAccessError> {
-		let deployed_address = VirtToRealMap::<T>::get(&virt_addr)
+		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
 			.ok_or(ContractAccessError::DoesntExist)?;
-		Ok(deployed_address)
+		Ok(deployed_addr)
 	}
 
 	/// Calculate the offchain address 
@@ -656,6 +662,62 @@ impl<T: Trait> Module<T> {
 			T::Hashing::hash_of(&code_hash),
 			T::Hashing::hash_of(&nonce)
 		))
+	}
+
+	/// This function called by celer-pay runtime module
+    /// It returns outcome of boolean condition
+	pub fn get_boolean_outcome(
+		origin: T::AccountId,
+		virt_addr: T::Hash,
+		gas_limit: u64,
+		input_data: Vec<u8>,
+	) -> sp_std::result::Result<bool,  DispatchError> {
+		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
+			.ok_or(Error::<T>::DeployedAddrNotExist)?;
+		let (exec_result, _) = Self::bare_call(
+			origin,
+			deployed_addr,
+			Zero::zero(),
+			gas_limit,
+			input_data
+		);
+		let exec_return_value = match exec_result.map(|value| value) {
+			Ok(value) => value,
+			Err(e) => Err(e.error)?,
+		};
+		ensure!(exec_return_value.is_success(), Error::<T>::RevertedError);
+		let boolean_outcome: bool = Decode::decode(&mut &exec_return_value.data[..])
+			.map_err(|_| Error::<T>::MustBeDecodable)?;
+
+		Ok(boolean_outcome)
+	}
+
+	/// This function called by celer-pay runtime module
+	/// It returns outcome of numeric outcome
+	pub fn get_numeric_outcome(
+		origin: T::AccountId,
+		virt_addr: T::Hash,
+		gas_limit: u64,
+		input_data: Vec<u8>,
+	) -> sp_std::result::Result<u32,  DispatchError> {
+		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
+			.ok_or(Error::<T>::DeployedAddrNotExist)?;
+		let (exec_result, _) = Self::bare_call(
+			origin,
+			deployed_addr,
+			Zero::zero(),
+			gas_limit,
+			input_data
+		);
+		let exec_return_value = match exec_result.map(|value| value) {
+			Ok(value) => value,
+			Err(e) => Err(e.error)?,
+		};
+		ensure!(exec_return_value.is_success(), Error::<T>::RevertedError);
+		let numeric_outcome: u32 = Decode::decode(&mut &exec_return_value.data[..])
+			.map_err(|_| Error::<T>::MustBeDecodable)?;
+
+		Ok(numeric_outcome)
 	}
 
 	/// Query storage of a specified contract under a specified key.
