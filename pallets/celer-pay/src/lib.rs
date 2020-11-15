@@ -755,8 +755,8 @@ decl_module! {
             origin,
             resolve_pay_request: ResolvePaymentConditionsRequestOf<T>
         ) -> DispatchResultWithPostInfo {
-            ensure_signed(origin)?;
-            PayResolver::<T>::resolve_payment_by_conditions(resolve_pay_request.clone())?;
+            let caller = ensure_signed(origin)?;
+            PayResolver::<T>::resolve_payment_by_conditions(caller, resolve_pay_request.clone())?;
             
             Ok(Some(weight_for::resolve_payment_by_conditions::<T>(
                 resolve_pay_request.cond_pay.conditions.len() as Weight, // N
@@ -898,18 +898,16 @@ decl_error! {
         PayInfoNotExist,
         // hash_lock is not exit
         HashLockNotExist,
-        // condition_address is not exit
-        ConditionAddressNotExist,
-        // call_is_finalized is not exist
-        CallIsFinalizedNotExist,
-        // call_get_outcome is not exist
-        CallGetOutcomeNotExist,
-        // numeric_app is not exist
+        // numeric_app is not regsitered
         NumericAppNotExist,
-        // numeric_session_id is not exist
-        NumericSessionIdNotExist,
+        // boolean_module_call_data is not exist
         BooleanModuleCallDataNotExist,
+        // numeric_module_call_data is not exist
         NumericModuleCallDataNotExist,
+        // smart_contract_call_data is not exist
+        SmartContractCallDataNotExist,
+        /// A scale-codec encoded value is not decoded correctly
+		MustBeDecodable,
     }
 }
 

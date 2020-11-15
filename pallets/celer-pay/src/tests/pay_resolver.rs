@@ -29,7 +29,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number());
@@ -57,7 +57,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 0);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -86,7 +86,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 30);
             assert_eq!(resolve_deadline, System::block_number());
@@ -116,7 +116,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 0);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -240,7 +240,7 @@ pub mod test_pay_resolver {
 
             System::set_block_number(3);
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("Passed pay resolve deadline in cond_pay msg")
@@ -361,7 +361,7 @@ pub mod test_pay_resolver {
             System::set_block_number(System::block_number() + 11);
 
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("Passed onchain resolve pay deadline")
@@ -388,7 +388,7 @@ pub mod test_pay_resolver {
             };
 
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(err, DispatchError::Other("Wrong preimage"));
         })
     }
@@ -414,7 +414,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 35);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -442,7 +442,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 25);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -470,7 +470,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -516,7 +516,7 @@ pub mod test_pay_resolver {
                 };
 
                 result =
-                    PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                    PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
                 assert_eq!(result.0, calculate_pay_id::<TestRuntime>(pay_hash));
                 assert_eq!(result.1, 50);
                 assert_eq!(result.2, System::block_number());
@@ -566,7 +566,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id_2, amount_2, resolve_deadline_2) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id_2, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount_2, 35);
             assert_eq!(resolve_deadline_2, System::block_number());
@@ -639,8 +639,10 @@ pub mod test_pay_resolver {
             encoded.extend(condition.boolean_module_call_data.encode());
             encoded.extend(condition.numeric_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.clone().unwrap().virt_addr.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.unwrap().input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().get_outcome_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data.encode());
         }
         });
         encoded.extend(pay.transfer_func.logic_type.encode());

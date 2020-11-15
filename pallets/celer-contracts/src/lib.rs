@@ -433,8 +433,6 @@ decl_error! {
 		DeployedAddrNotExist,
 		/// Smart contract reverted.
 		RevertedError,
-		/// A scale-codec encoded value is not decoded correctly
-		MustBeDecodable,
 	}
 }
 
@@ -664,14 +662,15 @@ impl<T: Trait> Module<T> {
 		))
 	}
 
-	/// This function called by celer-pay runtime module
-    /// It returns outcome of boolean condition
-	pub fn get_boolean_outcome(
+	/// Performe a call to `is_finalized` or `get_outcome` function at smart contract
+	/// 
+	/// It returns the result of `is_finalized` or `get_outcome` function 
+	pub fn call_contract_condition(
 		origin: T::AccountId,
 		virt_addr: T::Hash,
 		gas_limit: u64,
 		input_data: Vec<u8>,
-	) -> sp_std::result::Result<bool,  DispatchError> {
+	) -> sp_std::result::Result<Vec<u8>, DispatchError> {
 		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
 			.ok_or(Error::<T>::DeployedAddrNotExist)?;
 		let (exec_result, _) = Self::bare_call(
@@ -686,38 +685,8 @@ impl<T: Trait> Module<T> {
 			Err(e) => Err(e.error)?,
 		};
 		ensure!(exec_return_value.is_success(), Error::<T>::RevertedError);
-		let boolean_outcome: bool = Decode::decode(&mut &exec_return_value.data[..])
-			.map_err(|_| Error::<T>::MustBeDecodable)?;
 
-		Ok(boolean_outcome)
-	}
-
-	/// This function called by celer-pay runtime module
-	/// It returns outcome of numeric outcome
-	pub fn get_numeric_outcome(
-		origin: T::AccountId,
-		virt_addr: T::Hash,
-		gas_limit: u64,
-		input_data: Vec<u8>,
-	) -> sp_std::result::Result<u32,  DispatchError> {
-		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
-			.ok_or(Error::<T>::DeployedAddrNotExist)?;
-		let (exec_result, _) = Self::bare_call(
-			origin,
-			deployed_addr,
-			Zero::zero(),
-			gas_limit,
-			input_data
-		);
-		let exec_return_value = match exec_result.map(|value| value) {
-			Ok(value) => value,
-			Err(e) => Err(e.error)?,
-		};
-		ensure!(exec_return_value.is_success(), Error::<T>::RevertedError);
-		let numeric_outcome: u32 = Decode::decode(&mut &exec_return_value.data[..])
-			.map_err(|_| Error::<T>::MustBeDecodable)?;
-
-		Ok(numeric_outcome)
+		Ok(exec_return_value.data)
 	}
 
 	/// Query storage of a specified contract under a specified key.
