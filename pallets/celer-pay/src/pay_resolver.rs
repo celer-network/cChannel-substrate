@@ -315,7 +315,6 @@ fn calculate_boolean_and_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            ensure!(cond.boolean_module_call_data.is_some(), Error::<T>::InvalidConditionalPay);
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             let boolean_module_call_data = match cond.boolean_module_call_data {
                 Some(call_data) => call_data,
