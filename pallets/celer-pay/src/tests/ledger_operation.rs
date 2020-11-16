@@ -1139,7 +1139,7 @@ pub mod test_ledger_operation {
             };
 
             let (pay_id, _amount_1, _) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
 
             System::set_block_number(System::block_number() + 6);
 
@@ -1209,7 +1209,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // the head list of peer_from 1
@@ -1218,7 +1218,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -1315,7 +1315,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             for i in 0..cond_pays[1][0].len() {
@@ -1323,7 +1323,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -1406,7 +1406,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -1506,7 +1506,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -1580,7 +1580,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -1677,7 +1677,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -1781,7 +1781,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -1876,7 +1876,7 @@ pub mod test_ledger_operation {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                        let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
                     }
                 }
             }
@@ -2421,7 +2421,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
@@ -2520,7 +2520,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
@@ -2658,7 +2658,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
             for i in 0..2 {
                 let cond_pays = pay_id_infos[1].2.clone();
@@ -2666,7 +2666,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
@@ -2830,7 +2830,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
             for i in 0..2 {
                 let cond_pays = pay_id_infos[1].2.clone();
@@ -2838,7 +2838,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
@@ -3212,7 +3212,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline of all onchain resolved pays
@@ -3305,7 +3305,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // the head list of peer_from 1
@@ -3314,7 +3314,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -3392,7 +3392,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // the head list of peer_from 1
@@ -3401,7 +3401,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[1][0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain  resolve deadline of all onchain resolved pays
@@ -3788,7 +3788,7 @@ pub mod test_ledger_operation {
                     cond_pay: cond_pays[0][i].clone(),
                     hash_preimages: vec![],
                 };
-                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                let _ = PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request).unwrap();
             }
 
             // pass onchain resolve deadline ofall onchain resolved pays
@@ -4685,28 +4685,7 @@ pub mod test_ledger_operation {
 
         return cooperative_settle_request;
     }
-    
-    pub fn get_token_transfer(
-        account: AccountId,
-        amount: Balance,
-    ) -> TokenTransfer<AccountId, Balance> {
-        let account_amt_pair = AccountAmtPair {
-            account: Some(account),
-            amt: amount,
-        };
-
-        let token_info = TokenInfo {
-            token_type: TokenType::Celer,
-        };
-
-        let token_transfer = TokenTransfer {
-            token: token_info,
-            receiver: account_amt_pair,
-        };
-
-        return token_transfer;
-    }
-
+   
     pub fn get_transfer_func_2(amount: Balance) -> TransferFunction<AccountId, Balance> {
         let account_amt_pair = AccountAmtPair {
             account: None,

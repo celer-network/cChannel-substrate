@@ -568,7 +568,7 @@ pub mod tests_celer {
                             cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
                             hash_preimages: vec![],
                         };
-                        assert_ok!(PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request));
+                        assert_ok!(PayResolver::<TestRuntime>::resolve_payment_by_conditions(channel_peers[0], pay_request));
                     }
                 }
             }

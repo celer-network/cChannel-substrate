@@ -33,6 +33,7 @@ impl_outer_event! {
         celer<T>,
         pallet_balances<T>,
         system<T>,
+        celer_contracts<T>,
     }
 }
 
@@ -135,6 +136,35 @@ impl pallet_timestamp::Trait for TestRuntime {
     type MinimumPeriod = MinimumPeriod;
     type WeightInfo = ();
 }
+parameter_types! {
+	pub const SignedClaimHandicap: u64 = 2;
+	pub const TombstoneDeposit: u64 = 16;
+	pub const StorageSizeOffset: u32 = 8;
+	pub const RentByteFee: u64 = 4;
+	pub const RentDepositOffset: u64 = 10_000;
+	pub const SurchargeReward: u64 = 150;
+	pub const MaxDepth: u32 = 100;
+	pub const MaxValueSize: u32 = 16_384;
+}
+
+impl celer_contracts::Trait for TestRuntime {
+    type Time = Timestamp;
+    type Randomness = Randomness;
+    type Currency = Balances;
+	type DetermineContractAddress = celer_contracts::SimpleAddressDeterminer<TestRuntime>;
+	type Event = TestEvent;
+	type TrieIdGenerator = celer_contracts::TrieIdFromParentCounter<TestRuntime>;
+	type RentPayment = ();
+	type SignedClaimHandicap = SignedClaimHandicap;
+	type TombstoneDeposit = TombstoneDeposit;
+	type StorageSizeOffset = StorageSizeOffset;
+	type RentByteFee = RentByteFee;
+	type RentDepositOffset = RentDepositOffset;
+	type SurchargeReward = SurchargeReward;
+	type MaxDepth = MaxDepth;
+	type MaxValueSize = MaxValueSize;
+	type WeightPrice = ();
+}
 
 impl mock_boolean_condition::Trait for TestRuntime {}
 
@@ -152,6 +182,8 @@ pub type CelerPayModule = Module<TestRuntime>;
 pub type System = frame_system::Module<TestRuntime>;
 pub type Timestamp = pallet_timestamp::Module<TestRuntime>;
 type MockBooleanCondition = mock_boolean_condition::Module<TestRuntime>;
+type Balances = pallet_balances::Module<TestRuntime>;
+type Randomness = pallet_randomness_collective_flip::Module<TestRuntime>;
 
 pub struct ExtBuilder;
 impl ExtBuilder {

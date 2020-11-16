@@ -100,7 +100,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, ensure_root};
 use celer_contracts_primitives::{RentProjection, ContractAccessError};
-use frame_support::weights::Weight;
+use frame_support::{dispatch::DispatchError, weights::Weight};
 
 pub type CodeHash<T> = <T as frame_system::Trait>::Hash;
 pub type TrieId = Vec<u8>;
@@ -429,6 +429,10 @@ decl_error! {
 		DecodingFailed,
 		/// Contract trapped during execution.
 		ContractTrapped,
+		/// The given virtual address doesn't mapping to a deployed address.
+		DeployedAddrNotExist,
+		/// Smart contract reverted.
+		RevertedError,
 	}
 }
 
@@ -547,7 +551,7 @@ decl_module! {
 		///   after the execution is saved as the `code` of the account. That code will be invoked
 		///   upon any call received by this account.
 		/// - The contract is initialized.
-		#[weight = *gas_limit]
+		#[weight = T::DbWeight::get().writes(1).saturating_add(40_000_000).saturating_add(*gas_limit)]
 		pub fn instantiate(
 			origin,
 			#[compact] endowment: BalanceOf<T>,
@@ -564,22 +568,22 @@ decl_module! {
 					.map(|(_address, output)| output)
 			});
 
-			// Calculate on-chain address
-			let deployed_address = T::DetermineContractAddress::contract_address_for(
+			// Calculate deployed address
+			let deployed_addr = T::DetermineContractAddress::contract_address_for(
 				&code_hash,
 				&data,
 				&origin,
 			);
-			// Calculate off-chain address
-			let off_chain_address = crate::Module::<T>::generate_offchain_address(
+			// Calculate virtual address
+			let virt_addr = crate::Module::<T>::generate_offchain_address(
 				code_hash, 
 				nonce
 			);
-			// Mapping off-chain address to an on-chain address
-			<VirtToRealMap<T>>::insert(&off_chain_address, deployed_address.clone());
+			// Mapping off-chain address to an deployed address
+			<VirtToRealMap<T>>::insert(&virt_addr, deployed_addr.clone());
 
 			// Deposit an celer-app deployed event.
-			Self::deposit_event(RawEvent::CelerAppDeployed(off_chain_address, deployed_address));
+			Self::deposit_event(RawEvent::CelerAppDeployed(virt_addr, deployed_addr));
 
 			gas_meter.into_dispatch_result(result)
 		}
@@ -645,9 +649,9 @@ impl<T: Trait> Module<T> {
 
 	/// Look up the deployed address of virtual address
 	pub fn resolve(virt_addr: T::Hash) -> sp_std::result::Result<T::AccountId, ContractAccessError> {
-		let deployed_address = VirtToRealMap::<T>::get(&virt_addr)
+		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
 			.ok_or(ContractAccessError::DoesntExist)?;
-		Ok(deployed_address)
+		Ok(deployed_addr)
 	}
 
 	/// Calculate the offchain address 
@@ -656,6 +660,33 @@ impl<T: Trait> Module<T> {
 			T::Hashing::hash_of(&code_hash),
 			T::Hashing::hash_of(&nonce)
 		))
+	}
+
+	/// Performe a call to `is_finalized` or `get_outcome` function at smart contract
+	/// 
+	/// It returns the result of `is_finalized` or `get_outcome` function 
+	pub fn call_contract_condition(
+		origin: T::AccountId,
+		virt_addr: T::Hash,
+		gas_limit: u64,
+		input_data: Vec<u8>,
+	) -> sp_std::result::Result<Vec<u8>, DispatchError> {
+		let deployed_addr = VirtToRealMap::<T>::get(&virt_addr)
+			.ok_or(Error::<T>::DeployedAddrNotExist)?;
+		let (exec_result, _) = Self::bare_call(
+			origin,
+			deployed_addr,
+			Zero::zero(),
+			gas_limit,
+			input_data
+		);
+		let exec_return_value = match exec_result.map(|value| value) {
+			Ok(value) => value,
+			Err(e) => Err(e.error)?,
+		};
+		ensure!(exec_return_value.is_success(), Error::<T>::RevertedError);
+
+		Ok(exec_return_value.data)
 	}
 
 	/// Query storage of a specified contract under a specified key.
@@ -757,7 +788,7 @@ decl_storage! {
 		///
 		/// TWOX-NOTE: SAFE since `AccountId` is a secure hash.
 		pub ContractInfoOf: map hasher(twox_64_concat) T::AccountId => Option<ContractInfo<T>>;
-		/// A mapping between off-chain address(hash(code_hash, input_data)) between on-chain address
+		/// A mapping between virtual address(hash(code_hash, app nonce)) between deployed address
 		pub VirtToRealMap: map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 	}
 }

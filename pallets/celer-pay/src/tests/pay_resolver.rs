@@ -29,7 +29,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number());
@@ -57,7 +57,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 0);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -86,7 +86,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 30);
             assert_eq!(resolve_deadline, System::block_number());
@@ -116,7 +116,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 0);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -240,7 +240,7 @@ pub mod test_pay_resolver {
 
             System::set_block_number(3);
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("Passed pay resolve deadline in cond_pay msg")
@@ -361,7 +361,7 @@ pub mod test_pay_resolver {
             System::set_block_number(System::block_number() + 11);
 
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(
                 err,
                 DispatchError::Other("Passed onchain resolve pay deadline")
@@ -388,7 +388,7 @@ pub mod test_pay_resolver {
             };
 
             let err =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap_err();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap_err();
             assert_eq!(err, DispatchError::Other("Wrong preimage"));
         })
     }
@@ -414,7 +414,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 35);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -442,7 +442,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 25);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -470,7 +470,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id, amount, resolve_deadline) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number() + 10);
@@ -516,7 +516,7 @@ pub mod test_pay_resolver {
                 };
 
                 result =
-                    PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                    PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
                 assert_eq!(result.0, calculate_pay_id::<TestRuntime>(pay_hash));
                 assert_eq!(result.1, 50);
                 assert_eq!(result.2, System::block_number());
@@ -566,7 +566,7 @@ pub mod test_pay_resolver {
             };
 
             let (pay_id_2, amount_2, resolve_deadline_2) =
-                PayResolver::<TestRuntime>::resolve_payment_by_conditions(pay_request).unwrap();
+                PayResolver::<TestRuntime>::resolve_payment_by_conditions(account_key("Alice"), pay_request).unwrap();
             assert_eq!(pay_id_2, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount_2, 35);
             assert_eq!(resolve_deadline_2, System::block_number());
@@ -615,13 +615,35 @@ pub mod test_pay_resolver {
         encoded.extend(pay.dest.encode());
         pay.conditions.into_iter().for_each(|condition| {
             encoded.extend(condition.condition_type.encode());
+            if condition.condition_type == ConditionType::HashLock {
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.call_is_finalized.encode());
-            encoded.extend(condition.call_get_outcome.encode());
-            encoded.extend(condition.numeric_app_num.encode());
-            encoded.extend(condition.numeric_session_id.encode());
-            encoded.extend(condition.args_query_finalzation.encode());
-            encoded.extend(condition.args_query_outcome.encode());
+            encoded.extend(condition.boolean_module_call_data.clone().encode());
+            encoded.extend(condition.numeric_module_call_data.clone().encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else if condition.condition_type == ConditionType::BooleanRuntimeModule {
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.clone().unwrap().call_is_finalized.encode());
+            encoded.extend(condition.boolean_module_call_data.unwrap().call_get_outcome.encode());
+            encoded.extend(condition.numeric_module_call_data.encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else if condition.condition_type == ConditionType::NumericRuntimeModule {
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalzation.encode());
+            encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
+            encoded.extend(condition.smart_contract_call_data.encode());
+        } else { // ConditionType::SmartContract
+            encoded.extend(condition.hash_lock.encode());
+            encoded.extend(condition.boolean_module_call_data.encode());
+            encoded.extend(condition.numeric_module_call_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().virt_addr.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().get_outcome_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data.encode());
+        }
         });
         encoded.extend(pay.transfer_func.logic_type.encode());
         encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
@@ -638,12 +660,9 @@ pub mod test_pay_resolver {
             let condition_hash_lock = Condition {
                 condition_type: ConditionType::HashLock,
                 hash_lock: Some(H256::from_low_u64_be(1)),
-                call_is_finalized: None,
-                call_get_outcome: None,
-                numeric_app_num: None,
-                numeric_session_id: None,
-                args_query_finalzation: None,
-                args_query_outcome: None,
+                boolean_module_call_data: None,
+                numeric_module_call_data: None,
+                smart_contract_call_data: None,
             };
             return condition_hash_lock;
         } else if r#type == 1 {
@@ -661,17 +680,18 @@ pub mod test_pay_resolver {
                     1
                 ))
             );
-            let condition_deployed_true = Condition {
+            let boolean_module_call_data = BooleanModuleCallData {
+                call_is_finalized: call_is_finalized_true,
+                call_get_outcome: call_get_outcome_true,
+            };
+            let boolean_condition_true = Condition {
                 condition_type: ConditionType::BooleanRuntimeModule,
                 hash_lock: None,
-                call_is_finalized: Some(call_is_finalized_true),
-                call_get_outcome: Some(call_get_outcome_true),
-                numeric_app_num: None,
-                numeric_session_id: None,
-                args_query_finalzation: None,
-                args_query_outcome: None,
+                boolean_module_call_data: Some(boolean_module_call_data),
+                numeric_module_call_data: None,
+                smart_contract_call_data: None,
             };
-            return condition_deployed_true;
+            return boolean_condition_true;
         } else if r#type == 2 {
             // this call return Ok(())
             let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
@@ -687,41 +707,48 @@ pub mod test_pay_resolver {
                     0
                 ))
             );
-            let condition_deployed_false = Condition {
+            let boolean_module_call_data = BooleanModuleCallData {
+                call_is_finalized: call_is_finalized_true,
+                call_get_outcome: call_get_outcome_false,
+            };
+            let boolean_condition_false = Condition {
                 condition_type: ConditionType::BooleanRuntimeModule,
                 hash_lock: None,
-                call_is_finalized: Some(call_is_finalized_true),
-                call_get_outcome: Some(call_get_outcome_false),
-                numeric_app_num: None,
-                numeric_session_id: None,
-                args_query_finalzation: None,
-                args_query_outcome: None,
+                boolean_module_call_data: Some(boolean_module_call_data),
+                numeric_module_call_data: None,
+                smart_contract_call_data: None,
             };
-            return condition_deployed_false;
+            return boolean_condition_false;
         } else if r#type == 3 {
-            let condition_deployed_numeric_10 = Condition {
-                condition_type: ConditionType::NumericRuntimeModule,
-                hash_lock: None,
-                call_is_finalized: None,
-                call_get_outcome: None,
-                numeric_app_num: Some(0),
-                numeric_session_id: Some(H256::from_low_u64_be(1)),
+            let numeric_module_call_data = NumericModuleCallData {
+                numeric_app_num: 0,
+                numeric_session_id: H256::from_low_u64_be(1),
                 args_query_finalzation: Some(1.encode()),
                 args_query_outcome: Some(10.encode()),
             };
-            return condition_deployed_numeric_10;
-        } else {
-            let condition_deployed_numeric_25 = Condition {
+            let numeric_condition_10 = Condition {
                 condition_type: ConditionType::NumericRuntimeModule,
                 hash_lock: None,
-                call_is_finalized: None,
-                call_get_outcome: None,
-                numeric_app_num: Some(0),
-                numeric_session_id: Some(H256::from_low_u64_be(1)),
+                boolean_module_call_data: None,
+                numeric_module_call_data: Some(numeric_module_call_data),
+                smart_contract_call_data: None,
+            };
+            return numeric_condition_10;
+        } else {
+            let numeric_module_call_data = NumericModuleCallData {
+                numeric_app_num: 0,
+                numeric_session_id: H256::from_low_u64_be(1),
                 args_query_finalzation: Some(1.encode()),
                 args_query_outcome: Some(25.encode()),
             };
-            return condition_deployed_numeric_25;
+            let numeric_condition_25 = Condition {
+                condition_type: ConditionType::NumericRuntimeModule,
+                hash_lock: None,
+                boolean_module_call_data: None,
+                numeric_module_call_data: Some(numeric_module_call_data),
+                smart_contract_call_data: None,
+            };
+            return numeric_condition_25;
         }
     }
 
