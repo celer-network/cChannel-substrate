@@ -315,6 +315,7 @@ fn calculate_boolean_and_payment<T: Trait>(
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
         } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
+            ensure!(cond.boolean_module_call_data.is_some(), Error::<T>::InvalidConditionalPay);
             let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
             let boolean_module_call_data = match cond.boolean_module_call_data {
                 Some(call_data) => call_data,
@@ -346,7 +347,7 @@ fn calculate_boolean_and_payment<T: Trait>(
                 smart_contract_call_data.is_finalized_call_gas_limit,
                 smart_contract_call_data.is_finalized_call_input_data,
             )?;
-            let is_finalized: bool = Decode::decode(&mut &is_finalized_result[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
+            let is_finalized: bool = bool::decode(&mut &is_finalized_result[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
             ensure!(
                 is_finalized == true,
                 "Condition is not finalized"
@@ -359,7 +360,7 @@ fn calculate_boolean_and_payment<T: Trait>(
                 smart_contract_call_data.get_outcome_call_gas_limit,
                 smart_contract_call_data.get_outcome_call_input_data,
             )?;
-            let outcome: bool = Decode::decode(&mut &get_outcome_result[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
+            let outcome: bool = bool::decode(&mut &get_outcome_result[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
             if outcome == false {
                 has_false_contract_cond = true;
             }
@@ -562,7 +563,6 @@ fn calculate_numeric_amount<T: Trait>(
         } else {
             Ok(amount)
         }
-        
     } else if func_type == TransferFunctionType::NumericMin {
         if has_contract_cond == true {
             if outcome < amount {
@@ -630,6 +630,6 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
     encoded.extend(pay.resolve_deadline.encode());
     encoded.extend(pay.resolve_timeout.encode());
 
-    return encoded;
+    encoded
 }
 

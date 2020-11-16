@@ -754,6 +754,7 @@ dependencies = [
 name = "celer-pay-module"
 version = "0.8.8"
 dependencies = [
+ "celer-contracts",
  "celer-pay-module-rpc-runtime-api",
  "frame-support",
  "frame-system",

@@ -876,9 +876,9 @@ decl_error! {
         PeerNotExist,
         // balance_limits is not exist
         BalanceLimitsNotExist,
-        // simplex_state is invalid
+        // simplex_state does not contains all data
         InvalidSimplexState,
-        // cooperative_settle_info is invalid
+        // cooperative settle info does not contains all data
         InvalidCooperativeSettle,
         // channel is not exist
         ChannelNotExist,
@@ -906,7 +906,7 @@ decl_error! {
         NumericModuleCallDataNotExist,
         // smart_contract_call_data is not exist
         SmartContractCallDataNotExist,
-        /// A scale-codec encoded value is not decoded correctly
+        // A scale-codec encoded value can not decode correctly
 		MustBeDecodable,
     }
 }
