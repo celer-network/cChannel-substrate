@@ -61,4 +61,4 @@ WebAssembly based smart contracts in the Rust programming language. This is a wo
 
 * [Balances](https://docs.rs/pallet-balances/latest/pallet_balances/)
 
-License: Apache-2.0
+License: MIT
