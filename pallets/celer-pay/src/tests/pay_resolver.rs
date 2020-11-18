@@ -631,7 +631,7 @@ pub mod test_pay_resolver {
             encoded.extend(condition.boolean_module_call_data.encode());
             encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
             encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalzation.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalization.encode());
             encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
         } else { // ConditionType::SmartContract
@@ -723,7 +723,7 @@ pub mod test_pay_resolver {
             let numeric_module_call_data = NumericModuleCallData {
                 numeric_app_num: 0,
                 numeric_session_id: H256::from_low_u64_be(1),
-                args_query_finalzation: Some(1.encode()),
+                args_query_finalization: Some(1.encode()),
                 args_query_outcome: Some(10.encode()),
             };
             let numeric_condition_10 = Condition {
@@ -738,7 +738,7 @@ pub mod test_pay_resolver {
             let numeric_module_call_data = NumericModuleCallData {
                 numeric_app_num: 0,
                 numeric_session_id: H256::from_low_u64_be(1),
-                args_query_finalzation: Some(1.encode()),
+                args_query_finalization: Some(1.encode()),
                 args_query_outcome: Some(25.encode()),
             };
             let numeric_condition_25 = Condition {

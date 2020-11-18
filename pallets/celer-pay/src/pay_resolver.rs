@@ -30,7 +30,7 @@ pub struct BooleanModuleCallData<Call> {
 pub struct NumericModuleCallData<Hash> {
     pub numeric_app_num: u32, // number of registered numeric app 
     pub numeric_session_id: Hash, // session id of numeric condition
-    pub args_query_finalzation: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
+    pub args_query_finalization: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
     pub args_query_outcome: Option<Vec<u8>>, // the encoded query outcome of numeric runtime module
 }
 
@@ -486,7 +486,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
             let is_finalized: bool = NumericConditionCaller::<T>::call_is_finalized(
                 numeric_module_call_data.numeric_app_num, 
                 &numeric_module_call_data.numeric_session_id, 
-                numeric_module_call_data.args_query_finalzation,
+                numeric_module_call_data.args_query_finalization,
             )?;
             ensure!(is_finalized == true, "Condition is not finalized");
 
@@ -608,7 +608,7 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
             encoded.extend(condition.boolean_module_call_data.encode());
             encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
             encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalzation.encode());
+            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalization.encode());
             encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
         } else { // ConditionType::SmartContract
