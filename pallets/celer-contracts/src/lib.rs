@@ -575,7 +575,7 @@ decl_module! {
 				&origin,
 			);
 			// Calculate virtual address
-			let virt_addr = crate::Module::<T>::generate_offchain_address(
+			let virt_addr = crate::Module::<T>::generate_virtual_address(
 				code_hash, 
 				nonce
 			);
@@ -654,8 +654,8 @@ impl<T: Trait> Module<T> {
 		Ok(deployed_addr)
 	}
 
-	/// Calculate the offchain address 
-	pub fn generate_offchain_address(code_hash: CodeHash<T>, nonce: u128) -> T::Hash {
+	/// Calculate the virtual address 
+	pub fn generate_virtual_address(code_hash: CodeHash<T>, nonce: u128) -> T::Hash {
 		T::Hashing::hash_of(&(
 			T::Hashing::hash_of(&code_hash),
 			T::Hashing::hash_of(&nonce)
@@ -664,7 +664,7 @@ impl<T: Trait> Module<T> {
 
 	/// Performe a call to `is_finalized` or `get_outcome` function at smart contract
 	/// 
-	/// It returns the result of `is_finalized` or `get_outcome` function 
+	/// It returns the encoded result of `is_finalized` or `get_outcome` function 
 	pub fn call_contract_condition(
 		origin: T::AccountId,
 		virt_addr: T::Hash,
