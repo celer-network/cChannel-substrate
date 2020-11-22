@@ -52,4 +52,4 @@ RUN mkdir /celer/data
 VOLUME ["/celer/data"]
 
 ENTRYPOINT ["/usr/local/bin/celer-network"]
-CMD ["--base-path", "/tmp/alice", "--chain=dev", "--port", "30333", "--validator", "--alice", "--unsafe-ws-external", "--unsafe-rpc-external", "--no-telemetry", "--rpc-cors", "all"]
+CMD ["--dev", "--tmp"]
