@@ -57,7 +57,7 @@ sp_api::decl_runtime_apis! {
 		fn resolve(virt_addr: Hash) -> ResolveResult<AccountId>;
 
 		/// Calculate the offchain address
-		fn generate_offchain_address(code_hash: Hash, nonce: u128) -> Hash;
+		fn generate_virtual_address(code_hash: Hash, nonce: u128) -> Hash;
 
 		/// Query a given storage key in a given contract.
 		///
