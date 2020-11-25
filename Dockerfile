@@ -1,6 +1,6 @@
 # Based from https://github.com/paritytech/substrate/blob/master/.maintain/Dockerfile
 # ===== FIRST STAGE =====
-FROM phusion/baseimage:0.10.2 as builder
+FROM phusion/baseimage:0.11 as builder
 LABEL maintainer="hashimoto19980924@gmail.com"
 LABEL description="This is the build stage for Celer Node. Here we create the binary."
 
@@ -18,9 +18,8 @@ RUN apt-get update && \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	export PATH="$PATH:$HOME/.cargo/bin" && \
 	rustup toolchain install nightly && \
-	rustup toolchain install nightly && \
-	rustup override set nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly && \
+	rustup default stable && \
 	cargo build "--$PROFILE"
 	
 # ===== SECOND STAGE ======
