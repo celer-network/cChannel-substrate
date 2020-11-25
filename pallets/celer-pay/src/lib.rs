@@ -112,10 +112,13 @@ mod weight_for {
     pub(crate) fn intend_settle<T: Trait>(
         signed_simplex_states_len: u64,
         signed_simplex_states_len_weight: u64,
+        pay_ids_len: u64,
+        pay_ids_len_weight: u64,
     ) -> Weight {
-        T::DbWeight::get().reads_writes(signed_simplex_states_len, 2)
+        T::DbWeight::get().reads_writes(signed_simplex_states_len + pay_ids_len, signed_simplex_states_len)
             .saturating_add(50_000_000)
             .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
+            .saturating_add(pay_ids_len_weight.saturating_mul(10_000_000))
     }
 
     /// Calculate the weight for `resolve_payment_by_conditions`
@@ -478,20 +481,30 @@ decl_module! {
         /// 
         /// # <weight>
         /// ## Weight
-        /// Dev: Weight calculation based on pay hashes-len is not support yet
         /// - Complexity: `O(N * M)`
         ///     - `N` signed_simplex_states-len
-        ///     - `M` pay_hashes-len
+        ///     - `M` pay_ids-len
         /// - DB:
         ///   - N storage reads `ChannelMap`
         ///   - N storage mutation `ChannelMap`
         ///   - M storage reads `PayInfoMap`
         /// # </weight>
         #[weight = (
-            weight_for::intend_settle::<T>(
-                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-            ),
+            if signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.is_some() == true {
+                weight_for::intend_settle::<T>(
+                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u64, // M
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as Weight, // M
+                )
+            } else {
+                weight_for::intend_settle::<T>(
+                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                    0,
+                    0,
+                )
+            },
             DispatchClass::Operational
         )]
         fn intend_settle(
@@ -500,10 +513,21 @@ decl_module! {
         ) -> DispatchResultWithPostInfo {
             LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array.clone())?;
 
-            Ok(Some(weight_for::intend_settle::<T>(
-                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-            )).into())
+            if signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.is_some() == true {
+                Ok(Some(weight_for::intend_settle::<T>(
+                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u64, // M
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as Weight, // M
+                )).into())
+            } else {
+                Ok(Some(weight_for::intend_settle::<T>(
+                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
+                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+                    0,
+                    0
+                )).into())
+            }
         }
 
         /// Read payment results and add results to corresponding simplex payment channel
