@@ -594,31 +594,31 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
         encoded.extend(condition.condition_type.encode());
         if condition.condition_type == ConditionType::HashLock {
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.clone().encode());
-            encoded.extend(condition.numeric_module_call_data.clone().encode());
+            encoded.extend(condition.boolean_module_call_data.as_ref().encode());
+            encoded.extend(condition.numeric_module_call_data.as_ref().encode());
             encoded.extend(condition.smart_contract_call_data.encode());
         } else if condition.condition_type == ConditionType::BooleanRuntimeModule {
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.clone().unwrap().call_is_finalized.encode());
+            encoded.extend(condition.boolean_module_call_data.as_ref().unwrap().call_is_finalized.encode());
             encoded.extend(condition.boolean_module_call_data.unwrap().call_get_outcome.encode());
             encoded.extend(condition.numeric_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
         } else if condition.condition_type == ConditionType::NumericRuntimeModule {
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.boolean_module_call_data.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalization.encode());
+            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().numeric_app_num.encode());
+            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().numeric_session_id.encode());
+            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().args_query_finalization.encode());
             encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
         } else { // ConditionType::SmartContract
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.boolean_module_call_data.encode());
             encoded.extend(condition.numeric_module_call_data.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().virt_addr.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().get_outcome_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().virt_addr.encode());
+            encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().is_finalized_call_gas_limit.encode());
+            encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().is_finalized_call_input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().get_outcome_call_gas_limit.encode());
             encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data.encode());
         }
     });
