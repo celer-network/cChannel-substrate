@@ -310,6 +310,7 @@ impl celer_pay_module::Trait for Runtime {
 	type Public = MultiSigner;
 	type Signature = Signature;
 	type Call = Call;
+	type WeightInfo = celer_pay_module::weights::SubstrateWeight<Runtime>;
 }
 
 impl mock_boolean_condition::Trait for Runtime {}
@@ -514,11 +515,11 @@ impl_runtime_apis! {
 			Contracts::resolve(virt_addr)
 		}
 
-		fn generate_offchain_address(
+		fn generate_virtual_address(
 			code_hash: Hash,
 			nonce: u128
 		) -> Hash {
-			Contracts::generate_offchain_address(code_hash, nonce)
+			Contracts::generate_virtual_address(code_hash, nonce)
 		}
 
 		fn get_storage(

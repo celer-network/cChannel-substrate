@@ -128,8 +128,8 @@ pub trait ContractsApi<BlockHash, BlockNumber, AccountId, Balance, Hash> {
 	) -> Result<AccountId>;
 
 	/// Calculate off-chain address
-	#[rpc(name = "contracts_generate_offchain_address")]
-	fn generate_offchain_address(
+	#[rpc(name = "contracts_generate_virtual_address")]
+	fn generate_virtual_address(
 		&self,
 		code_hash: Hash,
 		nonce: u128,
@@ -259,7 +259,7 @@ where
 		Ok(result)
 	}
 
-	fn generate_offchain_address(
+	fn generate_virtual_address(
 		&self,
 		code_hash: Hash,
 		nonce: u128,
@@ -271,7 +271,7 @@ where
 			self.client.info().best_hash));
 		
 		let result = api
-			.generate_offchain_address(&at, code_hash, nonce)
+			.generate_virtual_address(&at, code_hash, nonce)
 			.map_err(|e| runtime_error_into_rpc_err(e))?;
 
 		Ok(result)

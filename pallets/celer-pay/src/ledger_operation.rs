@@ -531,7 +531,7 @@ impl<T: Trait> LedgerOperation<T> {
             // No need to update nextPayIdListHash and lastPayResolveDeadline for snapshot purpose
             let new_state = PeerStateOf::<T> {
                 seq_num: simplex_state.seq_num,
-                transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt,
+                transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt,
                 next_pay_id_list_hash: state.next_pay_id_list_hash,
                 last_pay_resolve_deadline: state.last_pay_resolve_deadline,
                 pending_pay_out: simplex_state.total_pending_amount.unwrap_or(Zero::zero()),
@@ -815,9 +815,8 @@ impl<T: Trait> LedgerOperation<T> {
                 );
             }
 
-            let zero_blocknumber: T::BlockNumber = Zero::zero();
             ensure!(
-                c.settle_finalized_time.unwrap_or(zero_blocknumber) == zero_blocknumber
+                c.settle_finalized_time.unwrap_or(Zero::zero()).is_zero()
                     || frame_system::Module::<T>::block_number() < c.settle_finalized_time.unwrap(),
                 "Settle has already finalized"
             );
@@ -854,7 +853,7 @@ impl<T: Trait> LedgerOperation<T> {
                     // Update simplex_state-dependent fields
                     new_state = PeerStateOf::<T> {
                         seq_num: simplex_state.seq_num,
-                        transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt.clone(),
+                        transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone(),
                         next_pay_id_list_hash: None,
                         last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone(),
                         pending_pay_out: state.pending_pay_out,
@@ -863,7 +862,7 @@ impl<T: Trait> LedgerOperation<T> {
                     // Update simplex_state-dependent fields
                     new_state = PeerStateOf::<T> {
                         seq_num: simplex_state.seq_num,
-                        transfer_out: simplex_state.transfer_to_peer.clone().unwrap().receiver.amt.clone(),
+                        transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone(),
                         next_pay_id_list_hash: Some(next_pay_id_list_hash),
                         last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone(),
                         pending_pay_out: simplex_state.total_pending_amount.clone().unwrap_or(Zero::zero()),
@@ -885,12 +884,11 @@ impl<T: Trait> LedgerOperation<T> {
                     simplex_state.clone()
                 );
                 let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
-                CelerPayModule::<T>::check_single_signature(sigs[0].clone(),&encoded,c.peer_profiles[0].peer_addr.clone())?;
+                CelerPayModule::<T>::check_single_signature(sigs[0].clone(), &encoded, c.peer_profiles[0].peer_addr.clone())?;
                 
-                let zero_blocknumber = Zero::zero();
                 // This implies both stored seq_nums are 0
                 ensure!(
-                    c.settle_finalized_time.unwrap_or(zero_blocknumber) == zero_blocknumber,
+                    c.settle_finalized_time.unwrap_or(Zero::zero()).is_zero(),
                     "intend_settle before"
                 );
                 ensure!(sigs.len() == 1, "Invalid signatures length");
@@ -966,7 +964,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         // require no new intend_settle can be called
         ensure!(
-            block_number >= c.settle_finalized_time.unwrap(),
+            block_number >= c.settle_finalized_time.unwrap_or(Zero::zero()),
             "Settle is not finalized"
         );
 
@@ -1466,8 +1464,8 @@ pub fn encode_simplex_state<T: Trait>(
     let mut encoded = simplex_state.channel_id.encode();
     encoded.extend(simplex_state.peer_from.encode());
     encoded.extend(simplex_state.seq_num.encode());
-    encoded.extend(simplex_state.transfer_to_peer.clone().unwrap().token.token_type.encode());
-    encoded.extend(simplex_state.transfer_to_peer.clone().unwrap().receiver.account.encode());
+    encoded.extend(simplex_state.transfer_to_peer.as_ref().unwrap().token.token_type.encode());
+    encoded.extend(simplex_state.transfer_to_peer.as_ref().unwrap().receiver.account.encode());
     encoded.extend(simplex_state.transfer_to_peer.unwrap().receiver.amt.encode());
     simplex_state.pending_pay_ids.clone().unwrap().pay_ids.into_iter().for_each(|pay_id| {
         encoded.extend(pay_id.encode());

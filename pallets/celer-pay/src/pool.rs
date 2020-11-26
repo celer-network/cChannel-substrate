@@ -57,7 +57,7 @@ impl<T: Trait> Pool<T> {
         return Ok((receiver, msg_value));
     }
 
-    // Withdraw celer from Pool
+    // Withdraw native token from Pool
     pub fn withdraw(
         origin: T::Origin,
         value: BalanceOf<T>,
@@ -278,7 +278,7 @@ impl<T: Trait> Pool<T> {
     }
 }
 
-// Transfer Celer for a specified addresses.
+// Transfer native token for a specified addresses.
 fn _transfer<T: Trait>(
     from: T::AccountId,
     to: T::AccountId,
