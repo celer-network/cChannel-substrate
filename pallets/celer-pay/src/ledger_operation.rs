@@ -964,7 +964,7 @@ impl<T: Trait> LedgerOperation<T> {
 
         // require no new intend_settle can be called
         ensure!(
-            block_number >= c.settle_finalized_time.unwrap(),
+            block_number >= c.settle_finalized_time.unwrap_or(Zero::zero()),
             "Settle is not finalized"
         );
 

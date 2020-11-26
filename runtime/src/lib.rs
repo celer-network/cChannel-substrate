@@ -310,6 +310,7 @@ impl celer_pay_module::Trait for Runtime {
 	type Public = MultiSigner;
 	type Signature = Signature;
 	type Call = Call;
+	type WeightInfo = celer_pay_module::weights::SubstrateWeight<Runtime>;
 }
 
 impl mock_boolean_condition::Trait for Runtime {}

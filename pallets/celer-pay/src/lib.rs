@@ -8,6 +8,8 @@ mod pay_registry;
 mod pay_resolver;
 mod pool;
 mod numeric_condition_caller;
+pub mod weights;
+pub use weights::WeightInfo;
 pub mod traits;
 
 #[cfg(test)]
@@ -16,8 +18,7 @@ mod tests;
 use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
-    traits::{Currency, Get},
-    dispatch::DispatchResultWithPostInfo,
+    traits::Currency, dispatch::DispatchResultWithPostInfo,
     weights::{Weight, DispatchClass},
 };
 use frame_system::{self as system, ensure_signed};
@@ -86,60 +87,6 @@ decl_storage! {
     }
 }
 
-mod weight_for {
-    use frame_support::{traits::Get, weights::Weight};
-    use super::Trait;
-
-    /// Calculate the weight for `deposit_in_batch`
-    pub(crate) fn deposit_in_batch<T: Trait>(
-        channel_id_len: u64,
-        channel_id_len_weight: Weight
-    ) -> Weight {
-        T::DbWeight::get().reads_writes(6 * channel_id_len, 5 * channel_id_len)
-            .saturating_add(channel_id_len_weight.saturating_mul(100_000_000))
-    }
-
-    /// Calculate the weight for `snapshot_states`
-    pub(crate) fn snapshot_states<T: Trait>(
-        signed_simplex_states_len: u64,
-        signed_simplex_states_len_weight: Weight
-    ) -> Weight {
-        T::DbWeight::get().reads_writes(signed_simplex_states_len, signed_simplex_states_len)
-            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
-    }
-
-    /// Calculate the weight for `intend_settle`
-    pub(crate) fn intend_settle<T: Trait>(
-        signed_simplex_states_len: u64,
-        signed_simplex_states_len_weight: u64,
-        pay_ids_len: u64,
-        pay_ids_len_weight: u64,
-    ) -> Weight {
-        T::DbWeight::get().reads_writes(signed_simplex_states_len + pay_ids_len, signed_simplex_states_len)
-            .saturating_add(50_000_000)
-            .saturating_add(signed_simplex_states_len_weight.saturating_mul(100_000_000))
-            .saturating_add(pay_ids_len_weight.saturating_mul(10_000_000))
-    }
-
-    /// Calculate the weight for `resolve_payment_by_conditions`
-    pub(crate) fn resolve_payment_by_conditions<T: Trait>(
-        conditions_len: Weight
-    ) -> Weight {
-        T::DbWeight::get().reads_writes(1, 1)
-            .saturating_add(100_000_000)
-            .saturating_add(conditions_len.saturating_mul(50_000_000))
-    }
-
-    /// Calculate the weight for `resolve_payment_vouched_result`
-    pub(crate) fn resolve_payment_by_vouched_result<T: Trait>(
-        conditions_len: Weight
-    ) -> Weight {
-        T::DbWeight::get().reads_writes(1, 1)
-            .saturating_add(100_000_000)
-            .saturating_add(conditions_len.saturating_mul(50_000_000))
-    }
-}
-
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         type Error = Error<T>;
@@ -160,7 +107,10 @@ decl_module! {
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// #</weight>
-        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight =(
+            <T as traits::Trait>::WeightInfo::set_balance_limits(),
+            DispatchClass::Operational
+        )]
         fn set_balance_limits(
             origin,
             channel_id: T::Hash,
@@ -182,7 +132,10 @@ decl_module! {
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// #</weight>
-        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::disable_balance_limits(),
+            DispatchClass::Operational
+        )]
         fn disable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -203,7 +156,10 @@ decl_module! {
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// #</weight>
-        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::enable_balance_limits(),
+            DispatchClass::Operational
+        )]
         fn enable_balance_limits(
             origin,
             channel_id: T::Hash
@@ -230,7 +186,10 @@ decl_module! {
         ///   - 1 storage mutation `Allowed`
         ///   - 1 storage write `WalletNum`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 5)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::open_channel(),
+            DispatchClass::Operational
+        )]
         fn open_channel(
             origin,
             open_request: OpenChannelRequestOf<T>,
@@ -239,7 +198,6 @@ decl_module! {
             LedgerOperation::<T>::open_channel(origin, open_request, msg_value)?;            
             let wallet_num = Self::wallet_num() + 1;
             WalletNum::put(wallet_num);
-
             Ok(())
         }
 
@@ -264,7 +222,10 @@ decl_module! {
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(6, 5)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::deposit(),
+            DispatchClass::Operational
+        )]
         fn deposit(
             origin,
             channel_id: T::Hash,
@@ -299,9 +260,8 @@ decl_module! {
         ///   - N storage mutation `Allowed`
         /// # </weight
         #[weight = (
-            weight_for::deposit_in_batch::<T>(
-                channel_ids.len() as u64, // N
-                channel_ids.len() as Weight, // N
+            <T as traits::Trait>::WeightInfo::deposit_in_batch(
+                channel_ids.len() as u32, // N
             ),
             DispatchClass::Operational
         )]
@@ -322,9 +282,8 @@ decl_module! {
                 LedgerOperation::<T>::deposit(origin.clone(), channel_ids[i], receivers[i].clone(), msg_values[i], transfer_from_amounts[i])?;
             }
 
-            Ok(Some(weight_for::deposit_in_batch::<T>(
-                channel_ids.len() as u64,
-                channel_ids.len() as Weight,
+            Ok(Some(<T as traits::Trait>::WeightInfo::deposit_in_batch(
+                channel_ids.len() as u32, // N
             )).into())
         }
 
@@ -348,9 +307,8 @@ decl_module! {
         ///   - N storage mutation `ChannelMap`
         /// # </weight>
         #[weight = (
-            weight_for::snapshot_states::<T>(
-                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            <T as traits::Trait>::WeightInfo::snapshot_states(
+                signed_simplex_state_array.signed_simplex_states.len() as u32, // N
             ),
             DispatchClass::Operational
         )]
@@ -361,9 +319,8 @@ decl_module! {
             ensure_signed(origin)?;
             LedgerOperation::<T>::snapshot_states(signed_simplex_state_array.clone())?;
             
-            Ok(Some(weight_for::snapshot_states::<T>(
-                signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
+            Ok(Some(<T as traits::Trait>::WeightInfo::snapshot_states(
+                signed_simplex_state_array.signed_simplex_states.len() as u32, // N
             )).into())
         }
 
@@ -384,7 +341,10 @@ decl_module! {
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// # </weight>
-        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::intend_withdraw(),
+            DispatchClass::Operational
+        )]
         fn intend_withdraw(
             origin,
             channel_id: T::Hash,
@@ -411,7 +371,10 @@ decl_module! {
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::confirm_withdraw(),
+            DispatchClass::Operational
+        )]
         fn confirm_withdraw(
             origin,
             channel_id: T::Hash
@@ -436,7 +399,10 @@ decl_module! {
         ///    - 1 storage reads `ChannelMap`
         ///    - 1 storage mutation `ChannelMap`
         /// # </weight>
-        #[weight = 50_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::veto_withdraw(),
+            DispatchClass::Operational
+        )]
         fn veto_withdraw(
             origin,
             channel_id: T::Hash
@@ -459,7 +425,10 @@ decl_module! {
         ///    - 2 storage reads `Wallets`
         ///    - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(4, 3)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::cooperative_withdraw(),
+            DispatchClass::Operational
+        )]
         fn cooperative_withdraw(
             origin,
             cooperative_withdraw_request: CooperativeWithdrawRequestOf<T>
@@ -491,18 +460,14 @@ decl_module! {
         /// # </weight>
         #[weight = (
             if signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.is_some() == true {
-                weight_for::intend_settle::<T>(
-                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u64, // M
-                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as Weight, // M
+                <T as traits::Trait>::WeightInfo::intend_settle(
+                    signed_simplex_state_array.signed_simplex_states.len() as u32, // N
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u32, // M
                 )
             } else {
-                weight_for::intend_settle::<T>(
-                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                    0,
-                    0,
+                <T as traits::Trait>::WeightInfo::intend_settle(
+                    signed_simplex_state_array.signed_simplex_states.len() as u32, // N
+                    0 as u32, // M
                 )
             },
             DispatchClass::Operational
@@ -514,18 +479,14 @@ decl_module! {
             LedgerOperation::<T>::intend_settle(origin, signed_simplex_state_array.clone())?;
 
             if signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.is_some() == true {
-                Ok(Some(weight_for::intend_settle::<T>(
-                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u64, // M
-                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as Weight, // M
+                Ok(Some(<T as traits::Trait>::WeightInfo::intend_settle(
+                    signed_simplex_state_array.signed_simplex_states.len() as u32, // N
+                    signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.as_ref().unwrap().pay_ids.len() as u32, // M
                 )).into())
             } else {
-                Ok(Some(weight_for::intend_settle::<T>(
-                    signed_simplex_state_array.signed_simplex_states.len() as u64, // N
-                    signed_simplex_state_array.signed_simplex_states.len() as Weight, // N
-                    0,
-                    0
+                Ok(Some(<T as traits::Trait>::WeightInfo::intend_settle(
+                    signed_simplex_state_array.signed_simplex_states.len() as u32, // N
+                    0 as u32, // M
                 )).into())
             }
         }
@@ -545,7 +506,10 @@ decl_module! {
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::clear_pays(),
+            DispatchClass::Operational
+        )]
         fn clear_pays(
             origin,
             channel_id: T::Hash,
@@ -575,7 +539,10 @@ decl_module! {
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(5, 5)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::confirm_settle(),
+            DispatchClass::Operational
+        )]
         fn confirm_settle(
             origin,
             channel_id: T::Hash
@@ -601,7 +568,10 @@ decl_module! {
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(6, 5)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::cooperative_settle(),
+            DispatchClass::Operational
+        )]
         fn cooperative_settle(
             origin,
             settle_request: CooperativeSettleRequestOf<T>
@@ -625,7 +595,10 @@ decl_module! {
         ///   - 1 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
         /// #</weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::deposit_pool(),
+            DispatchClass::Operational
+        )]
         fn deposit_pool(
             origin,
             receiver: T::AccountId,
@@ -647,7 +620,10 @@ decl_module! {
         ///   - 1 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::withdraw_from_pool(),
+            DispatchClass::Operational
+        )]
         fn withdraw_from_pool(
             origin,
             value: BalanceOf<T>
@@ -668,7 +644,10 @@ decl_module! {
         /// - DB:
         ///   - 1 storage write `Allowed`
         /// # </weight>
-        #[weight = 500_000 + T::DbWeight::get().writes(1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::approve(),
+            DispatchClass::Operational
+        )]
         fn approve(
             origin,
             spender: T::AccountId,
@@ -694,7 +673,10 @@ decl_module! {
         ///   - 2 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(3, 2)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::transfer_from(),
+            DispatchClass::Operational
+        )]
         fn transfer_from(
             origin,
             from: T::AccountId,
@@ -718,7 +700,10 @@ decl_module! {
         ///   - 1 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::increase_allowance(),
+            DispatchClass::Operational
+        )]
         fn increase_allowance(
             origin,
             spender: T::AccountId,
@@ -741,7 +726,10 @@ decl_module! {
         ///   - 1 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         /// # </weight>
-        #[weight = 100_000_000 + T::DbWeight::get().reads_writes(1, 1)]
+        #[weight = (
+            <T as traits::Trait>::WeightInfo::decrease_allowance(),
+            DispatchClass::Operational
+        )]
         fn decrease_allowance(
             origin,
             spender: T::AccountId,
@@ -770,8 +758,8 @@ decl_module! {
         ///   - 1 storage mutation `PayRegistry`
         /// # </weight>
         #[weight = (
-            weight_for::resolve_payment_by_conditions::<T>(
-                resolve_pay_request.cond_pay.conditions.len() as Weight
+            <T as traits::Trait>::WeightInfo::resolve_payment_by_conditions(
+                resolve_pay_request.cond_pay.conditions.len() as u32, // N
             ),
             DispatchClass::Operational
         )]
@@ -782,8 +770,8 @@ decl_module! {
             let caller = ensure_signed(origin)?;
             PayResolver::<T>::resolve_payment_by_conditions(caller, resolve_pay_request.clone())?;
             
-            Ok(Some(weight_for::resolve_payment_by_conditions::<T>(
-                resolve_pay_request.cond_pay.conditions.len() as Weight, // N
+            Ok(Some(<T as traits::Trait>::WeightInfo::resolve_payment_by_conditions(
+                resolve_pay_request.cond_pay.conditions.len() as u32, // N
             )).into())
         }
 
@@ -801,8 +789,8 @@ decl_module! {
         ///   - 1 storage mutation `PayRegistry`
         /// # </weight>
         #[weight = (
-            weight_for::resolve_payment_by_vouched_result::<T>(
-                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as Weight
+            <T as traits::Trait>::WeightInfo::resolve_payment_by_vouched_result(
+                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as u32, // N
             ),
             DispatchClass::Operational
         )]
@@ -813,8 +801,8 @@ decl_module! {
             ensure_signed(origin)?;
             PayResolver::<T>::resolve_payment_vouched_result(vouched_pay_result.clone())?;
             
-            Ok(Some(weight_for::resolve_payment_by_vouched_result::<T>(
-                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as Weight, // N
+            Ok(Some(<T as traits::Trait>::WeightInfo::resolve_payment_by_vouched_result(
+                vouched_pay_result.cond_pay_result.cond_pay.conditions.len() as u32, // N
             )).into())
         }
       

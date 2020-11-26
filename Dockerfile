@@ -23,7 +23,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	cargo build "--$PROFILE"
 	
 # ===== SECOND STAGE ======
-FROM phusion/baseimage:0.10.2
+FROM phusion/baseimage:0.11
 LABEL maintainer="hashimoto19980924@gmail.com"
 LABEL description="This is the 2nd stage: a very small image where we copy the Celer Node binary."
 ARG PROFILE=release

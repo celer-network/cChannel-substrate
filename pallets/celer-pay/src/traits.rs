@@ -9,6 +9,7 @@ use frame_support::{
 };
 use sp_runtime::traits::{IdentifyAccount, Member, Verify, Dispatchable};
 use mock_numeric_condition;
+pub use crate::weights::WeightInfo;
 use super::Event;
 use crate::Call;
 
@@ -21,5 +22,6 @@ pub trait Trait: system::Trait + pallet_timestamp::Trait + celer_contracts::Trai
     type Call: Parameter + Dispatchable<Origin=Self::Origin, PostInfo=PostDispatchInfo>
 		+ GetDispatchInfo + From<frame_system::Call<Self>> + IsSubType<Call<Self>>
 		+ IsType<<Self as frame_system::Trait>::Call>;
+    type WeightInfo: WeightInfo;
 }
 

@@ -176,6 +176,7 @@ impl Trait for TestRuntime {
     type Public = sr25519::Public;
     type Signature = sr25519::Signature;
     type Call = Call;
+    type WeightInfo = ();
 }
 
 pub type CelerPayModule = Module<TestRuntime>;
