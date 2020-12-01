@@ -15,8 +15,7 @@ pub const PAY_RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ConditionType {
     HashLock,
-    BooleanRuntimeModule,
-    NumericRuntimeModule, 
+    RuntimeModule,
     SmartContract,
 }
 
@@ -303,7 +302,7 @@ fn calculate_boolean_and_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
             let boolean_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
@@ -386,7 +385,7 @@ fn calculate_boolean_or_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j += 1;
-        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
             let boolean_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
@@ -471,7 +470,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::NumericRuntimeModule {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
             let numeric_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::NumericModuleCallDataNotExist)?,
@@ -593,8 +592,7 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.runtime_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::BooleanRuntimeModule 
-            || condition.condition_type == ConditionType::NumericRuntimeModule 
+        } else if condition.condition_type == ConditionType::RuntimeModule 
         { 
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.runtime_module_call_data.clone().unwrap().registration_num.encode());

@@ -33,6 +33,8 @@ pub mod test_pay_resolver {
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number());
+            let (pay_amount, _) = CelerPayModule::get_pay_info(pay_id);
+            assert_eq!(pay_amount, 10);
         })
     }
 
@@ -618,9 +620,7 @@ pub mod test_pay_resolver {
                 encoded.extend(condition.hash_lock.encode());
                 encoded.extend(condition.runtime_module_call_data.encode());
                 encoded.extend(condition.smart_contract_call_data.encode());
-            } else if condition.condition_type == ConditionType::BooleanRuntimeModule 
-                || condition.condition_type == ConditionType::NumericRuntimeModule 
-            { 
+            } else if condition.condition_type == ConditionType::RuntimeModule { 
                 encoded.extend(condition.hash_lock.encode());
                 encoded.extend(condition.runtime_module_call_data.clone().unwrap().registration_num.encode());
                 encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_finalization);
@@ -670,7 +670,7 @@ pub mod test_pay_resolver {
                 args_query_outcome: boolean_args_query_outcome.encode(),
             };
             let boolean_condition_true = Condition {
-                condition_type: ConditionType::BooleanRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
                 runtime_module_call_data: Some(boolean_runtime_module_call_data),
                 smart_contract_call_data: None,
@@ -691,7 +691,7 @@ pub mod test_pay_resolver {
                 args_query_outcome: boolean_args_query_outcome.encode(),
             };
             let boolean_condition_false = Condition {
-                condition_type: ConditionType::BooleanRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
                 runtime_module_call_data: Some(boolean_runtime_module_call_data),
                 smart_contract_call_data: None,
@@ -712,7 +712,7 @@ pub mod test_pay_resolver {
                 args_query_outcome: numeric_args_query_outcome.encode(),
             };
             let numeric_condition_10 = Condition {
-                condition_type: ConditionType::NumericRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
                 runtime_module_call_data: Some(numeric_runtime_module_call_data),
                 smart_contract_call_data: None,
@@ -733,7 +733,7 @@ pub mod test_pay_resolver {
                 args_query_outcome: numeric_args_query_outcome.encode(),
             };
             let numeric_condition_25 = Condition {
-                condition_type: ConditionType::NumericRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
                 runtime_module_call_data: Some(numeric_runtime_module_call_data),
                 smart_contract_call_data: None,

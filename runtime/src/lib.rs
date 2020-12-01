@@ -309,7 +309,6 @@ impl celer_pay_module::Trait for Runtime {
 	type Event = Event;
 	type Public = MultiSigner;
 	type Signature = Signature;
-	type Call = Call;
 	type WeightInfo = celer_pay_module::weights::SubstrateWeight<Runtime>;
 }
 
