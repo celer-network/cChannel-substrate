@@ -35,7 +35,7 @@ impl<T: Trait> RuntimeModuleConditionCaller<T> {
             };
             return Ok((is_finalized, outcome));
         } else {
-            return Err(Error::<T>::ConditionNotRegistered)?;
+            return Err(Error::<T>::RuntimeModuleConditionNotRegistered)?;
         }
     }
 }

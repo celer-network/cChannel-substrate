@@ -33,8 +33,6 @@ pub mod test_pay_resolver {
             assert_eq!(pay_id, calculate_pay_id::<TestRuntime>(pay_hash));
             assert_eq!(amount, 10);
             assert_eq!(resolve_deadline, System::block_number());
-            let (pay_amount, _) = CelerPayModule::get_pay_info(pay_id);
-            assert_eq!(pay_amount, 10);
         })
     }
 

@@ -910,9 +910,8 @@ decl_error! {
         PayInfoNotExist,
         // hash_lock is not exit
         HashLockNotExist,
-        // A runtime module condition is not regstered
-        ConditionNotRegistered,
-        NumericAppNotExist,
+        // A runtime module condition is not regstered into runtime_module_condition_caller file
+        RuntimeModuleConditionNotRegistered,
         // boolean_module_call_data is not exist
         BooleanModuleCallDataNotExist,
         // numeric_module_call_data is not exist

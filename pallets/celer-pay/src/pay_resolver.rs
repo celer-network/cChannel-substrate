@@ -21,7 +21,7 @@ pub enum ConditionType {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct RuntimeModuleCallData {
-    pub registration_num: u32, // number of registered celer app into runtime_module_condition_caller module
+    pub registration_num: u32, // number of registered celer app into runtime_module_condition_caller file
     pub args_query_finalization: Vec<u8>, // the encoded query finalization of runtime module condition
     pub args_query_outcome: Vec<u8>, // the encoded query outcome of runtime module condition
 }
