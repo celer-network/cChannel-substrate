@@ -592,8 +592,7 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.runtime_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::RuntimeModule 
-        { 
+        } else if condition.condition_type == ConditionType::RuntimeModule { 
             encoded.extend(condition.hash_lock.encode());
             encoded.extend(condition.runtime_module_call_data.clone().unwrap().registration_num.encode());
             encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_finalization);
