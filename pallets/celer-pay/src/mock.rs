@@ -13,6 +13,7 @@ use sp_core::{sr25519, Pair, H256};
 use sp_runtime::testing::Header;
 use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
 use sp_runtime::Perbill;
+pub use crate::weights;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TestRuntime;
@@ -175,8 +176,7 @@ impl Trait for TestRuntime {
     type Event = TestEvent;
     type Public = sr25519::Public;
     type Signature = sr25519::Signature;
-    type Call = Call;
-    type WeightInfo = ();
+    type WeightInfo = weights::SubstrateWeight<TestRuntime>;
 }
 
 pub type CelerPayModule = Module<TestRuntime>;

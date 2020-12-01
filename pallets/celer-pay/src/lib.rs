@@ -7,7 +7,7 @@ mod mock;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
-mod numeric_condition_caller;
+mod runtime_module_condition_caller;
 pub mod weights;
 pub use weights::WeightInfo;
 pub mod traits;
@@ -910,7 +910,8 @@ decl_error! {
         PayInfoNotExist,
         // hash_lock is not exit
         HashLockNotExist,
-        // numeric_app is not regsitered
+        // A runtime module condition is not regstered
+        ConditionNotRegistered,
         NumericAppNotExist,
         // boolean_module_call_data is not exist
         BooleanModuleCallDataNotExist,
