@@ -1,12 +1,12 @@
 #[cfg(test)]
 pub mod test_pay_resolver {
     use crate::mock::*;
-    use crate::mock::Call as MockCall;
     use sp_core::{hashing, Pair, H256};
     use sp_runtime::DispatchError;
     use crate::pay_resolver::*;
     use codec::{Encode};
-    use mock_boolean_condition::Call as MockBooleanCall;
+    use mock_boolean_condition::{BooleanArgsQueryFinalization, BooleanArgsQueryOutcome};
+    use mock_numeric_condition::{NumericArgsQueryFinalization, NumericArgsQueryOutcome};
 
     #[test]
     fn test_pass_resolve_payment_by_conditions_boolean_and_and_all_condition_true() {
@@ -482,7 +482,7 @@ pub mod test_pay_resolver {
     ) {
         ExtBuilder::build().execute_with(|| {   
             let mut transfer_func: TransferFunction<AccountId, BlockNumber>;
-            let mut cond_pay: ConditionalPay<Moment, BlockNumber,  AccountId, H256, MockCall, Balance>;
+            let mut cond_pay: ConditionalPay<Moment, BlockNumber,  AccountId, H256, Balance>;
             let mut encoded_cond_pay: Vec<u8>;
             let mut pay_hash: H256;
             let mut pay_request: ResolvePaymentConditionsRequest<
@@ -490,7 +490,6 @@ pub mod test_pay_resolver {
                 BlockNumber,
                 AccountId,
                 H256,
-                MockCall,
                 Balance,
             >;
             let mut result: (H256, Balance, BlockNumber);
@@ -607,7 +606,7 @@ pub mod test_pay_resolver {
     }
 
     pub fn encode_conditional_pay(
-        r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, MockCall, Balance>,
+        r#cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, H256, Balance>,
     ) -> std::vec::Vec<u8> {
         let pay = r#cond_pay;
         let mut encoded = pay.pay_timestamp.encode();
@@ -616,34 +615,24 @@ pub mod test_pay_resolver {
         pay.conditions.into_iter().for_each(|condition| {
             encoded.extend(condition.condition_type.encode());
             if condition.condition_type == ConditionType::HashLock {
-            encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.clone().encode());
-            encoded.extend(condition.numeric_module_call_data.clone().encode());
-            encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::BooleanRuntimeModule {
-            encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.clone().unwrap().call_is_finalized.encode());
-            encoded.extend(condition.boolean_module_call_data.unwrap().call_get_outcome.encode());
-            encoded.extend(condition.numeric_module_call_data.encode());
-            encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::NumericRuntimeModule {
-            encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_app_num.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().numeric_session_id.encode());
-            encoded.extend(condition.numeric_module_call_data.clone().unwrap().args_query_finalization.encode());
-            encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
-            encoded.extend(condition.smart_contract_call_data.encode());
-        } else { // ConditionType::SmartContract
-            encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.encode());
-            encoded.extend(condition.numeric_module_call_data.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().virt_addr.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data.encode());
-            encoded.extend(condition.smart_contract_call_data.clone().unwrap().get_outcome_call_gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data.encode());
-        }
+                encoded.extend(condition.hash_lock.encode());
+                encoded.extend(condition.runtime_module_call_data.encode());
+                encoded.extend(condition.smart_contract_call_data.encode());
+            } else if condition.condition_type == ConditionType::RuntimeModule { 
+                encoded.extend(condition.hash_lock.encode());
+                encoded.extend(condition.runtime_module_call_data.clone().unwrap().registration_num.encode());
+                encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_finalization);
+                encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_outcome);
+                encoded.extend(condition.smart_contract_call_data.encode());
+            } else { // ConditionType::SmartContract
+                encoded.extend(condition.hash_lock.encode());
+                encoded.extend(condition.runtime_module_call_data.encode());
+                encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().virt_addr.encode());
+                encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().is_finalized_call_gas_limit.encode());
+                encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data);
+                encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().get_outcome_call_gas_limit.encode());
+                encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data);
+            }
         });
         encoded.extend(pay.transfer_func.logic_type.encode());
         encoded.extend(pay.transfer_func.max_transfer.token.token_type.encode());
@@ -655,97 +644,96 @@ pub mod test_pay_resolver {
         return encoded;
     }
 
-    pub fn get_condition(r#type: u8) -> Condition<H256, MockCall> {
+    pub fn get_condition(r#type: u8) -> Condition<H256> {
         if r#type == 0 {
             let condition_hash_lock = Condition {
                 condition_type: ConditionType::HashLock,
                 hash_lock: Some(H256::from_low_u64_be(1)),
-                boolean_module_call_data: None,
-                numeric_module_call_data: None,
+                runtime_module_call_data: None,
                 smart_contract_call_data: None,
             };
             return condition_hash_lock;
         } else if r#type == 1 {
-            // this call return Ok(())
-            let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
-                MockBooleanCall::is_finalized(
-                    H256::from_low_u64_be(1),
-                    1
-                ))
-            );
-            // this call return Ok(())
-            let call_get_outcome_true = Box::new(MockCall::MockBooleanCondition(
-                MockBooleanCall::get_outcome(
-                    H256::from_low_u64_be(1),
-                    1
-                ))
-            );
-            let boolean_module_call_data = BooleanModuleCallData {
-                call_is_finalized: call_is_finalized_true,
-                call_get_outcome: call_get_outcome_true,
+            let boolean_args_query_finalization = BooleanArgsQueryFinalization {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 1,
+            };
+            let boolean_args_query_outcome = BooleanArgsQueryOutcome {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 1,
+            };
+            let boolean_runtime_module_call_data = RuntimeModuleCallData {
+                registration_num: 1,
+                args_query_finalization: boolean_args_query_finalization.encode(),
+                args_query_outcome: boolean_args_query_outcome.encode(),
             };
             let boolean_condition_true = Condition {
-                condition_type: ConditionType::BooleanRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
-                boolean_module_call_data: Some(boolean_module_call_data),
-                numeric_module_call_data: None,
+                runtime_module_call_data: Some(boolean_runtime_module_call_data),
                 smart_contract_call_data: None,
             };
             return boolean_condition_true;
         } else if r#type == 2 {
-            // this call return Ok(())
-            let call_is_finalized_true = Box::new(MockCall::MockBooleanCondition(
-                MockBooleanCall::is_finalized(
-                    H256::from_low_u64_be(1),
-                    1
-                ))
-            );
-            // this call returns DispatchError::Other("FalseOutcome")
-            let call_get_outcome_false = Box::new(MockCall::MockBooleanCondition(
-                MockBooleanCall::get_outcome(
-                    H256::from_low_u64_be(1),
-                    0
-                ))
-            );
-            let boolean_module_call_data = BooleanModuleCallData {
-                call_is_finalized: call_is_finalized_true,
-                call_get_outcome: call_get_outcome_false,
+            let boolean_args_query_finalization = BooleanArgsQueryFinalization {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 1,
+            };
+            let boolean_args_query_outcome = BooleanArgsQueryOutcome {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 0,
+            };
+            let boolean_runtime_module_call_data = RuntimeModuleCallData {
+                registration_num: 1,
+                args_query_finalization: boolean_args_query_finalization.encode(),
+                args_query_outcome: boolean_args_query_outcome.encode(),
             };
             let boolean_condition_false = Condition {
-                condition_type: ConditionType::BooleanRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
-                boolean_module_call_data: Some(boolean_module_call_data),
-                numeric_module_call_data: None,
+                runtime_module_call_data: Some(boolean_runtime_module_call_data),
                 smart_contract_call_data: None,
             };
             return boolean_condition_false;
         } else if r#type == 3 {
-            let numeric_module_call_data = NumericModuleCallData {
-                numeric_app_num: 0,
-                numeric_session_id: H256::from_low_u64_be(1),
-                args_query_finalization: Some(1.encode()),
-                args_query_outcome: Some(10.encode()),
+            let numeric_args_query_finalization = NumericArgsQueryFinalization {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 1,
+            };
+            let numeric_args_query_outcome = NumericArgsQueryOutcome {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 10,
+            };
+            let numeric_runtime_module_call_data = RuntimeModuleCallData {
+                registration_num: 0,
+                args_query_finalization: numeric_args_query_finalization.encode(),
+                args_query_outcome: numeric_args_query_outcome.encode(),
             };
             let numeric_condition_10 = Condition {
-                condition_type: ConditionType::NumericRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
-                boolean_module_call_data: None,
-                numeric_module_call_data: Some(numeric_module_call_data),
+                runtime_module_call_data: Some(numeric_runtime_module_call_data),
                 smart_contract_call_data: None,
             };
             return numeric_condition_10;
         } else {
-            let numeric_module_call_data = NumericModuleCallData {
-                numeric_app_num: 0,
-                numeric_session_id: H256::from_low_u64_be(1),
-                args_query_finalization: Some(1.encode()),
-                args_query_outcome: Some(25.encode()),
+            let numeric_args_query_finalization = NumericArgsQueryFinalization {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 1,
+            };
+            let numeric_args_query_outcome = NumericArgsQueryOutcome {
+                session_id: H256::from_low_u64_be(1),
+                query_data: 25,
+            };
+            let numeric_runtime_module_call_data = RuntimeModuleCallData {
+                registration_num: 0,
+                args_query_finalization: numeric_args_query_finalization.encode(),
+                args_query_outcome: numeric_args_query_outcome.encode(),
             };
             let numeric_condition_25 = Condition {
-                condition_type: ConditionType::NumericRuntimeModule,
+                condition_type: ConditionType::RuntimeModule,
                 hash_lock: None,
-                boolean_module_call_data: None,
-                numeric_module_call_data: Some(numeric_module_call_data),
+                runtime_module_call_data: Some(numeric_runtime_module_call_data),
                 smart_contract_call_data: None,
             };
             return numeric_condition_25;

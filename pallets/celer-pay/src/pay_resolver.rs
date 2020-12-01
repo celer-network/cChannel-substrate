@@ -1,37 +1,29 @@
 use super::{BalanceOf, Error, Module as CelerPayModule, RawEvent};
 use crate::traits::Trait;
 use crate::pay_registry::PayRegistry;
-use crate::numeric_condition_caller::NumericConditionCaller;
+use crate::runtime_module_condition_caller::RuntimeModuleConditionCaller;
 use codec::{Decode, Encode};
 use frame_support::{ensure};
 use frame_system::{self as system};
 use pallet_timestamp;
-use sp_runtime::traits::{CheckedAdd, Hash, Zero, Dispatchable};
+use sp_runtime::traits::{CheckedAdd, Hash, Zero};
 use sp_runtime::{ModuleId, RuntimeDebug, DispatchError};
-use sp_std::{vec::Vec, boxed::Box};
+use sp_std::vec::Vec;
 
 pub const PAY_RESOLVER_ID: ModuleId = ModuleId(*b"Resolver");
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub enum ConditionType {
     HashLock,
-    BooleanRuntimeModule,
-    NumericRuntimeModule, 
+    RuntimeModule,
     SmartContract,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct BooleanModuleCallData<Call> {
-    pub call_is_finalized: Box<Call>, // overarching call is_finalized of boolean runtime module
-    pub call_get_outcome: Box<Call>, // overarching call get_outcome of boolean runtime module
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct NumericModuleCallData<Hash> {
-    pub numeric_app_num: u32, // number of registered numeric app 
-    pub numeric_session_id: Hash, // session id of numeric condition
-    pub args_query_finalization: Option<Vec<u8>>, // the encoded query finalization of numeric runtime module
-    pub args_query_outcome: Option<Vec<u8>>, // the encoded query outcome of numeric runtime module
+pub struct RuntimeModuleCallData {
+    pub registration_num: u32, // number of registered celer app into runtime_module_condition_caller file
+    pub args_query_finalization: Vec<u8>, // the encoded query finalization of runtime module condition
+    pub args_query_outcome: Vec<u8>, // the encoded query outcome of runtime module condition
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -44,11 +36,10 @@ pub struct SmartContractCallData<Hash> {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct Condition<Hash, Call> {
+pub struct Condition<Hash> {
     pub condition_type: ConditionType,
     pub hash_lock: Option<Hash>,
-    pub boolean_module_call_data: Option<BooleanModuleCallData<Call>>,
-    pub numeric_module_call_data: Option<NumericModuleCallData<Hash>>,
+    pub runtime_module_call_data: Option<RuntimeModuleCallData>,
     pub smart_contract_call_data: Option<SmartContractCallData<Hash>>,
 }
 
@@ -93,11 +84,11 @@ pub struct TransferFunction<AccountId, Balance> {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
+pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance> {
     pub pay_timestamp: Moment,
     pub src: AccountId,
     pub dest: AccountId,
-    pub conditions: Vec<Condition<Hash, Call>>,
+    pub conditions: Vec<Condition<Hash>>,
     pub transfer_func: TransferFunction<AccountId, Balance>,
     pub resolve_deadline: BlockNumber,
     pub resolve_timeout: BlockNumber,
@@ -108,13 +99,12 @@ pub type ConditionalPayOf<T> = ConditionalPay<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
-    <T as Trait>::Call,
     BalanceOf<T>,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
-    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
+pub struct ResolvePaymentConditionsRequest<Moment, BlockNumber, AccountId, Hash, Balance> {
+    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance>,
     pub hash_preimages: Vec<Hash>,
 }
 
@@ -123,19 +113,18 @@ pub type ResolvePaymentConditionsRequestOf<T> = ResolvePaymentConditionsRequest<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
-    <T as Trait>::Call,
     BalanceOf<T>,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct CondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance> {
-    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
+pub struct CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance> {
+    pub cond_pay: ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance>,
     pub amount: Balance,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance, Signature> {
-    pub cond_pay_result: CondPayResult<Moment, BlockNumber, AccountId, Hash, Call, Balance>,
+pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Balance, Signature> {
+    pub cond_pay_result: CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance>,
     pub sig_of_src: Signature,
     pub sig_of_dest: Signature,
 }
@@ -145,7 +134,6 @@ pub type VouchedCondPayResultOf<T> = VouchedCondPayResult<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
-    <T as Trait>::Call,
     BalanceOf<T>,
     <T as Trait>::Signature,
 >;
@@ -314,23 +302,26 @@ fn calculate_boolean_and_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
-            let boolean_module_call_data = match cond.boolean_module_call_data {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
+            let boolean_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
             };
+            
+            // call is_finalized and get_outcome function of boolean runtime module condition
+            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+                boolean_module_call_data.registration_num,
+                boolean_module_call_data.args_query_finalization,
+                boolean_module_call_data.args_query_outcome
+            )?;
+            let outcome = bool::decode(&mut &encoded_outcome[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
 
-            // call is_finalized of boolean_condition
-            let is_finalized = boolean_module_call_data.call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
             ensure!(
-                is_finalized.is_ok(),
+                is_finalized == true,
                 "Condition is not finalized"
             );
 
-            // call get_outcome of boolean_condition
-            let outcome = boolean_module_call_data.call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
-            if (!outcome.is_ok()) && (outcome.unwrap_err().error == DispatchError::Other("FalseOutcome")) {
+            if outcome == false {
                 has_false_contract_cond = true;
             }
         } else if cond.condition_type == ConditionType::SmartContract {
@@ -382,8 +373,7 @@ fn calculate_boolean_or_payment<T: Trait>(
     preimages: Vec<T::Hash>,
 ) -> Result<BalanceOf<T>, DispatchError> {
     let mut j: usize = 0;
-    // Whether there are any smart contract or runtime module based conditions, 
-    // i.e. DEPLOYED_CONTRACT or VIRTUAL_CONTRACT
+    // Whether there are any smart contract or runtime module based conditions
     let mut has_contract_cond = false;
     let mut has_true_contract_cond = false;
     for i in 0..pay.conditions.len() {
@@ -395,24 +385,27 @@ fn calculate_boolean_or_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j += 1;
-        } else if cond.condition_type == ConditionType::BooleanRuntimeModule {
-            let pay_resolver_account = CelerPayModule::<T>::get_pay_resolver_id();
-            let boolean_module_call_data = match cond.boolean_module_call_data {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
+            let boolean_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::BooleanModuleCallDataNotExist)?,
             };
 
-            // call is_finalized of boolean_condition
-            let is_finalized = boolean_module_call_data.call_is_finalized.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account.clone()).into());
+            // call is_finalized and get_outcome function of boolean runtime module condition
+            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+                boolean_module_call_data.registration_num,
+                boolean_module_call_data.args_query_finalization,
+                boolean_module_call_data.args_query_outcome
+            )?;
+            let outcome = bool::decode(&mut &encoded_outcome[..]).map_err(|_| Error::<T>::MustBeDecodable)?;
+
             ensure!(
-                is_finalized.is_ok(),
+                is_finalized == true,
                 "Condition is not finalized"
             );
             has_contract_cond = true;
 
-            // call get_outcome of boolean_condition
-            let outcome = boolean_module_call_data.call_get_outcome.dispatch(frame_system::RawOrigin::Signed(pay_resolver_account).into());
-            if outcome.is_ok() {
+            if outcome == true {
                 has_true_contract_cond = true;
             }
         } else if cond.condition_type == ConditionType::SmartContract {
@@ -477,24 +470,27 @@ fn calculate_numeric_logic_payment<T: Trait>(
             };
             ensure!(preimages[j] == hash_lock, "Wrong preimage");
             j = j + 1;
-        } else if cond.condition_type == ConditionType::NumericRuntimeModule {
-            let numeric_module_call_data = match cond.numeric_module_call_data {
+        } else if cond.condition_type == ConditionType::RuntimeModule {
+            let numeric_module_call_data = match cond.runtime_module_call_data {
                 Some(call_data) => call_data,
                 None => Err(Error::<T>::NumericModuleCallDataNotExist)?,
             };
-            
-            let is_finalized: bool = NumericConditionCaller::<T>::call_is_finalized(
-                numeric_module_call_data.numeric_app_num, 
-                &numeric_module_call_data.numeric_session_id, 
-                numeric_module_call_data.args_query_finalization,
-            )?;
-            ensure!(is_finalized == true, "Condition is not finalized");
 
-            let outcome: BalanceOf<T> = NumericConditionCaller::<T>::call_get_outcome(
-                numeric_module_call_data.numeric_app_num, 
-                &numeric_module_call_data.numeric_session_id, 
-                numeric_module_call_data.args_query_outcome,
+            // call is_finalized and get_outcome function of boolean runtime module condition
+            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+                numeric_module_call_data.registration_num,
+                numeric_module_call_data.args_query_finalization,
+                numeric_module_call_data.args_query_outcome
             )?;
+            let outcome: BalanceOf<T> = match u32::decode(&mut &encoded_outcome[..]) {
+                Ok(_outcome) => _outcome.into(),
+                Err(_) => Err(Error::<T>::MustBeDecodable)?,
+            };
+            
+            ensure!(
+                is_finalized == true, 
+                "Condition is not finalized"
+            );
             amount = calculate_numeric_amount::<T>(amount, func_type.clone(), outcome, has_contract_cond)?;
             has_contract_cond = true;
         } else if cond.condition_type == ConditionType::SmartContract {
@@ -594,32 +590,22 @@ pub fn encode_conditional_pay<T: Trait>(pay: ConditionalPayOf<T>) -> Vec<u8> {
         encoded.extend(condition.condition_type.encode());
         if condition.condition_type == ConditionType::HashLock {
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.as_ref().encode());
-            encoded.extend(condition.numeric_module_call_data.as_ref().encode());
+            encoded.extend(condition.runtime_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::BooleanRuntimeModule {
+        } else if condition.condition_type == ConditionType::RuntimeModule { 
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.as_ref().unwrap().call_is_finalized.encode());
-            encoded.extend(condition.boolean_module_call_data.unwrap().call_get_outcome.encode());
-            encoded.extend(condition.numeric_module_call_data.encode());
-            encoded.extend(condition.smart_contract_call_data.encode());
-        } else if condition.condition_type == ConditionType::NumericRuntimeModule {
-            encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.encode());
-            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().numeric_app_num.encode());
-            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().numeric_session_id.encode());
-            encoded.extend(condition.numeric_module_call_data.as_ref().unwrap().args_query_finalization.encode());
-            encoded.extend(condition.numeric_module_call_data.unwrap().args_query_outcome.encode());
+            encoded.extend(condition.runtime_module_call_data.clone().unwrap().registration_num.encode());
+            encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_finalization);
+            encoded.extend(condition.runtime_module_call_data.clone().unwrap().args_query_outcome);
             encoded.extend(condition.smart_contract_call_data.encode());
         } else { // ConditionType::SmartContract
             encoded.extend(condition.hash_lock.encode());
-            encoded.extend(condition.boolean_module_call_data.encode());
-            encoded.extend(condition.numeric_module_call_data.encode());
+            encoded.extend(condition.runtime_module_call_data.encode());
             encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().virt_addr.encode());
             encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().is_finalized_call_gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().is_finalized_call_input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.clone().unwrap().is_finalized_call_input_data);
             encoded.extend(condition.smart_contract_call_data.as_ref().unwrap().get_outcome_call_gas_limit.encode());
-            encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data.encode());
+            encoded.extend(condition.smart_contract_call_data.unwrap().get_outcome_call_input_data);
         }
     });
     encoded.extend(pay.transfer_func.logic_type.encode());

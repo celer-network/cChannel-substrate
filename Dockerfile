@@ -51,4 +51,4 @@ RUN mkdir /celer/data
 VOLUME ["/celer/data"]
 
 ENTRYPOINT ["/usr/local/bin/celer-network"]
-CMD ["--dev", "--tmp"]
+CMD ["--dev", "--tmp", "--rpc-cors=all"]

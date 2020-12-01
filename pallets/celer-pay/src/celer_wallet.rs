@@ -186,7 +186,10 @@ fn update_balance<T: Trait>(
 }
 
 fn is_wallet_owner<T: Trait>(wallet_id: T::Hash, addr: T::AccountId) -> bool {
-    let w: WalletOf<T> = Wallets::<T>::get(wallet_id).unwrap();
+    let w: WalletOf<T> = match Wallets::<T>::get(wallet_id) {
+        Some(_w) => _w,
+        None => return false,
+    };
     for i in 0..w.owners.len() {
         if addr == w.owners[i] {
             return true;
