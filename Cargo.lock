@@ -765,6 +765,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "serde",
+ "single-session-app",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -829,6 +830,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
  "serde",
+ "single-session-app",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -6072,6 +6074,20 @@ name = "signature"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29f060a7d147e33490ec10da418795238fd7545bba241504d6b31a409f2e6210"
+
+[[package]]
+name = "single-session-app"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "828029d1c907a466fc0e859eab814b0b5c88ae9d3c9f474f09f9559558b089d7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "slab"

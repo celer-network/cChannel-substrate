@@ -49,6 +49,9 @@ pub use mock_boolean_condition;
 /// Importing a mock numeric condition module
 pub use mock_numeric_condition;
 
+/// Importing a single session app module
+pub use single_session_app;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -316,6 +319,12 @@ impl mock_boolean_condition::Trait for Runtime {}
 
 impl mock_numeric_condition::Trait for Runtime {}
 
+impl single_session_app::Trait for Runtime {
+	type Event = Event;
+	type Public = MultiSigner;
+	type Signature = Signature;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -335,6 +344,7 @@ construct_runtime!(
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
+		SingleSessionApp: single_session_app::{Module, Call, Storage, Event<T>},
 	}
 );
 

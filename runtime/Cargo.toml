@@ -39,6 +39,7 @@ mock-boolean-condition = { path = "../pallets/mock-boolean-condition", default-f
 mock-numeric-condition = { path = "../pallets/mock-numeric-condition", default-features = false }
 celer-contracts = { path = "../pallets/celer-contracts", version = "0.8.8", default-features = false }
 celer-contracts-primitives = { path = "../pallets/celer-contracts/common", version = "0.8.8", default-features = false }
+single-session-app = { version = "0.8.5", default-features = false }
 
 # Used for rpc
 frame-system-rpc-runtime-api = { version = "2.0.0", default-features = false }
@@ -88,6 +89,7 @@ std = [
 	"celer-contracts/std",
 	"celer-contracts-primitives/std",
 	"celer-contracts-rpc-runtime-api/std",
+	"single-session-app/std",
 ]
 runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
