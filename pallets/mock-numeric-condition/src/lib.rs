@@ -56,7 +56,7 @@ impl<T: Trait> Module<T> {
 
     /// Query outcome amount of numeric runtime module condition
     ///
-    /// Return the encoded encoded u32 value
+    /// Return the encoded u32 value
     pub fn get_outcome(
         query: Vec<u8>, // encoded args query outcome
     ) -> Result<Vec<u8>, DispatchError> {

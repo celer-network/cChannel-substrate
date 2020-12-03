@@ -11,7 +11,9 @@ pub use crate::weights::WeightInfo;
 use super::Event;
 
 pub trait Trait: system::Trait + pallet_timestamp::Trait + celer_contracts::Trait 
-  + mock_numeric_condition::Trait + mock_boolean_condition::Trait
+   + mock_numeric_condition::Trait + mock_boolean_condition::Trait
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------- 
+// Add Trait of your runtime module condition like above.
 {
     type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
