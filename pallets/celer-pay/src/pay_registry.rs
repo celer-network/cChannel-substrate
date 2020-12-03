@@ -29,12 +29,11 @@ impl<T: Trait> PayRegistry<T> {
     pub fn set_pay_amount(pay_hash: T::Hash, amt: BalanceOf<T>) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
         match PayInfoMap::<T>::get(&pay_id) {
-            Some(pay_info) => {
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: Some(amt),
-                    resolve_deadline: pay_info.resolve_deadline,
-                };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            Some(mut pay_info) => {
+                PayInfoMap::<T>::mutate(&pay_id, |info| {
+                    pay_info.amount = Some(amt);
+                    *info = Some(pay_info.clone())
+                });
             
                 // Emit PayInfoUpdate event
                 CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
@@ -68,12 +67,11 @@ impl<T: Trait> PayRegistry<T> {
     ) -> Result<(), DispatchError> {
         let pay_id = Self::calculate_pay_id(pay_hash);
         match PayInfoMap::<T>::get(&pay_id) {
-            Some(pay_info) => {
-                let new_pay_info = PayInfoOf::<T> {
-                    amount: pay_info.amount,
-                    resolve_deadline: Some(deadline),
-                };
-                PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            Some(mut pay_info) => {
+                PayInfoMap::<T>::mutate(&pay_id, |info| {
+                    pay_info.resolve_deadline = Some(deadline);
+                    *info = Some(pay_info.clone())
+                });
             
                 // Emit PayInfoUpdate event
                 CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
@@ -132,12 +130,11 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_hashes.len() {
             let pay_id = Self::calculate_pay_id(pay_hashes[i]);
             match PayInfoMap::<T>::get(&pay_id) {
-                Some(pay_info) => {
-                    let new_pay_info = PayInfoOf::<T> {
-                        amount: Some(amts[i]),
-                        resolve_deadline: pay_info.resolve_deadline,
-                    };
-                    PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                Some(mut pay_info) => {
+                    PayInfoMap::<T>::mutate(&pay_id, |info| {
+                        pay_info.amount = Some(amts[i]);
+                        *info = Some(pay_info.clone())
+                    });
                 
                     // Emit PayInfoUpdate event
                     CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
@@ -175,12 +172,11 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_hashes.len() {
             let pay_id = Self::calculate_pay_id(pay_hashes[i]);
             match PayInfoMap::<T>::get(&pay_id) {
-                Some(pay_info) => {
-                    let new_pay_info = PayInfoOf::<T> {
-                        amount: pay_info.amount,
-                        resolve_deadline: Some(deadlines[i]),
-                    };
-                    PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+                Some(mut pay_info) => {
+                    PayInfoMap::<T>::mutate(&pay_id, |info| {
+                        pay_info.resolve_deadline = Some(deadlines[i]);
+                        *info = Some(pay_info.clone())
+                    });
                 
                     // Emit PayInfoUpdate event
                     CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
@@ -219,11 +215,13 @@ impl<T: Trait> PayRegistry<T> {
         for i in 0..pay_hashes.len() {
             let pay_id = Self::calculate_pay_id(pay_hashes[i]);
 
-            let new_pay_info = PayInfoOf::<T> {
-                amount: Some(amts[i]),
-                resolve_deadline: Some(deadlines[i]),
-            };
-            PayInfoMap::<T>::mutate(&pay_id, |info| *info = Some(new_pay_info));
+            PayInfoMap::<T>::mutate(&pay_id, |info| {
+                let new_pay_info = PayInfoOf::<T> {
+                    amount: Some(amts[i]),
+                    resolve_deadline: Some(deadlines[i]),
+                };
+                *info = Some(new_pay_info)
+            });
             
             // Emit PayInfoUpdate event
             CelerPayModule::<T>::deposit_event(RawEvent::PayInfoUpdate(
