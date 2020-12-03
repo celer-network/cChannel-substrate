@@ -10,6 +10,11 @@ impl<T: Trait> RuntimeModuleConditionCaller<T> {
         args_query_finalization: Vec<u8>,
         args_query_outcome: Vec<u8>,
     ) -> Result<(bool, Vec<u8>), DispatchError> {
+        // In the if block, call query function of your runtime module condition 
+        // and return tuple(is_finalized result, encoded boolean or numeic outcome)
+        //
+        // Register registration_num of your runtime module condition 
+        // vvvvvvvvvvvvvvvvvvvvvv----------------
         if registration_num == 0 { // MockNumerocCondition
             // is_finalized function return bool value
             let is_finalized: bool = match mock_numeric_condition::Module::<T>::is_finalized(args_query_finalization) {
@@ -28,7 +33,7 @@ impl<T: Trait> RuntimeModuleConditionCaller<T> {
                 Ok(_is_finalized) => _is_finalized,
                 Err(dispatch_error) => return Err(dispatch_error)?,
             };
-            // get_outcome function return encoded bool value
+            // get_outcome function return encoded boolean value
             let outcome: Vec<u8> = match mock_boolean_condition::Module::<T>::get_outcome(args_query_outcome) {
                 Ok(_outcome) => _outcome,
                 Err(dispatch_error) => return Err(dispatch_error)?,

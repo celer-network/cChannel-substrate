@@ -10,7 +10,7 @@ use frame_support::{
     storage::{StorageDoubleMap, StorageMap},
 };
 use frame_system::ensure_signed;
-use sp_runtime::traits::{CheckedAdd, CheckedSub};
+use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 use sp_runtime::{ModuleId, DispatchError};
 
 pub const POOL_ID: ModuleId = ModuleId(*b"_pool_id");
@@ -263,7 +263,6 @@ impl<T: Trait> Pool<T> {
         };
         let new_balances = balances.checked_sub(&subtracted_value)
                 .ok_or(Error::<T>::UnderFlow)?;
-
         Allowed::<T>::mutate(&caller, &spender, |balance| {
             *balance = Some(new_balances.clone())
         });
@@ -285,7 +284,7 @@ fn _transfer<T: Trait>(
     value: BalanceOf<T>,
 ) -> Result<(), DispatchError> {
     // Increase Pool balances of from address
-    let balances = PoolBalances::<T>::get(&from).unwrap();
+    let balances = PoolBalances::<T>::get(&from).unwrap_or(Zero::zero());
     let new_balances = balances.checked_sub(&value).ok_or(Error::<T>::OverFlow)?;
     PoolBalances::<T>::mutate(&from, |balance| *balance = Some(new_balances));
 

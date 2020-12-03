@@ -245,8 +245,10 @@ impl<T: Trait> LedgerOperation<T> {
             "caller is not channel peer"
         );
 
-        c.balance_limits = Some(limits);
-        <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(c));
+        <ChannelMap<T>>::mutate(&channel_id, |channel| {
+            c.balance_limits = Some(limits);
+            *channel = Some(c)
+        });
 
         // Emit SetBalanceLimits event
         CelerPayModule::<T>::deposit_event(RawEvent::SetBalanceLimits(
@@ -271,8 +273,10 @@ impl<T: Trait> LedgerOperation<T> {
             "caller is not channel peer"
         );
 
-        c.balance_limits_enabled = false;
-        <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(c));
+        <ChannelMap<T>>::mutate(&channel_id, |channel| {
+            c.balance_limits_enabled = false;
+            *channel = Some(c)
+        });
         
         // Emit DisableBalanceLimits event
         CelerPayModule::<T>::deposit_event(RawEvent::DisableBalanceLimits(
@@ -296,8 +300,10 @@ impl<T: Trait> LedgerOperation<T> {
             "caller is not channel peer"
         );
     
-        c.balance_limits_enabled = true;
-        <ChannelMap<T>>::mutate(&channel_id, |channel| *channel = Some(c));
+        <ChannelMap<T>>::mutate(&channel_id, |channel| {
+            c.balance_limits_enabled = true;
+            *channel = Some(c)
+        });
         
         // Emit EnableBalanceLimits event
         CelerPayModule::<T>::deposit_event(RawEvent::EnableBalanceLimits(
@@ -524,20 +530,16 @@ impl<T: Trait> LedgerOperation<T> {
             CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
             let pid = get_peer_id::<T>(c.clone(), simplex_state.peer_from.clone().unwrap())?;
-            let state = c.peer_profiles[pid].clone().state;
 
             ensure!(simplex_state.seq_num > c.peer_profiles[pid].state.seq_num, "seq_num error");
 
             // No need to update nextPayIdListHash and lastPayResolveDeadline for snapshot purpose
-            let new_state = PeerStateOf::<T> {
-                seq_num: simplex_state.seq_num,
-                transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt,
-                next_pay_id_list_hash: state.next_pay_id_list_hash,
-                last_pay_resolve_deadline: state.last_pay_resolve_deadline,
-                pending_pay_out: simplex_state.total_pending_amount.unwrap_or(Zero::zero()),
-            };
-            c.peer_profiles[pid].state = new_state;
-            ChannelMap::<T>::mutate(&current_channel_id, |channel| {*channel = Some(c)});
+            ChannelMap::<T>::mutate(&current_channel_id, |channel| {
+                c.peer_profiles[pid].state.seq_num = simplex_state.seq_num;
+                c.peer_profiles[pid].state.transfer_out = simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt;
+                c.peer_profiles[pid].state.pending_pay_out = simplex_state.total_pending_amount.unwrap_or(Zero::zero());
+                *channel = Some(c)
+            });
 
             if i == state_len.checked_sub(1).ok_or(Error::<T>::UnderFlow)? {
                 let seq_nums = get_state_seq_nums::<T>(current_channel_id);
@@ -595,14 +597,15 @@ impl<T: Trait> LedgerOperation<T> {
             "Receirver is not channel peer."
         );
 
-        let new_withdraw_intent = WithdrawIntentOf::<T> {
-            receiver: receiver.clone(),
-            amount: Some(amount),
-            request_time: Some(frame_system::Module::<T>::block_number()),
-            recipient_channel_id: Some(recipient_channel_id),
-        };
-        c.withdraw_intent = new_withdraw_intent;
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            c.withdraw_intent = WithdrawIntentOf::<T> {
+                receiver: receiver.clone(),
+                amount: Some(amount),
+                request_time: Some(frame_system::Module::<T>::block_number()),
+                recipient_channel_id: Some(recipient_channel_id),
+            };
+            *channel = Some(c)
+        });
 
         // Emit IntendWithdraw event
         CelerPayModule::<T>::deposit_event(RawEvent::IntendWithdraw(
@@ -659,12 +662,13 @@ impl<T: Trait> LedgerOperation<T> {
         // Update record of one peer's withdrawal amount
         let new_amount: BalanceOf<T> = c.peer_profiles[rid as usize].clone().withdrawal.unwrap_or(Zero::zero())
                  .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
-        c.peer_profiles[rid].withdrawal = Some(new_amount);
-
-        // Initialize c.wihdraw_intent
-        c.withdraw_intent = default_withdraw_intent::<T>();
-
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c.clone()));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            // Update record of one peer's withdrawal amount
+            c.peer_profiles[rid].withdrawal = Some(new_amount);
+            // Initialize c.wihdraw_intent
+            c.withdraw_intent = default_withdraw_intent::<T>();
+            *channel = Some(c.clone())
+        });
 
         withdraw_funds::<T>(
             c,
@@ -702,9 +706,11 @@ impl<T: Trait> LedgerOperation<T> {
         ensure!(c.withdraw_intent.receiver != celer_ledger_account, "No pending withdraw intent");
         ensure!(Self::is_peer(c.clone(), caller), "caller is not peer");
 
-        // Initialize c.wihdraw_intent
-        c.withdraw_intent = default_withdraw_intent::<T>();
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            // Initialize c.wihdraw_intent
+            c.withdraw_intent = default_withdraw_intent::<T>();
+            *channel = Some(c)
+        });
 
         // Emit VetoWithdraw event
         CelerPayModule::<T>::deposit_event(RawEvent::VetoWithdraw(
@@ -745,16 +751,18 @@ impl<T: Trait> LedgerOperation<T> {
             "Withdraw deadline passed"
         );
 
-        let receiver = withdraw_info.withdraw.account.unwrap();
+        let receiver = withdraw_info.clone().withdraw.account.unwrap();
         let amount = withdraw_info.withdraw.amt;
 
         let rid = get_peer_id::<T>(c.clone(), receiver.clone())?;
 
         let new_withdrawal_amount = c.peer_profiles[rid].clone().withdrawal.unwrap_or(Zero::zero())
                 .checked_add(&amount).ok_or(Error::<T>::OverFlow)?;
-        c.peer_profiles[rid].withdrawal = Some(new_withdrawal_amount);
-        c.cooperative_withdraw_seq_num = Some(withdraw_info.seq_num);
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c.clone()));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            c.peer_profiles[rid].withdrawal = Some(new_withdrawal_amount);
+            c.cooperative_withdraw_seq_num = Some(withdraw_info.seq_num);
+            *channel = Some(c.clone())
+        });
 
         withdraw_funds::<T>(
             c,
@@ -834,7 +842,6 @@ impl<T: Trait> LedgerOperation<T> {
                 CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
                 let pid = get_peer_id::<T>(c.clone(), simplex_state.peer_from.clone().unwrap())?;
-                let state = c.peer_profiles[pid].clone().state;
 
                 // Ensure each state can be intend_settle at most once
                 if c.status == ChannelStatus::Operable {
@@ -848,28 +855,20 @@ impl<T: Trait> LedgerOperation<T> {
                 let zero_hash = CelerPayModule::<T>::get_zero_hash();
                 let next_pay_id_list_hash = simplex_state.pending_pay_ids.clone().unwrap().next_list_hash.unwrap_or(zero_hash);
                 
-                let new_state: PeerStateOf<T>;
                 if next_pay_id_list_hash == zero_hash {
                     // Update simplex_state-dependent fields
-                    new_state = PeerStateOf::<T> {
-                        seq_num: simplex_state.seq_num,
-                        transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone(),
-                        next_pay_id_list_hash: None,
-                        last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone(),
-                        pending_pay_out: state.pending_pay_out,
-                    };
+                    c.peer_profiles[pid].state.seq_num = simplex_state.seq_num;
+                    c.peer_profiles[pid].state.transfer_out = simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone();
+                    c.peer_profiles[pid].state.next_pay_id_list_hash = None;
+                    c.peer_profiles[pid].state.last_pay_resolve_deadline = simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone();
                 } else {
                     // Update simplex_state-dependent fields
-                    new_state = PeerStateOf::<T> {
-                        seq_num: simplex_state.seq_num,
-                        transfer_out: simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone(),
-                        next_pay_id_list_hash: Some(next_pay_id_list_hash),
-                        last_pay_resolve_deadline: simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone(),
-                        pending_pay_out: simplex_state.total_pending_amount.clone().unwrap_or(Zero::zero()),
-                    };
+                    c.peer_profiles[pid].state.seq_num = simplex_state.seq_num;
+                    c.peer_profiles[pid].state.transfer_out = simplex_state.transfer_to_peer.as_ref().unwrap().receiver.amt.clone();
+                    c.peer_profiles[pid].state.next_pay_id_list_hash = Some(next_pay_id_list_hash);
+                    c.peer_profiles[pid].state.last_pay_resolve_deadline = simplex_state.last_pay_resolve_deadline.unwrap_or(Zero::zero()).clone();
+                    c.peer_profiles[pid].state.pending_pay_out = simplex_state.total_pending_amount.clone().unwrap_or(Zero::zero());
                 }
-
-                c.peer_profiles[pid].state = new_state;
             
                 _clear_pays::<T>(
                     c,
@@ -1303,15 +1302,11 @@ fn _clear_pays<T: Trait>(
     let zero_hash = CelerPayModule::<T>::get_zero_hash();
     if pay_id_list.next_list_hash.unwrap_or(zero_hash) == zero_hash {
         // if there are not more uncleared pays in this state, the pending_pay_out must be 0
-        let new_state = PeerStateOf::<T> {
-            seq_num: state.seq_num,
-            transfer_out: new_transfer_out,
-            next_pay_id_list_hash: state.next_pay_id_list_hash,
-            last_pay_resolve_deadline: state.last_pay_resolve_deadline,
-            pending_pay_out: Zero::zero(),
-        };
-        c.peer_profiles[pid].state = new_state;
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            c.peer_profiles[pid].state.transfer_out = new_transfer_out;
+            c.peer_profiles[pid].state.pending_pay_out = Zero::zero();
+            *channel = Some(c)
+        });
     } else {
         // Note: if there are more uncleared pays in this state, because resolved pay amount
         //      is always less than or equal to the corresponding maximum amount counted in
@@ -1319,15 +1314,11 @@ fn _clear_pays<T: Trait>(
         //      pending_pay_out. This will lead to decreasing the maximum withdraw amount (withdraw_limit)
         //      from potentially maliciout non-cooperative withdraw.
         let new_pending_pay_out = state.pending_pay_out.checked_sub(&total_amt_out).ok_or(Error::<T>::OverFlow)?;
-        let new_state = PeerStateOf::<T> {
-            seq_num: state.seq_num,
-            transfer_out: new_transfer_out,
-            next_pay_id_list_hash: state.next_pay_id_list_hash,
-            last_pay_resolve_deadline: state.last_pay_resolve_deadline,
-            pending_pay_out: new_pending_pay_out,
-        };
-        c.peer_profiles[pid].state = new_state;
-        ChannelMap::<T>::mutate(&channel_id, |channel| *channel = Some(c));
+        ChannelMap::<T>::mutate(&channel_id, |channel| {
+            c.peer_profiles[pid].state.transfer_out = new_transfer_out;
+            c.peer_profiles[pid].state.pending_pay_out = new_pending_pay_out;
+            *channel = Some(c)
+        });
     }
 
     Ok(())
@@ -1344,8 +1335,10 @@ fn update_overall_states_by_intend_state<T: Trait>(
 
     let new_setttle_finalized_time: T::BlockNumber = frame_system::Module::<T>::block_number()
             .checked_add(&c.dispute_timeout).ok_or(Error::<T>::OverFlow)?;
-    c.settle_finalized_time = Some(new_setttle_finalized_time);
-    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(c.clone()));
+    ChannelMap::<T>::mutate(channel_id, |channel| {
+        c.settle_finalized_time = Some(new_setttle_finalized_time);
+        *channel = Some(c.clone())
+    });
     update_channel_status::<T>(c, channel_id, ChannelStatus::Settling)?;
 
     let seq_nums = get_state_seq_nums::<T>(channel_id);
@@ -1383,15 +1376,18 @@ fn update_channel_status<T: Trait>(
         ChannelStatusNums::mutate(c.status.clone() as u8, |num| *num = Some(nums));
     }
 
-    let new_status_nums = match CelerPayModule::<T>::channel_status_nums(new_status.clone() as u8) {
-        Some(num) => num as u8,
-        None => 0 as u8,
-    };
-    let new_nums = new_status_nums + 1;
-    ChannelStatusNums::mutate(new_status.clone() as u8, |num| *num = Some(new_nums));
+    ChannelStatusNums::mutate(new_status.clone() as u8, |num| {
+        let new_status_nums = match CelerPayModule::<T>::channel_status_nums(new_status.clone() as u8) {
+            Some(num) => num as u8,
+            None => 0 as u8,
+        };
+        *num = Some(new_status_nums + 1)
+    });
 
-    c.status = new_status;
-    ChannelMap::<T>::mutate(channel_id, |channel| *channel = Some(c));
+    ChannelMap::<T>::mutate(channel_id, |channel| {
+        c.status = new_status;
+        *channel = Some(c)
+    });
 
     Ok(())
 }
