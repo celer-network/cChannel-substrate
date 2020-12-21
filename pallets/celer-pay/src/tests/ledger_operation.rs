@@ -4087,8 +4087,8 @@ pub mod test_ledger_operation {
         encoded.extend(channel_initializer.dispute_timeout.encode());
         encoded.extend(channel_initializer.msg_value_receiver.encode());
         
-        let sigs_1 = peers_sr25519_pairs[0].sign(&encoded);
-        let sigs_2 = peers_sr25519_pairs[1].sign(&encoded);
+        // let sigs_1 = peers_sr25519_pairs[0].sign(&encoded);
+        // let sigs_2 = peers_sr25519_pairs[1].sign(&encoded);
 
         let open_channel_request = OpenChannelRequest {
             channel_initializer: channel_initializer,

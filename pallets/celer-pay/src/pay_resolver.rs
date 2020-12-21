@@ -71,17 +71,32 @@ pub struct AccountAmtPair<AccountId, Balance> {
     pub amt: Balance,
 }
 
+pub type AccountAmtPairOf<T> = AccountAmtPair<
+    <T as system::Trait>::AccountId,
+    BalanceOf<T>,
+>;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TokenTransfer<AccountId, Balance> {
     pub token: TokenInfo,
     pub receiver: AccountAmtPair<AccountId, Balance>,
 }
 
+pub type TokenTransferOf<T> = TokenTransfer<
+    <T as system::Trait>::AccountId,
+    BalanceOf<T>,
+>;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct TransferFunction<AccountId, Balance> {
     pub logic_type: TransferFunctionType,
     pub max_transfer: TokenTransfer<AccountId, Balance>,
 }
+
+pub type TransferFunctionOf<T> = TransferFunction<
+    <T as system::Trait>::AccountId,
+    BalanceOf<T>,
+>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct ConditionalPay<Moment, BlockNumber, AccountId, Hash, Balance> {
@@ -122,11 +137,19 @@ pub struct CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance> {
     pub amount: Balance,
 }
 
+pub type CondPayResultOf<T> = CondPayResult<
+    <T as pallet_timestamp::Trait>::Moment,
+    <T as system::Trait>::BlockNumber,
+    <T as system::Trait>::AccountId,
+    <T as system::Trait>::Hash,
+    BalanceOf<T>,
+>;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Balance, Signature> {
+pub struct VouchedCondPayResult<Moment, BlockNumber, AccountId, Hash, Balance> {
     pub cond_pay_result: CondPayResult<Moment, BlockNumber, AccountId, Hash, Balance>,
-    pub sig_of_src: Signature,
-    pub sig_of_dest: Signature,
+    //pub sig_of_src: Signature,
+   // pub sig_of_dest: Signature,
 }
 
 pub type VouchedCondPayResultOf<T> = VouchedCondPayResult<
@@ -135,7 +158,7 @@ pub type VouchedCondPayResultOf<T> = VouchedCondPayResult<
     <T as system::Trait>::AccountId,
     <T as system::Trait>::Hash,
     BalanceOf<T>,
-    <T as Trait>::Signature,
+   // <T as Trait>::Signature,
 >;
 
 pub struct PayResolver<T>(sp_std::marker::PhantomData<T>);
@@ -192,17 +215,7 @@ impl<T: Trait> PayResolver<T> {
 
         // Check signatures
         let encoded = encode_conditional_pay::<T>(pay.clone());
-        CelerPayModule::<T>::check_single_signature(
-            vouched_pay_result.sig_of_src,
-            &encoded,
-            pay.src.clone(),
-        )?;
-        CelerPayModule::<T>::check_single_signature(
-            vouched_pay_result.sig_of_dest,
-            &encoded,
-            pay.dest.clone(),
-        )?;
-
+        
         let pay_hash = T::Hashing::hash(&encoded);
         return resolve_payment::<T>(pay, pay_hash, pay_result.amount);
     }
