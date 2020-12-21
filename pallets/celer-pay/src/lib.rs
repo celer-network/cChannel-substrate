@@ -11,9 +11,10 @@ mod runtime_module_condition_caller;
 pub mod weights;
 pub use weights::WeightInfo;
 pub mod traits;
+mod benchmarking;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 use codec::{Decode, Encode};
 use frame_support::{

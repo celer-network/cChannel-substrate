@@ -93,6 +93,11 @@ pub struct TokenDistribution<AccountId, Balance> {
     pub distribution: Vec<AccountAmtPair<AccountId, Balance>>,
 }
 
+pub type TokenDistributionOf<T> = TokenDistribution<
+    <T as system::Trait>::AccountId,
+    BalanceOf<T>,
+>;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
 pub struct PaymentChannelInitializer<AccountId, BlockNumber, Balance> {
     pub balance_limits_enabled: bool,
@@ -110,16 +115,16 @@ pub type PaymentChannelInitializerOf<T> = PaymentChannelInitializer<
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct OpenChannelRequest<AccountId, BlockNumber, Balance, Signature> {
+pub struct OpenChannelRequest<AccountId, BlockNumber, Balance> {
     pub channel_initializer: PaymentChannelInitializer<AccountId, BlockNumber, Balance>,
-    pub sigs: Vec<Signature>,
+    //pub sigs: Vec<Signature>,
 }
 
 pub type OpenChannelRequestOf<T> = OpenChannelRequest<
     <T as system::Trait>::AccountId,
     <T as system::Trait>::BlockNumber,
     BalanceOf<T>,
-    <T as Trait>::Signature,
+   // <T as Trait>::Signature,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -147,14 +152,21 @@ pub type SimplexPaymentChannelOf<T> = SimplexPaymentChannel<
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct SignedSimplexState<Hash, AccountId, BlockNumber, Balance, Signature> {
+pub struct SignedSimplexState<Hash, AccountId, BlockNumber, Balance> {
     pub simplex_state: SimplexPaymentChannel<Hash, AccountId, BlockNumber, Balance>,
-    pub sigs: Vec<Signature>,
+    //pub sigs: Vec<Signature>,
 }
 
+pub type SignedSimplexStateOf<T> = SignedSimplexState<
+    <T as system::Trait>::Hash,
+    <T as system::Trait>::AccountId,
+    <T as system::Trait>::BlockNumber,
+    BalanceOf<T>,
+>;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct SignedSimplexStateArray<Hash, AccountId, BlockNumber, Balance, Signature> {
-    pub signed_simplex_states: Vec<SignedSimplexState<Hash, AccountId, BlockNumber, Balance, Signature>>,
+pub struct SignedSimplexStateArray<Hash, AccountId, BlockNumber, Balance> {
+    pub signed_simplex_states: Vec<SignedSimplexState<Hash, AccountId, BlockNumber, Balance>>,
 }
 
 pub type SignedSimplexStateArrayOf<T> = SignedSimplexStateArray<
@@ -162,7 +174,7 @@ pub type SignedSimplexStateArrayOf<T> = SignedSimplexStateArray<
     <T as system::Trait>::AccountId,
     <T as system::Trait>::BlockNumber,
     BalanceOf<T>,
-    <T as Trait>::Signature,
+   // <T as Trait>::Signature,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -182,9 +194,9 @@ pub type CooperativeWithdrawInfoOf<T> = CooperativeWithdrawInfo<
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct CooperativeWithdrawRequest<Hash, BlockNumber, AccountId, Balance, Signature> {
+pub struct CooperativeWithdrawRequest<Hash, BlockNumber, AccountId, Balance> {
     pub withdraw_info: CooperativeWithdrawInfo<Hash, BlockNumber, AccountId, Balance>,
-    pub sigs: Vec<Signature>,
+    // pub sigs: Vec<Signature>,
 }
 
 pub type CooperativeWithdrawRequestOf<T> = CooperativeWithdrawRequest<
@@ -192,7 +204,7 @@ pub type CooperativeWithdrawRequestOf<T> = CooperativeWithdrawRequest<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     BalanceOf<T>,
-    <T as Trait>::Signature,
+    //<T as Trait>::Signature,
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
@@ -211,9 +223,9 @@ pub type CooperativeSettleInfoOf<T> = CooperativeSettleInfo<
 >;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Encode, Decode, RuntimeDebug)]
-pub struct CooperativeSettleRequest<Hash, BlockNumber, AccountId, Balance, Signature> {
+pub struct CooperativeSettleRequest<Hash, BlockNumber, AccountId, Balance> {
     pub settle_info: CooperativeSettleInfo<Hash, BlockNumber, AccountId, Balance>,
-    pub sigs: Vec<Signature>,
+   // pub sigs: Vec<Signature>,
 }
 
 pub type CooperativeSettleRequestOf<T> = CooperativeSettleRequest<
@@ -221,7 +233,7 @@ pub type CooperativeSettleRequestOf<T> = CooperativeSettleRequest<
     <T as system::Trait>::BlockNumber,
     <T as system::Trait>::AccountId,
     BalanceOf<T>,
-    <T as Trait>::Signature,
+   // <T as Trait>::Signature,
 >;
 
 pub const CELER_LEDGER_ID: ModuleId = ModuleId(*b"_ledger_");
@@ -359,7 +371,7 @@ impl<T: Trait> LedgerOperation<T> {
         );
 
         let encoded = encode_channel_initializer::<T>(channel_initializer.clone());
-        CelerPayModule::<T>::valid_signers(open_request.sigs, &encoded, peer_addrs.clone())?;
+        //CelerPayModule::<T>::valid_signers(open_request.sigs, &encoded, peer_addrs.clone())?;
 
         let celer_ledger_account = CelerPayModule::<T>::get_celer_ledger_id();
         let h = T::Hashing::hash(&encoded);
@@ -522,12 +534,12 @@ impl<T: Trait> LedgerOperation<T> {
             check_simplex_state::<T>(simplex_state.clone())?;
             // Check Co-Signatures.
             let encoded = encode_simplex_state::<T>(simplex_state.clone());
-            let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
+            // let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
             let channel_peer = vec![
                 c.peer_profiles[0].peer_addr.clone(),
                 c.peer_profiles[1].peer_addr.clone(),
             ];
-            CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
+            //CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
             let pid = get_peer_id::<T>(c.clone(), simplex_state.peer_from.clone().unwrap())?;
 
@@ -740,7 +752,7 @@ impl<T: Trait> LedgerOperation<T> {
             c.peer_profiles[0].peer_addr.clone(),
             c.peer_profiles[1].peer_addr.clone(),
         ];
-        CelerPayModule::<T>::valid_signers(cooperative_withdraw_request.sigs, &encoded, signers)?;
+        //CelerPayModule::<T>::valid_signers(cooperative_withdraw_request.sigs, &encoded, signers)?;
 
         // require an increment of exactly 1 for seq_num of each cooperative withdraw request
         let cal_seq = withdraw_info.seq_num
@@ -834,12 +846,12 @@ impl<T: Trait> LedgerOperation<T> {
                 check_simplex_state::<T>(simplex_state.clone())?;
                 // Check signatures
                 let encoded = encode_simplex_state::<T>(simplex_state.clone());
-                let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
+                // let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
                 let channel_peer = vec![
                     c.peer_profiles[0].peer_addr.clone(),
                     c.peer_profiles[1].peer_addr.clone(),
                 ];
-                CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
+                //CelerPayModule::<T>::valid_signers(sigs, &encoded, channel_peer)?;
 
                 let pid = get_peer_id::<T>(c.clone(), simplex_state.peer_from.clone().unwrap())?;
 
@@ -882,15 +894,15 @@ impl<T: Trait> LedgerOperation<T> {
                 let encoded = encode_simplex_null_state::<T>(
                     simplex_state.clone()
                 );
-                let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
-                CelerPayModule::<T>::check_single_signature(sigs[0].clone(), &encoded, c.peer_profiles[0].peer_addr.clone())?;
+                // let sigs = signed_simplex_state_array.signed_simplex_states[i].sigs.clone();
+                //CelerPayModule::<T>::check_single_signature(sigs[0].clone(), &encoded, c.peer_profiles[0].peer_addr.clone())?;
                 
                 // This implies both stored seq_nums are 0
                 ensure!(
                     c.settle_finalized_time.unwrap_or(Zero::zero()).is_zero(),
                     "intend_settle before"
                 );
-                ensure!(sigs.len() == 1, "Invalid signatures length");
+                // ensure!(sigs.len() == 1, "Invalid signatures length");
             } else {
                 Err(Error::<T>::Error)?
             }
@@ -1041,7 +1053,7 @@ impl<T: Trait> LedgerOperation<T> {
             settle_info.settle_balance[0].account.clone().unwrap(),
             settle_info.settle_balance[1].account.clone().unwrap(),
         ];
-        CelerPayModule::<T>::valid_signers(settle_request.sigs, &encoded, signers)?;
+        //CelerPayModule::<T>::valid_signers(settle_request.sigs, &encoded, signers)?;
 
         let state_0 = c.peer_profiles[0].state.clone();
         let state_1 = c.peer_profiles[1].state.clone();
