@@ -12,7 +12,7 @@ use mock_numeric_condition::{NumericArgsQueryFinalization, NumericArgsQueryOutco
 use mock_boolean_condition::{BooleanArgsQueryFinalization, BooleanArgsQueryOutcome};
 use crate::pay_registry::PayRegistry;
 
-const SEED: u32 = 0;
+const SEED: u32 = 2;
 
 fn activate_celer_pay_module<T: Trait>() {
     let pool_account = CelerModule::<T>::get_pool_id();
@@ -25,8 +25,8 @@ fn activate_celer_pay_module<T: Trait>() {
 fn get_sorted_peer<T: Trait>(
     peers: Vec<T::AccountId>
  ) -> Vec<T::AccountId> {
-    <T as traits::Trait>::Currency::make_free_balance_be(&peers[0], BalanceOf::<T>::max_value());
-    <T as traits::Trait>::Currency::make_free_balance_be(&peers[0], BalanceOf::<T>::max_value());
+    <T as traits::Trait>::Currency::make_free_balance_be(&peers[0], BalanceOf::<T>::max_value().saturating_sub(<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1000.into())));
+    <T as traits::Trait>::Currency::make_free_balance_be(&peers[1], BalanceOf::<T>::max_value().saturating_sub(<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1000.into())));
     if peers[0] < peers[1] {
         return vec![peers[0].clone(), peers[1].clone()];
     } else {
@@ -90,7 +90,7 @@ fn get_payment_channel_initializer<T: Trait>(
     let account_amt_pair_2: AccountAmtPair<T::AccountId, BalanceOf<T>>;
     let token_distribution: TokenDistribution<T::AccountId, BalanceOf<T>>;
     let token_info = TokenInfo {
-            token_type: TokenType::Celer,
+        token_type: TokenType::Celer,
     };
 
     if zero_total_deposit == true {
@@ -110,11 +110,11 @@ fn get_payment_channel_initializer<T: Trait>(
     } else {
         account_amt_pair_1 = AccountAmtPairOf::<T> {
             account: Some(channel_peers[0].clone()),
-            amt: 100.into(),
+            amt: <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()),
             };
         account_amt_pair_2 = AccountAmtPairOf::<T> {
             account: Some(channel_peers[1].clone()),
-            amt: 200.into(),
+            amt:<T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()),
         };
 
         token_distribution = TokenDistributionOf::<T> {
@@ -199,7 +199,7 @@ pub fn get_cosigned_intend_settle<T: Trait>(
     Vec<Vec<PayIdList<T::Hash>>>,
  ) {
     // Initial value pf cond_pay
-    let init_conditions = get_condition::<T>(3);
+    let init_conditions = get_condition::<T>(1);
     let init_transfer_func = get_transfer_func_2::<T>(10.into());
     let init_cond_pay = ConditionalPayOf::<T> {
         pay_timestamp: 0.into(),
@@ -343,7 +343,7 @@ fn get_pay_id_list_info<T: Trait>(
     vec![zero_hash, zero_hash];
 
     // Initial value pf cond_pay
-    let init_conditions = get_condition::<T>(3);
+    let init_conditions = get_condition::<T>(1);
     let init_transfer_func = get_transfer_func_2::<T>(1.into());
     let init_cond_pay = ConditionalPayOf::<T> {
         pay_timestamp: 0.into(),
@@ -375,10 +375,10 @@ fn get_pay_id_list_info<T: Trait>(
         for j in 0..pay_amounts_len_2 {
             total_pending_amount += pay_amounts[i][j];
             let conditions: Condition<T::Hash>;
-            if pay_conditions == 3 {
-                conditions = get_condition::<T>(3);
+            if pay_conditions == 1 {
+                conditions = get_condition::<T>(1);
             } else {
-                conditions = get_condition::<T>(4);
+                conditions = get_condition::<T>(2);
             }
 
             let mut src = T::AccountId::default();
@@ -803,7 +803,41 @@ fn get_transfer_func<T: Trait>(
     amount: BalanceOf<T>,
     r#type: u8,
 ) -> TransferFunction<T::AccountId, BalanceOf<T>> {   
-    if r#type == 2 {
+    if r#type == 0 {
+        let token_info = TokenInfo {
+            token_type: TokenType::Celer,
+        };
+        let account_amt_pair = AccountAmtPair {
+            account: Some(r#account),
+            amt: r#amount,
+        };
+        let token_transfer = TokenTransfer {
+            token: token_info,
+            receiver: account_amt_pair,
+        };
+        let transfer_func = TransferFunction {
+            logic_type: TransferFunctionType::BooleanAnd,
+            max_transfer: token_transfer,
+        };
+        return transfer_func;
+    } else if r#type == 1 {
+        let token_info = TokenInfo {
+            token_type: TokenType::Celer,
+        };
+        let account_amt_pair = AccountAmtPair {
+            account: Some(r#account),
+            amt: r#amount,
+        };
+        let token_transfer = TokenTransfer {
+            token: token_info,
+            receiver: account_amt_pair,
+        };
+        let transfer_func = TransferFunction {
+            logic_type: TransferFunctionType::BooleanOr,
+            max_transfer: token_transfer,
+        };
+        return transfer_func;
+    } else if r#type == 2 {
         let token_info = TokenInfo {
             token_type: TokenType::Celer,
         };
@@ -885,47 +919,48 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
+        let dispute_timeout = 11+i;
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10001.into()).saturating_add(i.into()),
             50000.into(),
-            10.into(),
+            dispute_timeout.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
-    }: _(RawOrigin::Signed(channel_peers[0].clone()), open_channel_request, 200.into())
+    }: _(RawOrigin::Signed(channel_peers[0].clone()), open_channel_request, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))
 
     set_balance_limits {
         let i in 0 .. 1000;
         let mut peer1 = T::AccountId::default();
         let mut peer2 = T::AccountId::default();
-        peer1 = account("peer1", i, SEED);
-        peer2 = account("peer2", i, SEED);
+        peer1 = account("peer11", i, SEED);
+        peer2 = account("peer22", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
+        let dispute_timeout = 11+i;
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10001.into()),
             50000.into(),
-            10.into(),
+            dispute_timeout.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
-    }: _(RawOrigin::Signed(channel_peers[1].clone()), channel_id, 200.into())
+    }: _(RawOrigin::Signed(channel_peers[1].clone()), channel_id, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))
 
     disable_balance_limits {
         let i in 0 .. 1000;
@@ -934,21 +969,21 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
     }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id)
 
@@ -959,21 +994,21 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
     }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id)
 
@@ -984,23 +1019,23 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 1000u32.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 1000u32.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
-    }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id, channel_peers[0].clone(), 300.into(), 0.into())
+    }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id, channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), 0.into())
 
     snapshot_states {
         let i in 0 .. 1000;
@@ -1009,30 +1044,30 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-        
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
 
-        let pay_id_list_info = get_pay_id_list_info::<T>(vec![vec![1.into(), 2.into()]], 3);
+        let pay_id_list_info = get_pay_id_list_info::<T>(vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(2.into())]], 3);
         let pay_id_list = pay_id_list_info.0[0].clone();
         let total_pending_amount = pay_id_list_info.3;
         let signed_simplex_state_array = get_signed_simplex_state_array::<T>(
             vec![channel_id],
             vec![5],
-            vec![100.into()],
+            vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into())],
             vec![99999.into()],
             vec![pay_id_list],
             vec![channel_peers[1].clone()],
@@ -1049,23 +1084,23 @@ benchmarks! {
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        activate_celer_pay_module::<T>();
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
         let zero_channel_id = CelerModule::<T>::get_zero_hash();
-    }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id, 200.into(), zero_channel_id)
+    }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), zero_channel_id)
 
     confirm_withdraw {
         let i in 0 .. 1000;
@@ -1073,25 +1108,26 @@ benchmarks! {
         let mut peer2 = T::AccountId::default();
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
-
+        activate_celer_pay_module::<T>();
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
         let zero_channel_id = CelerModule::<T>::get_zero_hash();
-        CelerModule::<T>::intend_withdraw(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, 200.into(), zero_channel_id)?;
+        CelerModule::<T>::deposit(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(300.into()), 0.into())?;
+        CelerModule::<T>::intend_withdraw(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), zero_channel_id)?;
         System::<T>::set_block_number(System::<T>::block_number() + 11.into());
     }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id)
 
@@ -1101,25 +1137,25 @@ benchmarks! {
         let mut peer2 = T::AccountId::default();
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
-
+        activate_celer_pay_module::<T>();
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
         let zero_channel_id = CelerModule::<T>::get_zero_hash();
-        CelerModule::<T>::intend_withdraw(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, 200.into(), zero_channel_id)?;
+        CelerModule::<T>::intend_withdraw(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), zero_channel_id)?;
     }: _(RawOrigin::Signed(channel_peers[1].clone()), channel_id)
 
     cooperative_withdraw {
@@ -1128,28 +1164,28 @@ benchmarks! {
         let mut peer2 = T::AccountId::default();
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
-
+        activate_celer_pay_module::<T>();
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
         let zero_channel_id = CelerModule::<T>::get_zero_hash();
         let cooperative_withdraw_request = get_cooperative_withdraw_request::<T>(
             channel_id,
             1,
-            200.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()),
             channel_peers[0].clone(),
             999999.into(),
             zero_channel_id
@@ -1163,26 +1199,26 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
             false,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
 
         // the meaning of the index: [peer index][pay hash list index][pay index]
         let peers_pay_hash_lists_amts: Vec<Vec<Vec<BalanceOf<T>>>> =
-            vec![vec![vec![1.into(), 2.into()], vec![3.into(), 4.into()]], vec![vec![5.into(), 6.into()], vec![7.into(), 8.into()]]];
+            vec![vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(2.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(3.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(4.into()),]], vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(5.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(6.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(7.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(8.into())]]];
         
         let global_result: (
             SignedSimplexStateArray<T::Hash, T::AccountId, T::BlockNumber, BalanceOf<T>>,
@@ -1194,17 +1230,86 @@ benchmarks! {
             vec![channel_id, channel_id],
             peers_pay_hash_lists_amts,
             vec![1, 1],   // seq_nums
-            vec![10.into(), 20.into()], // transfer amounts
+            vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(20.into())], // transfer amounts
             vec![2.into(), 2.into()],   // last_pay_resolve_deadlines
             vec![channel_peers[0].clone(), channel_peers[1].clone()],
             channel_peers[0].clone(),
-            3,
+            1,
         );
 
         let signed_simplex_state_array = global_result.0;
 
         System::<T>::set_block_number(System::<T>::block_number() + 3.into());
     }: _(RawOrigin::Signed(channel_peers[0].clone()), signed_simplex_state_array)
+
+    clear_pays {
+        let i in 0 .. 1000;
+        System::<T>::set_block_number(1.into());
+        let mut peer1 = T::AccountId::default();
+        let mut peer2 = T::AccountId::default();
+        peer1 = account("peer1", i, SEED);
+        peer2 = account("peer2", i, SEED);
+        let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
+        activate_celer_pay_module::<T>();
+        
+        let open_channel_request = get_open_channel_request::<T>(
+            true,
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
+            50000.into(),
+            10.into(),
+            true,
+            channel_peers.clone(),
+            1
+        );
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 0.into())?; 
+        let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
+
+        CelerModule::<T>::deposit(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), 0.into())?;
+        
+        let peers_pay_hash_lists_amts: Vec<Vec<Vec<BalanceOf<T>>>> =
+            vec![vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(2.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(3.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(4.into()),]], vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(5.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(6.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(7.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(8.into())]]];
+        
+        let global_result: (
+            SignedSimplexStateArray<T::Hash, T::AccountId, T::BlockNumber, BalanceOf<T>>,
+            Vec<T::BlockNumber>,
+            Vec<Vec<Vec<ConditionalPay<T::Moment, T::BlockNumber, T::AccountId, T::Hash, BalanceOf<T>>>>>,
+            Vec<Vec<T::Hash>>,
+            Vec<Vec<PayIdList<T::Hash>>>,
+        ) = get_cosigned_intend_settle::<T>(
+            vec![channel_id, channel_id],
+            peers_pay_hash_lists_amts,
+            vec![1, 1],   // seq_nums
+            vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(20.into())], // transfer amounts
+            vec![99999.into(), 99999.into()],   // last_pay_resolve_deadlines
+            vec![channel_peers[0].clone(), channel_peers[1].clone()],
+            channel_peers[0].clone(),
+            1,
+        );
+
+        let signed_simplex_state_array = global_result.0;
+        let cond_pays = global_result.2;
+
+        for peer_index in 0..2 {
+            for list_index in 0..2 {
+                for pay_index in 0..2 {
+                    let pay_request = ResolvePaymentConditionsRequest {
+                        cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
+                        hash_preimages: vec![],
+                    };
+                    CelerModule::<T>::resolve_payment_by_conditions(RawOrigin::Signed(channel_peers[0].clone()).into(), pay_request)?;
+                }
+            }
+        }
+
+        System::<T>::set_block_number(System::<T>::block_number() + 6.into());
+
+        CelerModule::<T>::intend_settle(RawOrigin::Signed(channel_peers[0].clone()).into(), signed_simplex_state_array.clone())?;
+
+        let settle_finalized_time = CelerModule::<T>::get_settle_finalized_time(channel_id.clone());
+        System::<T>::set_block_number(settle_finalized_time);
+    
+        let pay_id_list_array = global_result.4;
+    }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id, channel_peers[0].clone(), pay_id_list_array[0][1].clone())
 
     confirm_settle {
         let i in 0 .. 1000;
@@ -1213,26 +1318,29 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
-            false,
+            true,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 0.into())?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
+
+        CelerModule::<T>::deposit(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()), 0.into())?;
+        CelerModule::<T>::deposit(RawOrigin::Signed(channel_peers[1].clone()).into(), channel_id, channel_peers[1].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), 0.into())?;
 
         // the meaning of the index: [peer index][pay hash list index][pay index]
         let peers_pay_hash_lists_amts: Vec<Vec<Vec<BalanceOf<T>>>> =
-            vec![vec![vec![1.into(), 2.into()], vec![3.into(), 4.into()]], vec![vec![5.into(), 6.into()], vec![7.into(), 8.into()]]];
+            vec![vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(2.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(3.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(4.into()),]], vec![vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(5.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(6.into()),], vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(7.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(8.into())]]];
         
         let global_result: (
             SignedSimplexStateArray<T::Hash, T::AccountId, T::BlockNumber, BalanceOf<T>>,
@@ -1244,35 +1352,16 @@ benchmarks! {
             vec![channel_id, channel_id],
             peers_pay_hash_lists_amts,
             vec![1, 1],   // seq_nums
-            vec![10.into(), 20.into()], // transfer amounts
+            vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()),<T as traits::Trait>::Currency::minimum_balance().saturating_mul(20.into())], // transfer amounts
             vec![2.into(), 2.into()],   // last_pay_resolve_deadlines
             vec![channel_peers[0].clone(), channel_peers[1].clone()],
             channel_peers[0].clone(),
-            3,
+            1,
         );
 
         let signed_simplex_state_array = global_result.0;
-        let cond_pays = global_result.2;
 
         System::<T>::set_block_number(System::<T>::block_number() + 3.into());
-        
-        for peer_index in 0..2 {
-            for list_index in 0..cond_pays[peer_index as usize].len() {
-                for pay_index in 0..cond_pays[peer_index as usize][list_index as usize].len() {
-                    let pay_request = ResolvePaymentConditionsRequest {
-                        cond_pay: cond_pays[peer_index as usize][list_index as usize][pay_index as usize].clone(),
-                        hash_preimages: vec![],
-                    };
-                    CelerModule::<T>::resolve_payment_by_conditions(
-                        RawOrigin::Signed(channel_peers[0].clone()).into(), 
-                        pay_request
-                    )?;
-                }
-            }
-        }
-
-        // pass onchain  resolve deadline of all onchain resolved pays
-        System::<T>::set_block_number(System::<T>::block_number() + 6.into());
 
         // intend settle
         CelerModule::<T>::intend_settle(
@@ -1280,20 +1369,8 @@ benchmarks! {
             signed_simplex_state_array,
         )?;
 
-        let pay_id_list_array = global_result.4;
-
-        for peer_index in 0..2 {
-            CelerModule::<T>::clear_pays(
-                RawOrigin::Signed(channel_peers[0].clone()).into(), 
-                channel_id,
-                channel_peers[peer_index as usize].clone(),
-                pay_id_list_array[peer_index as usize][1].clone()
-            )?;
-        }
-
         let settle_finalized_time = CelerModule::<T>::get_settle_finalized_time(channel_id.clone());
-
-        System::<T>::set_block_number(settle_finalized_time);
+        System::<T>::set_block_number(System::<T>::block_number() + settle_finalized_time);
     }: _(RawOrigin::Signed(channel_peers[0].clone()), channel_id.clone())
 
 
@@ -1304,28 +1381,30 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         peer2 = account("peer2", i, SEED);
         let channel_peers = get_sorted_peer::<T>(vec![peer1, peer2]);
-
+        activate_celer_pay_module::<T>();
         let celer_ledger_account = CelerModule::<T>::get_celer_ledger_id();
-        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), 100.into())?;
-        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, 100.into())?;
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(channel_peers[0].clone()).into(), celer_ledger_account, <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into()))?;
 
         let open_channel_request = get_open_channel_request::<T>(
             true,
-            10000.into(),
+            <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10000.into()),
             50000.into(),
             10.into(),
-            false,
+            true,
             channel_peers.clone(),
             1
         );
-        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 200.into())?; 
+        CelerModule::<T>::open_channel(RawOrigin::Signed(channel_peers[0].clone()).into(), open_channel_request.clone(), 0.into())?; 
         let channel_id = calculate_channel_id::<T>(open_channel_request, channel_peers.clone());
+
+        CelerModule::<T>::deposit(RawOrigin::Signed(channel_peers[0].clone()).into(), channel_id, channel_peers[0].clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()), 0.into())?;
 
         let cooperative_settle_request = get_cooperative_settle_request::<T>(
             channel_id,
             2,
             channel_peers.clone(),
-            vec![200.into(), 100.into()],
+            vec![<T as traits::Trait>::Currency::minimum_balance().saturating_mul(150.into()), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(50.into())],
             50000.into()
         );
     }: _(RawOrigin::Signed(channel_peers[0].clone()), cooperative_settle_request.clone())
@@ -1367,7 +1446,7 @@ benchmarks! {
         <T as traits::Trait>::Currency::make_free_balance_be(&peer1, BalanceOf::<T>::max_value());
         spender = account("spender", i, SEED);
         <T as traits::Trait>::Currency::make_free_balance_be(&spender, BalanceOf::<T>::max_value());
-        let aprove_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into());
+        let approve_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into());
         CelerModule::<T>::approve(RawOrigin::Signed(peer1.clone()).into(), spender.clone(), approve_amount)?;
         let increase_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into());
     }: _(RawOrigin::Signed(peer1.clone()), spender.clone(), increase_amount)
@@ -1380,7 +1459,7 @@ benchmarks! {
         spender = account("spender", i, SEED);
         <T as traits::Trait>::Currency::make_free_balance_be(&peer1, BalanceOf::<T>::max_value());
         <T as traits::Trait>::Currency::make_free_balance_be(&spender, BalanceOf::<T>::max_value());
-        let aprove_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into());
+        let approve_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into());
         CelerModule::<T>::approve(RawOrigin::Signed(peer1.clone()).into(), spender.clone(), approve_amount)?;
         let decrease_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(50.into());
     }: _(RawOrigin::Signed(peer1.clone()), spender.clone(), decrease_amount)
@@ -1391,12 +1470,12 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         <T as traits::Trait>::Currency::make_free_balance_be(&peer1, BalanceOf::<T>::max_value());
         
-        let transfer_func = get_transfer_func::<T>(peer1.clone(), 10.into(), 3);
+        let transfer_func = get_transfer_func::<T>(peer1.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()), 0);
         let cond_pay = ConditionalPayOf::<T> {
             pay_timestamp: 0.into(),
             src: account("src", i, SEED),
             dest: account("dest", i , SEED),
-            conditions: vec![get_condition::<T>(0), get_condition::<T>(3), get_condition::<T>(4)],
+            conditions: vec![get_condition::<T>(0), get_condition::<T>(1), get_condition::<T>(1)],
             transfer_func: transfer_func,
             resolve_deadline: 99999.into(),
             resolve_timeout: 10.into()
@@ -1414,7 +1493,7 @@ benchmarks! {
         peer1 = account("peer1", i, SEED);
         <T as traits::Trait>::Currency::make_free_balance_be(&peer1, BalanceOf::<T>::max_value());
         
-        let transfer_func = get_transfer_func::<T>(peer1.clone(), 10.into(), 3);
+        let transfer_func = get_transfer_func::<T>(peer1.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()), 3);
         let shared_pay = ConditionalPayOf::<T> {
             pay_timestamp: 0.into(),
             src: account("src", i, SEED),
@@ -1427,7 +1506,7 @@ benchmarks! {
         let encoded_cond_pay = encode_conditional_pay::<T>(shared_pay.clone());
         let cond_pay_result = CondPayResultOf::<T> {
             cond_pay: shared_pay,
-            amount: 10.into()
+            amount: <T as traits::Trait>::Currency::minimum_balance().saturating_mul(10.into()),
         };
         let vouched_cond_pay_result = VouchedCondPayResultOf::<T> {
             cond_pay_result: cond_pay_result,
