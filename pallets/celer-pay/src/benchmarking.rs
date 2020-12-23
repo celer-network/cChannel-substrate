@@ -1429,6 +1429,21 @@ benchmarks! {
         let withdraw_amount = <T as traits::Trait>::Currency::minimum_balance().saturating_mul(100.into());
     }: _(RawOrigin::Signed(peer1.clone()), withdraw_amount)
 
+    transfer_from {
+        let i in 0 .. 1000;
+        let mut peer1 = T::AccountId::default();
+        let mut peer2 = T::AccountId::default();
+        let mut peer3 = T::AccountId::default();
+        peer1 = account("peer1", i, SEED);
+        peer2 = account("peer2", i, SEED);
+        peer3 = account("peer3", i, SEED);
+        <T as traits::Trait>::Currency::make_free_balance_be(&peer1, BalanceOf::<T>::max_value().saturating_sub(<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1000.into())));
+        <T as traits::Trait>::Currency::make_free_balance_be(&peer2, BalanceOf::<T>::max_value().saturating_sub(<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1000.into())));
+        <T as traits::Trait>::Currency::make_free_balance_be(&peer3, BalanceOf::<T>::max_value().saturating_sub(<T as traits::Trait>::Currency::minimum_balance().saturating_mul(1000.into())));
+        CelerModule::<T>::deposit_pool(RawOrigin::Signed(peer2.clone()).into(), peer2.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(200.into()))?;
+        CelerModule::<T>::approve(RawOrigin::Signed(peer2.clone()).into(), peer3.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(150.into()))?;
+    }: _(RawOrigin::Signed(peer3.clone()), peer2.clone(), peer1.clone(), <T as traits::Trait>::Currency::minimum_balance().saturating_mul(150.into()))
+
     approve {
         let i in 0 .. 1000;
         let mut peer1 = T::AccountId::default();
