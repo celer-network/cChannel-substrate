@@ -106,6 +106,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     71.06 µs
         /// #</weight>
         #[weight =(
             <T as traits::Trait>::WeightInfo::set_balance_limits(),
@@ -131,6 +133,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     70.58 µs
         /// #</weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::disable_balance_limits(),
@@ -155,6 +159,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     71.33 µs
         /// #</weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::enable_balance_limits(),
@@ -185,6 +191,8 @@ decl_module! {
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
         ///   - 1 storage write `WalletNum`
+        /// - Based on benchmark:
+        ///     503.2 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::open_channel(),
@@ -221,6 +229,8 @@ decl_module! {
         ///   - 1 storage mutation `PoolBalances`
         ///   - 2 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
+        /// - Based on benchmark:
+        ///     218.3 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::deposit(),
@@ -258,6 +268,8 @@ decl_module! {
         ///   - N storage mutation `PoolBalances`
         ///   - 2*N storage reads `Allowed`
         ///   - N storage mutation `Allowed`
+        /// - Based on benchmark:
+        ///     218.3 * N µs
         /// # </weight
         #[weight = (
             <T as traits::Trait>::WeightInfo::deposit_in_batch(
@@ -305,6 +317,8 @@ decl_module! {
         /// - DB:
         ///   - N storage reads `ChannelMap`
         ///   - N storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     100.2 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::snapshot_states(
@@ -340,6 +354,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     93.57 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::intend_withdraw(),
@@ -370,6 +386,8 @@ decl_module! {
         ///   - 1 storage mutation `ChannelMap`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
+        /// - Based on benchmark:
+        ///     212.1 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::confirm_withdraw(),
@@ -398,6 +416,8 @@ decl_module! {
         /// - DB:
         ///    - 1 storage reads `ChannelMap`
         ///    - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     73.18 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::veto_withdraw(),
@@ -424,6 +444,8 @@ decl_module! {
         ///    - 1 storage mutation `ChannelMap`
         ///    - 2 storage reads `Wallets`
         ///    - 2 storage mutation `Wallets`
+        /// - Based on benchmark:
+        ///     208.5 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::cooperative_withdraw(),
@@ -457,6 +479,8 @@ decl_module! {
         ///   - N storage reads `ChannelMap`
         ///   - N storage mutation `ChannelMap`
         ///   - M storage reads `PayInfoMap`
+        /// - Based on benchmark:
+        ///     633.2 µs
         /// # </weight>
         #[weight = (
             if signed_simplex_state_array.signed_simplex_states[0].simplex_state.pending_pay_ids.is_some() == true {
@@ -505,6 +529,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `ChannelMap`
         ///   - 1 storage mutation `ChannelMap`
+        /// - Based on benchmark:
+        ///     152.1 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::clear_pays(),
@@ -538,6 +564,8 @@ decl_module! {
         ///   - 2 storage mutation `ChannelStatusNums`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
+        /// - Based on benchmark:
+        ///     345.7 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::confirm_settle(),
@@ -567,6 +595,8 @@ decl_module! {
         ///   - 2 storage mutation `ChannelStatusNums`
         ///   - 2 storage reads `Wallets`
         ///   - 2 storage mutation `Wallets`
+        /// - Based on benchmark:
+        ///     337.1 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::cooperative_settle(),
@@ -594,6 +624,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
+        /// - Based on benchmark:
+        ///     140.4 µs
         /// #</weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::deposit_pool(),
@@ -619,6 +651,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
+        /// - Based on benchmark:
+        ///     123.4 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::withdraw_from_pool(),
@@ -643,6 +677,8 @@ decl_module! {
         /// - Complexity: `O(1)`
         /// - DB:
         ///   - 1 storage write `Allowed`
+        /// - Based on benchmark:
+        ///     45.26 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::approve(),
@@ -672,6 +708,8 @@ decl_module! {
         ///   - 1 storage mutation `Allowed`
         ///   - 2 storage reads `PoolBalances`
         ///   - 1 storage mutation `PoolBalances`
+        /// - Based on benchmark:
+        ///     186.9 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::transfer_from(),
@@ -699,6 +737,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
+        /// - Based on benchmark:
+        ///     61.49 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::increase_allowance(),
@@ -725,6 +765,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `Allowed`
         ///   - 1 storage mutation `Allowed`
+        /// - Based on benchmark:
+        ///     58.82 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::decrease_allowance(),
@@ -756,6 +798,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `PayRegistry`
         ///   - 1 storage mutation `PayRegistry`
+        /// - Based on benchmark:
+        ///     135.3 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::resolve_payment_by_conditions(
@@ -787,6 +831,8 @@ decl_module! {
         /// - DB:
         ///   - 1 storage reads `PayRegistry`
         ///   - 1 storage mutation `PayRegistry`
+        /// - Based on benchmark:
+        ///     132.3 µs
         /// # </weight>
         #[weight = (
             <T as traits::Trait>::WeightInfo::resolve_payment_by_vouched_result(
