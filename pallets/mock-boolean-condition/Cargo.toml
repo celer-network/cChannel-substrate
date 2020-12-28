@@ -2,7 +2,7 @@
 authors = ['Celer']
 edition = '2018'
 name = 'mock-boolean-condition'
-version = '0.8.8'
+version = '0.8.9'
 license = "MIT"
 repository = "https://github.com/celer-network/cChannel-substrate"
 description = "Mock boolean condition runtime module"

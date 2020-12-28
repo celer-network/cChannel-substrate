@@ -43,6 +43,9 @@ pub use frame_support::{
 /// Importing a celer-pay module
 pub use celer_pay_module;
 
+/// Importing a runtime module condition caller module
+pub use runtime_module_condition_caller;
+
 /// Importing a mock boolean condition module
 pub use mock_boolean_condition;
 
@@ -312,6 +315,8 @@ impl celer_pay_module::Trait for Runtime {
 	type WeightInfo = celer_pay_module::weights::SubstrateWeight<Runtime>;
 }
 
+impl runtime_module_condition_caller::Trait for Runtime {}
+
 impl mock_boolean_condition::Trait for Runtime {}
 
 impl mock_numeric_condition::Trait for Runtime {}
@@ -333,6 +338,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		Contracts: celer_contracts::{Module, Call, Storage, Event<T>},
 		CelerPayModule: celer_pay_module::{Module, Call, Storage, Event<T>},
+		ConditionCaller: runtime_module_condition_caller::{Module, Call},
 		MockBooleanCondition: mock_boolean_condition::{Module, Call},
 		MockNumericCondtion: mock_numeric_condition::{Module, Call},
 	}
