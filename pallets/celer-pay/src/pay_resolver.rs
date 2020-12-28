@@ -1,7 +1,6 @@
 use super::{BalanceOf, Error, Module as CelerPayModule, RawEvent};
 use crate::traits::Trait;
 use crate::pay_registry::PayRegistry;
-use crate::runtime_module_condition_caller::RuntimeModuleConditionCaller;
 use codec::{Decode, Encode};
 use frame_support::{ensure};
 use frame_system::{self as system};
@@ -309,7 +308,7 @@ fn calculate_boolean_and_payment<T: Trait>(
             };
             
             // call is_finalized and get_outcome function of boolean runtime module condition
-            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+            let (is_finalized, encoded_outcome) = runtime_module_condition_caller::Module::<T>::call_runtime_module_condition(
                 boolean_module_call_data.registration_num,
                 boolean_module_call_data.args_query_finalization,
                 boolean_module_call_data.args_query_outcome
@@ -392,7 +391,7 @@ fn calculate_boolean_or_payment<T: Trait>(
             };
 
             // call is_finalized and get_outcome function of boolean runtime module condition
-            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+            let (is_finalized, encoded_outcome) = runtime_module_condition_caller::Module::<T>::call_runtime_module_condition(
                 boolean_module_call_data.registration_num,
                 boolean_module_call_data.args_query_finalization,
                 boolean_module_call_data.args_query_outcome
@@ -477,7 +476,7 @@ fn calculate_numeric_logic_payment<T: Trait>(
             };
 
             // call is_finalized and get_outcome function of boolean runtime module condition
-            let (is_finalized, encoded_outcome) = RuntimeModuleConditionCaller::<T>::call_runtime_module_condition(
+            let (is_finalized, encoded_outcome) = runtime_module_condition_caller::Module::<T>::call_runtime_module_condition(
                 numeric_module_call_data.registration_num,
                 numeric_module_call_data.args_query_finalization,
                 numeric_module_call_data.args_query_outcome
