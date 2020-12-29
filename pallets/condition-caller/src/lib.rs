@@ -33,7 +33,6 @@ impl<T: Trait> Module<T> {
     ) -> Result<(bool, Vec<u8>), DispatchError> {
         // In the if block, call query function of your runtime module condition 
         // and return tuple(is_finalized result, encoded boolean or numeic outcome)
-        //
         match registration_num {
             0 => { // Register registration_num of your runtime module condition 
                 // is_finalized function return bool value
