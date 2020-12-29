@@ -25,12 +25,12 @@ pallet-timestamp = { version = "2.0.0", default_features = false }
 runtime-module-condition-caller = { path = "../condition-caller", version = "0.8.9", default_features = false }
 celer-pay-module-rpc-runtime-api = { path = "./rpc/runtime-api", version = "0.8.9", default_features = false }
 celer-contracts = { path = "../celer-contracts", version = "0.8.8", default_features = false }
-single-session-app = { version = "0.8.5", default_features = false }
 
 [dev-dependencies]
 pallet-randomness-collective-flip = { version = "2.0.0", default_features = false }
 mock-numeric-condition = { path = "../mock-numeric-condition", version = "0.8.9", default_features = false }
 mock-boolean-condition = { path = "../mock-boolean-condition", version = "0.8.9", default_features = false }
+single-session-app = { version = "0.8.5", default_features = false }
 
 [features]
 default = ["std"]
@@ -48,5 +48,4 @@ std = [
 	"runtime-module-condition-caller/std",
 	"celer-pay-module-rpc-runtime-api/std",
 	"celer-contracts/std",
-	"single-session-app/std",
 ]

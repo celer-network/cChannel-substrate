@@ -35,6 +35,7 @@ impl_outer_event! {
         pallet_balances<T>,
         system<T>,
         celer_contracts<T>,
+        single_session_app<T>,
     }
 }
 
@@ -170,6 +171,12 @@ impl celer_contracts::Trait for TestRuntime {
 impl mock_boolean_condition::Trait for TestRuntime {}
 
 impl mock_numeric_condition::Trait for TestRuntime {}
+
+impl single_session_app::Trait for TestRuntime {
+    type Event = TestEvent;
+    type Public = sr25519::Public;
+    type Signature = sr25519::Signature;
+}
 
 impl runtime_module_condition_caller::Trait for TestRuntime {}
 

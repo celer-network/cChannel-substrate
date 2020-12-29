@@ -4912,6 +4912,7 @@ dependencies = [
  "mock-boolean-condition",
  "mock-numeric-condition",
  "parity-scale-codec",
+ "single-session-app",
  "sp-runtime",
  "sp-std",
 ]

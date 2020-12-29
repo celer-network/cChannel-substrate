@@ -8,9 +8,9 @@ use frame_support::{
 use sp_std::vec::Vec;
 use sp_runtime::DispatchError;
 
-pub trait Trait: system::Trait + mock_numeric_condition::Trait + mock_boolean_condition::Trait {}
-// ----------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-// Add Trait of your runtime module condition like above.
+pub trait Trait: system::Trait + mock_numeric_condition::Trait + mock_boolean_condition::Trait + single_session_app::Trait {}
+// --------------------------------------------------------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// Add single session app Trait.
 
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
@@ -33,7 +33,6 @@ impl<T: Trait> Module<T> {
     ) -> Result<(bool, Vec<u8>), DispatchError> {
         // In the if block, call query function of your runtime module condition 
         // and return tuple(is_finalized result, encoded boolean or numeic outcome)
-        //
         match registration_num {
             0 => { // Register registration_num of your runtime module condition 
                 // is_finalized function return bool value
@@ -54,13 +53,26 @@ impl<T: Trait> Module<T> {
                     Ok(_is_finalized) => _is_finalized,
                     Err(dispatch_error) => return Err(dispatch_error)?,
                 };
-                // get_outcome function return encoded boolean value
+                // get_outcome function return encoded bool value
                 let outcome: Vec<u8> = match mock_boolean_condition::Module::<T>::get_outcome(args_query_outcome) {
                     Ok(_outcome) => _outcome,
                     Err(dispatch_error) => return Err(dispatch_error)?,
                 };
                 return Ok((is_finalized, outcome));
             },
+            2 => {
+                // is_finalized function return bool value
+                let is_finalized: bool = match single_session_app::Module::<T>::is_finalized(args_query_finalization) {
+                    Ok(_is_finalized) => _is_finalized,
+                    Err(dispatch_error) => return Err(dispatch_error)?,
+                };
+                // get_outcome function return encoded bool value
+                let outcome: Vec<u8> = match single_session_app::Module::<T>::get_outcome(args_query_outcome) {
+                    Ok(_outcome) => _outcome,
+                    Err(dispatch_error) => return Err(dispatch_error)?,
+                };
+                return Ok((is_finalized, outcome));
+            }
             _ => return Err(Error::<T>::RuntimeModuleConditionNotRegistered)?,
         }
     }
