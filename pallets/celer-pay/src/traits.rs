@@ -5,15 +5,11 @@ use frame_support::{
     traits::Currency
 };
 use sp_runtime::traits::{IdentifyAccount, Member, Verify};
-use mock_numeric_condition;
-use mock_boolean_condition;
 pub use crate::weights::WeightInfo;
 use super::Event;
 
-pub trait Trait: system::Trait + pallet_timestamp::Trait + celer_contracts::Trait 
-   + mock_numeric_condition::Trait + mock_boolean_condition::Trait + single_session_app::Trait
-// ----------------------------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^
-// Add single-session-app Trait
+
+pub trait Trait: system::Trait + pallet_timestamp::Trait + runtime_module_condition_caller::Trait + celer_contracts::Trait 
 {
     type Currency: Currency<Self::AccountId>;
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
