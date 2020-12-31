@@ -47,7 +47,7 @@ impl<T: Trait> Module<T> {
                 };
                 return Ok((is_finalized, outcome));
             },
-            1 => {
+            1 => { 
                 // is_finalized function return bool value
                 let is_finalized: bool = match mock_boolean_condition::Module::<T>::is_finalized(args_query_finalization) {
                     Ok(_is_finalized) => _is_finalized,
