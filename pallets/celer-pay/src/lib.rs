@@ -7,7 +7,6 @@ mod mock;
 mod pay_registry;
 mod pay_resolver;
 mod pool;
-mod runtime_module_condition_caller;
 pub mod weights;
 pub use weights::WeightInfo;
 pub mod traits;

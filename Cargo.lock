@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "celer-pay-module"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "celer-contracts",
  "celer-pay-module-rpc-runtime-api",
@@ -764,6 +764,7 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-timestamp",
  "parity-scale-codec",
+ "runtime-module-condition-caller",
  "serde",
  "sp-core",
  "sp-io",
@@ -773,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "celer-pay-module-rpc"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "celer-pay-module-rpc-runtime-api",
  "jsonrpc-core",
@@ -792,7 +793,7 @@ dependencies = [
 
 [[package]]
 name = "celer-pay-module-rpc-runtime-api"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "parity-scale-codec",
  "serde",
@@ -828,6 +829,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
+ "runtime-module-condition-caller",
  "serde",
  "sp-api",
  "sp-block-builder",
@@ -3459,7 +3461,7 @@ dependencies = [
 
 [[package]]
 name = "mock-boolean-condition"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -3470,7 +3472,7 @@ dependencies = [
 
 [[package]]
 name = "mock-numeric-condition"
-version = "0.8.8"
+version = "0.8.9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4897,6 +4899,19 @@ checksum = "99371657d3c8e4d816fb6221db98fa408242b0b53bac08f8676a41f8554fe99f"
 dependencies = [
  "libc",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "runtime-module-condition-caller"
+version = "0.8.9"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "mock-boolean-condition",
+ "mock-numeric-condition",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
