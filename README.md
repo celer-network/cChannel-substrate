@@ -53,7 +53,7 @@ __WARNING__: This is a proof-of-concept prototype. This implementation is NOT re
 ## Run Celer local testnet in Docker
 
 ```
-docker run -p 9944:9944 -p 9615:9615 thashimoto19980924/celer-network:latest
+docker run -p 9944:9944 -p 9615:9615 thashimoto19980924/celer-network:0.8.8
 ````
 
 ## Building and Testing celer-pay runtime module from source
